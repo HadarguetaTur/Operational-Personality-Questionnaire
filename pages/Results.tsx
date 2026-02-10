@@ -18,6 +18,7 @@ const METRIC_LABELS: Record<MetricID, string> = {
 };
 
 const TIME_LIMIT = 40; // Seconds until report hides
+const TIMER_WARNING_THRESHOLD = 10; // Seconds when timer becomes visible
 
 const Results: React.FC = () => {
   const navigate = useNavigate();
@@ -82,8 +83,8 @@ const Results: React.FC = () => {
   // Fix for mixed Hebrew/English text (Parentheses jumping)
   const bidiStyle: React.CSSProperties = { unicodeBidi: 'isolate', direction: 'rtl' };
 
-  // Show timer only in last 10 seconds
-  const showTimer = timeLeft <= 10 && !isExpired;
+  // Show timer only in last N seconds
+  const showTimer = timeLeft <= TIMER_WARNING_THRESHOLD && !isExpired;
 
   return (
     <div className="bg-slate-50 min-h-full font-sans text-slate-900 w-full overflow-x-hidden relative" dir="rtl">
@@ -91,15 +92,15 @@ const Results: React.FC = () => {
       {/* --- Timer Bar (Last 10 Seconds Only) --- */}
       {showTimer && (
         <div className="fixed top-0 left-0 w-full z-50 animate-slide-down">
-          <div className="bg-red-500 h-1.5 w-full">
+          <div className="bg-red-500 h-1 w-full"> {/* Thinner bar */}
              <div 
                className="h-full bg-red-700 transition-all duration-1000 ease-linear"
-               style={{ width: `${(timeLeft / 10) * 100}%` }}
+               style={{ width: `${(timeLeft / TIMER_WARNING_THRESHOLD) * 100}%` }} // Progress relative to 10s
              ></div>
           </div>
-          <div className="bg-slate-900/95 backdrop-blur text-white py-2 px-4 shadow-lg flex justify-between items-center">
+          <div className="bg-slate-900/95 backdrop-blur-sm text-white py-1.5 px-4 shadow-lg flex justify-between items-center text-sm"> {/* Smaller padding/text */}
              <span className="text-xs font-medium opacity-80">עותק קבוע נשלח למייל שלך</span>
-             <div className="font-bold text-sm">
+             <div className="font-bold">
                 הדוח יינעל בעוד <span className="text-red-400 text-lg w-6 inline-block text-center">{timeLeft}</span> שניות
              </div>
           </div>
