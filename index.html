@@ -416,6 +416,102 @@
         filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
       }
 
+      /* ========== PROCESS SECTION - Vertical Timeline ========== */
+      .process-section-bg {
+        background: linear-gradient(165deg, #2d3748 0%, #3b4a5a 40%, #334155 70%, #2d3748 100%);
+        position: relative;
+        overflow: hidden;
+      }
+      .process-section-bg::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse 60% 40% at 70% 30%, rgba(20, 184, 166, 0.06) 0%, transparent 60%);
+        pointer-events: none;
+      }
+      .process-section-bg::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
+        pointer-events: none;
+      }
+      .process-timeline-line {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: 23px;
+        width: 2px;
+        background: linear-gradient(
+          to bottom,
+          transparent 0%,
+          rgba(20, 184, 166, 0.3) 10%,
+          rgba(20, 184, 166, 0.3) 90%,
+          transparent 100%
+        );
+      }
+      @media (min-width: 768px) {
+        .process-timeline-line {
+          right: 27px;
+        }
+      }
+      .process-step-circle {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: rgba(20, 184, 166, 0.15);
+        border: 2px solid rgba(20, 184, 166, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        position: relative;
+        z-index: 2;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+      }
+      .process-step-card:hover .process-step-circle {
+        border-color: rgba(20, 184, 166, 0.9);
+        box-shadow: 0 0 20px -2px rgba(20, 184, 166, 0.4);
+        background: rgba(20, 184, 166, 0.25);
+      }
+      .process-step-card {
+        background: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 16px;
+        padding: 1.25rem 1.5rem;
+        transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+      }
+      .process-step-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px -4px rgba(20, 184, 166, 0.15);
+        border-color: rgba(20, 184, 166, 0.2);
+      }
+      .process-step-icon {
+        color: var(--landing-primary);
+        transition: transform 0.3s ease, filter 0.3s ease;
+      }
+      .process-step-card:hover .process-step-icon {
+        transform: scale(1.1);
+        filter: drop-shadow(0 0 6px rgba(20, 184, 166, 0.5));
+      }
+      /* staggered reveal for process steps */
+      .process-step-reveal {
+        opacity: 0;
+        transform: translateX(12px);
+      }
+      .landing-fade-up.landing-visible .process-step-reveal {
+        animation: processStepReveal 0.5s ease forwards;
+      }
+      .landing-fade-up.landing-visible .process-step-reveal:nth-child(1) { animation-delay: 0.1s; }
+      .landing-fade-up.landing-visible .process-step-reveal:nth-child(2) { animation-delay: 0.25s; }
+      .landing-fade-up.landing-visible .process-step-reveal:nth-child(3) { animation-delay: 0.4s; }
+      .landing-fade-up.landing-visible .process-step-reveal:nth-child(4) { animation-delay: 0.55s; }
+      @keyframes processStepReveal {
+        to { opacity: 1; transform: translateX(0); }
+      }
+
       /* ========== STEPS SECTION - Bento + Dark Glass + Tilt ========== */
       .steps-section-bg {
         background: linear-gradient(165deg, #2d3748 0%, #475569 50%, #334155 100%);

@@ -33,7 +33,7 @@ const Intro: React.FC = () => {
               רוב העסקים לא קורסים בגלל חוסר בלקוחות. הם קורסים כי המבנה שלהם &quot;רעיל&quot; לבעלים.
             </p>
             <p className="text-white/95">
-              השאלון הזה ימפה ב־<strong className="text-[var(--qa-accent)]">5 דקות</strong> את דפוס הניהול שלך ויגיד לך בדיוק איזה חלק במנגנון שלך יתפרק ראשון כשתנסה/י לגדול.
+              השאלון הזה ימפה ב <strong className="text-[var(--qa-accent)]">5 דקות</strong> את דפוס הניהול שלך ויגיד לך בדיוק איזה חלק במנגנון שלך יתפרק ראשון כשתנסה/י לגדול.
             </p>
             <p className="text-white/90">
               אין כאן תשובות &quot;טובות&quot; או &quot;רעות&quot;.<br />

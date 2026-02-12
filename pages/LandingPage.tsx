@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getLandingCopy } from "../config/landingCopy";
 import { HeroSection } from "../components/landing/HeroSection";
 import { CostSection } from "../components/landing/CostSection";
+import { ProcessSection } from "../components/landing/ProcessSection";
 import { StepsSection } from "../components/landing/StepsSection";
 import { DeliverablesSection } from "../components/landing/DeliverablesSection";
 import { WhyMeSection } from "../components/landing/WhyMeSection";
@@ -51,6 +52,7 @@ const LandingPage: React.FC = () => {
     <main id="main" className="min-h-screen bg-[#1e293b]" dir="rtl">
       <HeroSection copy={copy} userName={userName} />
       <CostSection copy={copy} />
+      <ProcessSection copy={copy} />
       <StepsSection copy={copy} />
       <DeliverablesSection copy={copy} />
       <WhyMeSection copy={copy} photoSrc="/landing-photo.jpg" />

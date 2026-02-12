@@ -2,7 +2,7 @@ import React, { useId } from "react";
 import { LandingCopy } from "../../config/landingCopy";
 import { FadeInSection } from "./FadeInSection";
 
-/** אייקון דולר עם נפח ותאורה – מראה "מואר מבפנים" */
+/** אייקון דולר עם נפח ותאורה, מראה "מואר מבפנים" */
 const DollarIcon3D = () => {
   const id = useId().replace(/:/g, "");
   return (

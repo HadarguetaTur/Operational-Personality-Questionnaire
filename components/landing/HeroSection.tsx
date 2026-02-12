@@ -3,7 +3,7 @@ import { LandingCopy } from "../../config/landingCopy";
 import { getPaymentUrl } from "../../config/landingCopy";
 import { PrimaryCTA } from "./PrimaryCTA";
 
-/** גרפיקות דקורטיביות ל־Hero */
+/** גרפיקות דקורטיביות ל Hero */
 const HeroGraphics = () => (
   <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
     <div
@@ -44,11 +44,13 @@ export const HeroSection: React.FC<{
 
       <div className="relative z-10 w-full max-w-[var(--max-content)] mx-auto px-6 md:px-8">
         <div className="max-w-[55ch] mx-auto text-right landing-hero-stagger" dir="rtl">
-          {userName && (
-            <p className="text-white/90 text-base md:text-lg mb-3">
-              שלום {userName},
+          <div className="rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 px-5 py-3 mb-6 inline-block">
+            <p className="text-white text-[15px] md:text-base font-medium leading-relaxed">
+              אל דאגה, התוצאה כבר במייל שלך ותוכלי לחזור אליה מתי שתרצי.
+              <br />
+              <span className="text-white/80">אבל בואי נדבר שנייה תכל׳ס.</span>
             </p>
-          )}
+          </div>
           <h1
             className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-4"
             style={{ fontSize: "var(--text-h1)", lineHeight: "var(--leading-tight)" }}
@@ -74,7 +76,7 @@ export const HeroSection: React.FC<{
                 key={i}
                 className="flex gap-3 items-start text-white/95 text-base md:text-[17px]"
               >
-                <span className="shrink-0 w-5 h-5 rounded border-2 border-white/50 flex items-center justify-center mt-0.5" aria-hidden />
+                <span className="shrink-0 w-5 h-5 rounded border-2 border-white/50 flex items-center justify-center mt-0.5 text-white text-xs font-bold" aria-hidden>✓</span>
                 <span className="leading-relaxed">{b}</span>
               </li>
             ))}

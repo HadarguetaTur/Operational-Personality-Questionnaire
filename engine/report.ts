@@ -93,55 +93,55 @@ function buildCurrentState(risks: Record<MetricID, number>, pattern: ManagementP
   const parts: string[] = [];
   parts.push(`העסק כרגע מתנהל בדפוס של ${pattern.name}. `);
   if (scale) {
-    if (scale === 'solo') parts.push('הפעילות בנויה כיום על אדם אחד — וזה אומר שהקיבולת, הידע וההכנסה תלויים ישירות בזמינות שלך. ');
+    if (scale === 'solo') parts.push('הפעילות בנויה כיום על אדם אחד, וזה אומר שהקיבולת, הידע וההכנסה תלויים ישירות בזמינות שלך. ');
     else if (scale === 'small_team') parts.push('יש צוות שמבצע, אבל הזרימה עדיין עוברת דרכך ברוב הצמתים. ');
     else parts.push('יש מבנה ארגוני, אך רמת העצמאות של הצוות עדיין דורשת חיזוק. ');
   }
   if (risks.Dependency_Index > 0.5) {
-    parts.push('זרימת ההחלטות מרוכזת בנקודה אחת — וזה יוצר תקרת צמיחה שלא נפתרת בעבודה קשה יותר. ');
+    parts.push('זרימת ההחלטות מרוכזת בנקודה אחת, וזה יוצר תקרת צמיחה שלא נפתרת בעבודה קשה יותר. ');
   }
   if (risks.Process_Standardization > 0.5) {
-    parts.push('אין עקביות מספקת בתהליכים — התוצאה תלויה ב"מי מבצע" ולא ב"איך מבצעים". ');
+    parts.push('אין עקביות מספקת בתהליכים. התוצאה תלויה ב"מי מבצע" ולא ב"איך מבצעים". ');
   }
   if (risks.Cognitive_Load > 0.5) {
-    parts.push('יש עומס קשב גבוה — מעבר בין משימות שלא משאיר מרחב לבנייה אסטרטגית. ');
+    parts.push('יש עומס קשב גבוה. מעבר בין משימות שלא משאיר מרחב לבנייה אסטרטגית. ');
   }
   if (risks.Strategic_Maturity > 0.5) {
     parts.push('רוב הזמן נשאב לתפעול שוטף, ונשאר מעט מקום לעבודה על העסק. ');
   }
-  return parts.join('').trim() || 'העסק בתנועה — יש עשייה ומחויבות, אך אילוצים מבניים מגבילים את הצמיחה.';
+  return parts.join('').trim() || 'העסק בתנועה. יש עשייה ומחויבות, אך אילוצים מבניים מגבילים את הצמיחה.';
 }
 
 function buildExistingAssets(risks: Record<MetricID, number>): string[] {
   const assets: string[] = [];
   if (risks.Dependency_Index <= 0.6) {
-    assets.push('לא כל הזרימה עוברת דרך נקודה אחת — יש יכולת האצלה שאפשר לבנות עליה.');
+    assets.push('לא כל הזרימה עוברת דרך נקודה אחת. יש יכולת האצלה שאפשר לבנות עליה.');
   }
   if (risks.Process_Standardization <= 0.6) {
-    assets.push('יש בסיס לתהליכים ועקביות בתוצאה — אפשר להרחיב ולחזק.');
+    assets.push('יש בסיס לתהליכים ועקביות בתוצאה. אפשר להרחיב ולחזק.');
   }
   if (risks.Cognitive_Load <= 0.6) {
-    assets.push('יש מרחב מנטלי — אפשר להקדיש זמן לשיפור ולא רק לתגובה.');
+    assets.push('יש מרחב מנטלי. אפשר להקדיש זמן לשיפור ולא רק לתגובה.');
   }
   if (risks.Knowledge_Asset_Value <= 0.5) {
-    assets.push('חלק מהידע מתועד ונגיש — זה מפחית סיכון ומקל על קליטת אנשים.');
+    assets.push('חלק מהידע מתועד ונגיש. זה מפחית סיכון ומקל על קליטת אנשים.');
   }
   if (risks.Strategic_Maturity <= 0.6) {
-    assets.push('יש חשיבה אסטרטגית — לא רק "עבודה בתוך העסק" אלא גם "עבודה על העסק".');
+    assets.push('יש חשיבה אסטרטגית. לא רק "עבודה בתוך העסק" אלא גם "עבודה על העסק".');
   }
   if (assets.length === 0) {
-    assets.push('יש פוטנציאל לצמיחה — השלב הנוכחי מאפשר להגדיר כיוון ברור ולהתחיל לבנות.');
+    assets.push('יש פוטנציאל לצמיחה. השלב הנוכחי מאפשר להגדיר כיוון ברור ולהתחיל לבנות.');
   }
   return assets;
 }
 
 function buildCentralGap(risks: Record<MetricID, number>, topMetric: MetricID): string {
   const gapText: Record<MetricID, string> = {
-    Dependency_Index: 'הפער המרכזי הוא תלות מבנית: כל זרימת הערך עוברת דרך נקודה אחת. זה לא שאלה של מחויבות — זה חסם שלא נפתר בעבודה קשה יותר.',
+    Dependency_Index: 'הפער המרכזי הוא תלות מבנית: כל זרימת הערך עוברת דרך נקודה אחת. זה לא שאלה של מחויבות, זה חסם שלא נפתר בעבודה קשה יותר.',
     Cognitive_Load: 'הפער המרכזי הוא עומס קשב: המעבר התדיר בין משימות שואב את האנרגיה שנדרשת לבנייה אסטרטגית. אין \"רגע לנשום\" כדי לשפר.',
-    Process_Standardization: 'הפער המרכזי הוא חוב תהליכי: העסק מייצר תוצאות, אבל בלי עקביות. כל פעם זה קצת אחרת — וזה עולה בזמן, בטעויות ובאיכות.',
-    Knowledge_Asset_Value: 'הפער המרכזי הוא ידע שלא מתועד: מה שנמצא בראש או בהתכתבויות — לא נגיש לאחרים. כל עזיבה או שינוי יוצרים משבר ידע.',
-    Strategic_Maturity: 'הפער המרכזי הוא היעדר אופק: העסק מגיב למה שקורה במקום ליזום. בלי תכנון, צמיחה היא עניין של מזל — לא של בחירה.'
+    Process_Standardization: 'הפער המרכזי הוא חוב תהליכי: העסק מייצר תוצאות, אבל בלי עקביות. כל פעם זה קצת אחרת, וזה עולה בזמן, בטעויות ובאיכות.',
+    Knowledge_Asset_Value: 'הפער המרכזי הוא ידע שלא מתועד: מה שנמצא בראש או בהתכתבויות לא נגיש לאחרים. כל עזיבה או שינוי יוצרים משבר ידע.',
+    Strategic_Maturity: 'הפער המרכזי הוא היעדר אופק: העסק מגיב למה שקורה במקום ליזום. בלי תכנון, צמיחה היא עניין של מזל, לא של בחירה.'
   };
   return gapText[topMetric] ?? gapText.Dependency_Index;
 }
@@ -150,9 +150,9 @@ function buildDirectionOfBuild(risks: Record<MetricID, number>, topMetric: Metri
   const dir: Record<MetricID, string> = {
     Dependency_Index: 'הכיוון: להפריד ידע, החלטה וביצוע. למפות את ההחלטות שחוזרות, לתעד אותן כברירות מחדל, ולאפשר לאחרים לפעול בלי לשאול.',
     Cognitive_Load: 'הכיוון: לבנות מסגרות שמגנות על הקשב. חלוקת יום לבלוקים, צמצום ערוצי פניות, ומערכת מעקב שמחליפה את \"הכל בראש\".',
-    Process_Standardization: 'הכיוון: לייצב תהליך אחד מרכזי — לכתוב אותו, לתקף אותו, ואז להרחיב. קודם סדר, אחר כך כלי.',
+    Process_Standardization: 'הכיוון: לייצב תהליך אחד מרכזי. לכתוב אותו, לתקף אותו, ואז להרחיב. קודם סדר, אחר כך כלי.',
     Knowledge_Asset_Value: 'הכיוון: להפוך ידע שבראש לנכס כתוב ונגיש. לתעד תהליכים, לבנות הדרכות לצריכה עצמית, ולרכז מידע במקום אחד.',
-    Strategic_Maturity: 'הכיוון: להקצות זמן קבוע ל\"עבודה על העסק\" — אפילו שעתיים בשבוע. להגדיר מדדים שמנחים החלטות, לא רק תחושת בטן.'
+    Strategic_Maturity: 'הכיוון: להקצות זמן קבוע ל\"עבודה על העסק\", אפילו שעתיים בשבוע. להגדיר מדדים שמנחים החלטות, לא רק תחושת בטן.'
   };
   return dir[topMetric] ?? dir.Dependency_Index;
 }
@@ -160,21 +160,21 @@ function buildDirectionOfBuild(risks: Record<MetricID, number>, topMetric: Metri
 function buildConstraints(risks: Record<MetricID, number>, scale?: ScaleStage): string[] {
   const constraints: string[] = [];
   if (scale === 'solo') {
-    constraints.push('בעסק סולו — לבחור מוקד שינוי אחד בלבד. לא להעמיס שיפורים על עומס קיים.');
+    constraints.push('בעסק סולו, לבחור מוקד שינוי אחד בלבד. לא להעמיס שיפורים על עומס קיים.');
   } else if (scale === 'small_team') {
-    constraints.push('בצוות קטן — לייצב תהליך אחד לפני שמוסיפים אנשים או לקוחות.');
+    constraints.push('בצוות קטן, לייצב תהליך אחד לפני שמוסיפים אנשים או לקוחות.');
   }
   if (risks.Dependency_Index > 0.6) {
-    constraints.push('לא להגדיל התחייבויות לפני שמפחיתים תלות — אחרת העומס רק יגדל.');
+    constraints.push('לא להגדיל התחייבויות לפני שמפחיתים תלות. אחרת העומס רק יגדל.');
   }
   if (risks.Process_Standardization > 0.6) {
-    constraints.push('לא להכניס כלי חדש לפני שמגדירים תהליך — כלי בלי נוהל רק מגדיל בלבול.');
+    constraints.push('לא להכניס כלי חדש לפני שמגדירים תהליך. כלי בלי נוהל רק מגדיל בלבול.');
   }
   if (risks.Cognitive_Load > 0.6) {
-    constraints.push('לא לפתוח יותר ממוקד שינוי אחד במקביל — עדיף לסיים דבר אחד לפני שמתחילים הבא.');
+    constraints.push('לא לפתוח יותר ממוקד שינוי אחד במקביל. עדיף לסיים דבר אחד לפני שמתחילים הבא.');
   }
   if (constraints.length === 0) {
-    constraints.push('להתקדם בצעדים מדודים — כל שלב עם מדד הצלחה ברור לפני שעוברים הלאה.');
+    constraints.push('להתקדם בצעדים מדודים. כל שלב עם מדד הצלחה ברור לפני שעוברים הלאה.');
   }
   return constraints;
 }
@@ -182,22 +182,22 @@ function buildConstraints(risks: Record<MetricID, number>, scale?: ScaleStage): 
 function buildRisksIfUnchanged(risks: Record<MetricID, number>): string[] {
   const r: string[] = [];
   if (risks.Dependency_Index > 0.5) {
-    r.push('תקרת הכנסה שצמודה לזמינות — אי אפשר לגדול בלי לעבוד יותר שעות.');
+    r.push('תקרת הכנסה שצמודה לזמינות. אי אפשר לגדול בלי לעבוד יותר שעות.');
   }
   if (risks.Process_Standardization > 0.5) {
-    r.push('שונות באיכות — שכפול הצלחה וקליטת אנשים חדשים יישארו קשים ויקרים.');
+    r.push('שונות באיכות. שכפול הצלחה וקליטת אנשים חדשים יישארו קשים ויקרים.');
   }
   if (risks.Cognitive_Load > 0.5) {
-    r.push('שחיקה מצטברת — ירידה באיכות החלטות ודחייה של בניית תשתיות עד למשבר.');
+    r.push('שחיקה מצטברת. ירידה באיכות החלטות ודחייה של בניית תשתיות עד למשבר.');
   }
   if (risks.Knowledge_Asset_Value > 0.5) {
-    r.push('סיכון המשכיות — עזיבה, מחלה או שינוי בכוח אדם יוצרים משבר ידע.');
+    r.push('סיכון המשכיות. עזיבה, מחלה או שינוי בכוח אדם יוצרים משבר ידע.');
   }
   if (risks.Strategic_Maturity > 0.5) {
-    r.push('עסק שדורך במקום — הרבה עשייה, מעט התקדמות. תגובתיות במקום יוזמה.');
+    r.push('עסק שדורך במקום. הרבה עשייה, מעט התקדמות. תגובתיות במקום יוזמה.');
   }
   if (r.length === 0) {
-    r.push('הפוטנציאל קיים — בלי צעד מכוון הוא ימומש רק חלקית.');
+    r.push('הפוטנציאל קיים. בלי צעד מכוון הוא ימומש רק חלקית.');
   }
   return r;
 }
@@ -278,10 +278,10 @@ export const generateReportText = (
   } else if (risks.Process_Standardization > 0.6) {
     recommendations.push("כתיבת 'נוהל ברזל' אחד לשירות המרכזי ביותר בעסק.");
   } else {
-    recommendations.push("ניתוח רווחיות לכל לקוח/מוצר וניפוי ה-20% התחתונים.");
+    recommendations.push("ניתוח רווחיות לכל לקוח או מוצר וניפוי ה 20% התחתונים.");
   }
   if (risks.Knowledge_Asset_Value > 0.5) {
-    recommendations.push("הפיכת הדרכה בעל-פה אחת לסרטון או מסמך שניתן לצריכה עצמית.");
+    recommendations.push("הפיכת הדרכה בעל פה אחת לסרטון או מסמך שניתן לצריכה עצמית.");
   } else {
     recommendations.push("הטמעת כלי אחד שמחליף עבודה ידנית בשרשרת הערך המרכזית.");
   }
@@ -298,16 +298,16 @@ export const generateReportText = (
   const quickWinsAsItems: ActionItem[] = (quickWinsRaw as (string | ActionItem)[]).map((item, i) =>
     toActionItem(item, {
       owner: 'בעלת העסק',
-      deadline: '7–14 יום',
+      deadline: '7 עד 14 יום',
       kpi: kpisList[i],
       deliverable: 'מסמך/תוצר ממומש',
-      effort: '2–4 שעות'
+      effort: '2 עד 4 שעות'
     })
   );
   const structuralStepsAsItems: ActionItem[] = (structuralStepsRaw as (string | ActionItem)[]).map((item, i) =>
     toActionItem(item, {
       owner: 'בעלת העסק',
-      deadline: '30–60 יום',
+      deadline: '30 עד 60 יום',
       kpi: kpisList[quickWinsRaw.length + i],
       deliverable: 'מבנה מוגדר',
       effort: 'יום עבודה'
@@ -330,17 +330,17 @@ export const generateReportText = (
   );
 
   const decisionRequiredMap: Record<MetricID, string> = {
-    Dependency_Index: 'להתחיל להפריד ידע, החלטה וביצוע — כדי שהעסק יוכל לגדול בלי שהכל יעבור דרכך.',
-    Cognitive_Load: 'לבנות מסגרות שמגנות על הקשב — בלוקי זמן, צמצום הפרעות, כלל תעדוף ברור.',
-    Process_Standardization: 'לייצב תהליך אחד מרכזי לפני שמרחיבים — קודם סדר, אחר כך צמיחה.',
-    Knowledge_Asset_Value: 'לתעד את הידע הקריטי ולהפוך אותו לנכס נגיש — לא רק \"בראש\".',
-    Strategic_Maturity: 'להקצות זמן קבוע ל\"עבודה על העסק\" — מדדים, תכנון, קבלת החלטות מבוססת נתונים.'
+    Dependency_Index: 'להתחיל להפריד ידע, החלטה וביצוע, כדי שהעסק יוכל לגדול בלי שהכל יעבור דרכך.',
+    Cognitive_Load: 'לבנות מסגרות שמגנות על הקשב: בלוקי זמן, צמצום הפרעות, כלל תעדוף ברור.',
+    Process_Standardization: 'לייצב תהליך אחד מרכזי לפני שמרחיבים. קודם סדר, אחר כך צמיחה.',
+    Knowledge_Asset_Value: 'לתעד את הידע הקריטי ולהפוך אותו לנכס נגיש, לא רק \"בראש\".',
+    Strategic_Maturity: 'להקצות זמן קבוע ל\"עבודה על העסק\": מדדים, תכנון, קבלת החלטות מבוססת נתונים.'
   };
   const decisionRequired = decisionRequiredMap[topMetric] ?? decisionRequiredMap.Dependency_Index;
 
   const scaleLabel = scale ? SCALE_LABELS[scale] : '';
   const executiveOneLine = `דפוס ניהול: ${pattern.name}${scaleLabel ? ` (${scaleLabel})` : ''}. הפער המרכזי: ${METRIC_LABELS[topMetric]}.`;
-  const executiveRiskCost = risksList[0] ?? 'ללא שינוי – הפוטנציאל לא ימומש והעסק ימשיך להתמודד עם אותם חסמים.';
+  const executiveRiskCost = risksList[0] ?? 'ללא שינוי, הפוטנציאל לא ימומש והעסק ימשיך להתמודד עם אותם חסמים.';
   const allActions = quickWinsAsItems.length >= 3
     ? quickWinsAsItems
     : [...quickWinsAsItems, ...recommendationsList.map((r) => ({ what: r } as ActionItem))];

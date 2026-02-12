@@ -9,7 +9,7 @@ export interface PrimaryCTAProps {
   ariaLabel?: string;
   /** "hero" = microcopy לבן על רקע כהה, "default" = טקסט מושתק */
   variant?: "hero" | "default";
-  /** אפקט pulse מבריק (רק ל־CTA ראשי ב־Hero) */
+  /** אפקט pulse מבריק (רק ל CTA ראשי ב Hero) */
   glow?: boolean;
 }
 

@@ -29,7 +29,7 @@ export const calculateFlags = (state: UserState, normalized: MetricScores): Flag
     flags.push({
       id: "SOP_GAP",
       title: "פער נהלים",
-      message: "היעדר תיעוד מסודר יוצר חוב תהליכי – כל פרויקט דורש בנייה מחדש. מומלץ לתעד את השירות המרכזי קודם.",
+      message: "היעדר תיעוד מסודר יוצר חוב תהליכי. כל פרויקט דורש בנייה מחדש. מומלץ לתעד את השירות המרכזי קודם.",
       severity: "High"
     });
   }

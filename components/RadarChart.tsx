@@ -136,7 +136,7 @@ export const RadarChart: React.FC<RadarChartProps> = ({ scores, size = 300, show
         })}
       </svg>
       <p className="text-xs text-[var(--qa-text-muted)] mt-2 text-center" style={{ direction: 'rtl' }}>
-        סולם 0–1 (גבוה = פער גדול יותר) | קו מקווקו = יעד בינוני
+        סולם 0 עד 1 (גבוה = פער גדול יותר) | קו מקווקו = יעד בינוני
       </p>
     </div>
   );

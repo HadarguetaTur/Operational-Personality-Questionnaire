@@ -451,13 +451,6 @@ const FinalReport: React.FC = () => {
         </ul>
       </Section>
 
-      {/* כיוון בנייה */}
-      <Section title="כיוון בנייה" variant="direction">
-        <p className="text-[16px] md:text-[17px] leading-[1.8] text-[var(--qa-text-primary)] mb-6 text-right" dir="rtl">
-          {reportData.directionOfBuild}
-        </p>
-      </Section>
-
       {/* תוכנית פעולה */}
       {(reportData.quickWins?.length || reportData.structuralSteps?.length) ? (
         <Section title="תוכנית פעולה" variant="direction">
@@ -476,28 +469,28 @@ const FinalReport: React.FC = () => {
               </thead>
               <tbody>
                 {(reportData.quickWins ?? []).map((item, idx) => {
-                  const row = typeof item === 'string' ? { what: item, owner: 'בעלת העסק', deadline: '7–14 יום', deliverable: '', kpi: '', effort: '', why: '' } : item;
+                  const row = typeof item === 'string' ? { what: item, owner: 'בעלת העסק', deadline: '7 עד 14 יום', deliverable: '', kpi: '', effort: '', why: '' } : item;
                   return (
                     <tr key={`qw-${idx}`} className="border-b border-[var(--qa-border)]">
                       <td className="py-2.5 px-3 text-[var(--qa-text-primary)]">{row.what}</td>
                       <td className="py-2.5 px-3 text-[var(--qa-text-primary)]">{row.why ?? '...'}</td>
                       <td className="py-2.5 px-3 text-[var(--qa-text-primary)]">{row.owner ?? 'בעלת העסק'}</td>
                       <td className="py-2.5 px-3 text-[var(--qa-text-primary)]">{row.deliverable ?? 'מסמך/תוצר ממומש'}</td>
-                      <td className="py-2.5 px-3 text-[var(--qa-text-primary)]">{row.deadline ?? '7–14 יום'}</td>
+                      <td className="py-2.5 px-3 text-[var(--qa-text-primary)]">{row.deadline ?? '7 עד 14 יום'}</td>
                       <td className="py-2.5 px-3 text-[var(--qa-text-primary)]">{row.kpi ?? '...'}</td>
-                      <td className="py-2.5 px-3 text-[var(--qa-text-primary)]">{row.effort ?? '2–4 שעות'}</td>
+                      <td className="py-2.5 px-3 text-[var(--qa-text-primary)]">{row.effort ?? '2 עד 4 שעות'}</td>
                     </tr>
                   );
                 })}
                 {(reportData.structuralSteps ?? []).map((item, idx) => {
-                  const row = typeof item === 'string' ? { what: item, owner: 'בעלת העסק', deadline: '30–60 יום', deliverable: '', kpi: '', effort: '', why: '' } : item;
+                  const row = typeof item === 'string' ? { what: item, owner: 'בעלת העסק', deadline: '30 עד 60 יום', deliverable: '', kpi: '', effort: '', why: '' } : item;
                   return (
                     <tr key={`ss-${idx}`} className="border-b border-[var(--qa-border)]">
                       <td className="py-2.5 px-3 text-[var(--qa-text-primary)]">{row.what}</td>
                       <td className="py-2.5 px-3 text-[var(--qa-text-primary)]">{row.why ?? '...'}</td>
                       <td className="py-2.5 px-3 text-[var(--qa-text-primary)]">{row.owner ?? 'בעלת העסק'}</td>
                       <td className="py-2.5 px-3 text-[var(--qa-text-primary)]">{row.deliverable ?? 'מבנה מוגדר'}</td>
-                      <td className="py-2.5 px-3 text-[var(--qa-text-primary)]">{row.deadline ?? '30–60 יום'}</td>
+                      <td className="py-2.5 px-3 text-[var(--qa-text-primary)]">{row.deadline ?? '30 עד 60 יום'}</td>
                       <td className="py-2.5 px-3 text-[var(--qa-text-primary)]">{row.kpi ?? '...'}</td>
                       <td className="py-2.5 px-3 text-[var(--qa-text-primary)]">{row.effort ?? 'יום עבודה'}</td>
                     </tr>

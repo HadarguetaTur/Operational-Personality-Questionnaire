@@ -231,7 +231,7 @@ const DiagnosticChat: React.FC = () => {
             </h2>
 
             <p className="text-[17px] md:text-[18px] text-[var(--qa-text-secondary)] leading-[1.8] mb-4">
-              הדוח מבוסס על דפוסים שעלו מ־{state.questionQueue.length} נקודות בדיקה, לא על שאלה בודדת.
+              הדוח מבוסס על דפוסים שעלו מ {state.questionQueue.length} נקודות בדיקה, לא על שאלה בודדת.
             </p>
 
             <p className="text-[16px] text-[var(--qa-text-muted)] leading-[1.7] mb-10">

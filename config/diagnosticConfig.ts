@@ -31,9 +31,9 @@ export function getQuestionQueueAfterContext(scaleContext: ScaleContext): string
 
 /** Methodology metadata for report block */
 export const METHODOLOGY = {
-  questionCount: "14–16",
+  questionCount: "14 עד 16",
   dimensionsCount: 5,
-  scaleDescription: "סולם 1–5 מנורמל ל־0–1",
+  scaleDescription: "סולם 1 עד 5 מנורמל ל 0 עד 1",
   source: "אבחון עצמי מבוסס שאלון",
   sample: "בעל/ת העסק",
 } as const;
@@ -45,7 +45,7 @@ export const METHODOLOGY = {
 export const diagnosticConfig: Config = {
   metadata: {
     version: "6.0",
-    name: "Architecture of Scale – אבחון דפוסי ניהול ותשתית תפעולית",
+    name: "Architecture of Scale | אבחון דפוסי ניהול ותשתית תפעולית",
     metrics: [
       "Dependency_Index",
       "Cognitive_Load",
@@ -69,17 +69,17 @@ export const diagnosticConfig: Config = {
       answers: [
         {
           id: "Q1_A",
-          text: "אני העסק — אני עושה את עיקר העבודה בעצמי. אם יש לי עזרה, היא נקודתית (פרילנסרים, VA).",
+          text: "אני העסק. אני עושה את עיקר העבודה בעצמי. אם יש לי עזרה, היא נקודתית (פרילנסרים, VA).",
           score: {}
         },
         {
           id: "Q1_B",
-          text: "יש לי צוות קטן — 2-6 אנשים שעובדים לצידי באופן קבוע, אבל אני עדיין מעורב/ת ברוב הדברים.",
+          text: "יש לי צוות קטן, 2 עד 6 אנשים שעובדים לצידי באופן קבוע, אבל אני עדיין מעורב/ת ברוב הדברים.",
           score: {}
         },
         {
           id: "Q1_C",
-          text: "אני מנהל/ת צוות — 7+ אנשים, עם אחראים על תחומים. אני מנהל/ת מנהלים, לא רק מבצעים.",
+          text: "אני מנהל/ת צוות, 7+ אנשים, עם אחראים על תחומים. אני מנהל/ת מנהלים, לא רק מבצעים.",
           score: {}
         }
       ]
@@ -97,7 +97,7 @@ export const diagnosticConfig: Config = {
       answers: [
         {
           id: "S1_A",
-          text: "הייתי מסרב/ת או דוחה — אין לי מקום פיזית ביומן.",
+          text: "הייתי מסרב/ת או דוחה. אין לי מקום פיזית ביומן.",
           score: { Dependency_Index: 4, Strategic_Maturity: 3 }
         },
         {
@@ -154,7 +154,7 @@ export const diagnosticConfig: Config = {
         },
         {
           id: "S3_B",
-          text: "פרוס בין מיילים, קבצים וכלים שונים — אם אחפש, אמצא.",
+          text: "פרוס בין מיילים, קבצים וכלים שונים. אם אחפש, אמצא.",
           score: { Knowledge_Asset_Value: 2, Process_Standardization: 3 }
         },
         {
@@ -180,7 +180,7 @@ export const diagnosticConfig: Config = {
         },
         {
           id: "S4_B",
-          text: "סיכוי טוב, כי אני מקפיד/ה, אבל אין לי רשימת תיוג — זה יוצא מהראש.",
+          text: "סיכוי טוב, כי אני מקפיד/ה, אבל אין לי רשימת תיוג. זה יוצא מהראש.",
           score: { Process_Standardization: 3 }
         },
         {
@@ -201,7 +201,7 @@ export const diagnosticConfig: Config = {
       answers: [
         {
           id: "S5_A",
-          text: "הכל. אני עובר/ת בין 4-5 תחומים ביום בלי הפסקה.",
+          text: "הכל. אני עובר/ת בין 4 עד 5 תחומים ביום בלי הפסקה.",
           score: { Cognitive_Load: 5, Strategic_Maturity: 3 }
         },
         {
@@ -211,7 +211,7 @@ export const diagnosticConfig: Config = {
         },
         {
           id: "S5_C",
-          text: "מגדיר/ה מראש אילו כובעים לאיזה יום, ודברים שלא בליבה — מיקור חוץ.",
+          text: "מגדיר/ה מראש אילו כובעים לאיזה יום, ודברים שלא בליבה, מיקור חוץ.",
           score: { Cognitive_Load: 0, Strategic_Maturity: 0 }
         }
       ]
@@ -289,7 +289,7 @@ export const diagnosticConfig: Config = {
         },
         {
           id: "S8_C",
-          text: "רוב ההכנסה הייתה ממשיכה — יש מערכת שפועלת.",
+          text: "רוב ההכנסה הייתה ממשיכה. יש מערכת שפועלת.",
           score: { Dependency_Index: 0, Process_Standardization: 0 }
         }
       ]
@@ -312,7 +312,7 @@ export const diagnosticConfig: Config = {
         },
         {
           id: "T1_B",
-          text: "הצוות ידע לטפל בשגרה, אבל כל חריג — ינתב אליי.",
+          text: "הצוות ידע לטפל בשגרה, אבל כל חריג ינתב אליי.",
           score: { Dependency_Index: 3, Cognitive_Load: 2 }
         },
         {
@@ -369,7 +369,7 @@ export const diagnosticConfig: Config = {
         },
         {
           id: "T3_C",
-          text: "יש לי \"שעות ניהול\" מוגדרות, והשאר — עבודת עומק.",
+          text: "יש לי \"שעות ניהול\" מוגדרות, והשאר עבודת עומק.",
           score: { Cognitive_Load: 0 }
         }
       ]
@@ -442,7 +442,7 @@ export const diagnosticConfig: Config = {
         },
         {
           id: "T6_B",
-          text: "מפוזר — בוואטסאפים, מיילים, מסמכים. קיים, אבל לא נגיש.",
+          text: "מפוזר. בוואטסאפים, מיילים, מסמכים. קיים, אבל לא נגיש.",
           score: { Knowledge_Asset_Value: 2, Process_Standardization: 3 }
         },
         {
@@ -579,7 +579,7 @@ export const diagnosticConfig: Config = {
         },
         {
           id: "G2_C",
-          text: "ה-Owners של התחומים מדווחים על חריגות באופן פרואקטיבי.",
+          text: "בעלי התחומים מדווחים על חריגות באופן פרואקטיבי.",
           score: { Dependency_Index: 0, Process_Standardization: 0 }
         }
       ]
@@ -601,12 +601,12 @@ export const diagnosticConfig: Config = {
         {
           id: "G3_B",
           text: "נשמרת בזכות אנשים טובים, אבל כל אחד בדרך שלו.",
-          score: { Process_Standardization: 3 }
+          score: { Process_Standardization: 3, Dependency_Index: 1 }
         },
         {
           id: "G3_C",
           text: "יש סטנדרטים, בקרות ורשימות תיוג שמחזיקים את הרמה.",
-          score: { Process_Standardization: 0 }
+          score: { Process_Standardization: 0, Dependency_Index: 0 }
         }
       ]
     },
@@ -679,12 +679,12 @@ export const diagnosticConfig: Config = {
         {
           id: "G6_B",
           text: "יש מסמכים, אבל לא מעודכנים ולא תמיד נגישים.",
-          score: { Knowledge_Asset_Value: 2, Process_Standardization: 2 }
+          score: { Knowledge_Asset_Value: 2, Process_Standardization: 2, Dependency_Index: 1 }
         },
         {
           id: "G6_C",
           text: "במקור אמת מרכזי שכולם משתמשים בו ומעדכנים אותו.",
-          score: { Knowledge_Asset_Value: 5 }
+          score: { Knowledge_Asset_Value: 5, Dependency_Index: 0 }
         }
       ]
     },
@@ -705,11 +705,11 @@ export const diagnosticConfig: Config = {
         {
           id: "G7_B",
           text: "חודש. יש הדרכות, אבל עדיין הרבה \"תשאל/י את [שם]\".",
-          score: { Knowledge_Asset_Value: 3 }
+          score: { Knowledge_Asset_Value: 3, Dependency_Index: 1 }
         },
         {
           id: "G7_C",
-          text: "שבועיים-שלושה. יש תוכנית חניכה מובנית עם חומרים מוכנים.",
+          text: "שבועיים עד שלושה. יש תוכנית חניכה מובנית עם חומרים מוכנים.",
           score: { Knowledge_Asset_Value: 5, Dependency_Index: 0 }
         }
       ]
@@ -731,12 +731,12 @@ export const diagnosticConfig: Config = {
         {
           id: "G8_B",
           text: "צווארי בקבוק נוצרים מחוסר כלים או כוח אדם. מזהים מאוחר מדי.",
-          score: { Process_Standardization: 4 }
+          score: { Process_Standardization: 4, Dependency_Index: 1 }
         },
         {
           id: "G8_C",
           text: "יש מנגנון שמזהה צווארי בקבוק ומפנה משאבים לפני שזה נהיה בעיה.",
-          score: { Strategic_Maturity: 0, Process_Standardization: 0 }
+          score: { Strategic_Maturity: 0, Process_Standardization: 0, Dependency_Index: 0 }
         }
       ]
     },
@@ -751,7 +751,7 @@ export const diagnosticConfig: Config = {
       answers: [
         {
           id: "G9_A",
-          text: "לא באמת יודע/ת. אני סומך/ת על תחושה ועל מה שרואה.",
+          text: "אין לי תמונה ברורה. אני הולך/ת לפי תחושה ומה שקולט/ת בשטח.",
           score: { Strategic_Maturity: 5 }
         },
         {
@@ -813,7 +813,7 @@ export const diagnosticConfig: Config = {
         },
         {
           id: "ST2_C",
-          text: "יש תכנית מגירה ומדדים שמתריעים מוקדם — זזים לפני שהמשבר מכה.",
+          text: "יש תכנית מגירה ומדדים שמתריעים מוקדם. זזים לפני שהמשבר מכה.",
           score: { Strategic_Maturity: 0 }
         }
       ]
@@ -838,7 +838,7 @@ export const diagnosticConfig: Config = {
         },
         {
           id: "ST3_C",
-          text: "באופן קבוע — יש זמן מוגדר בלוח שמוקדש לשיפור תשתיות.",
+          text: "באופן קבוע. יש זמן מוגדר בלוח שמוקדש לשיפור תשתיות.",
           score: { Strategic_Maturity: 0 }
         }
       ]
@@ -978,7 +978,7 @@ export const diagnosticConfig: Config = {
       {
         id: "BP2",
         layer: "B",
-        text: "אם היית צריך/ה להסביר למישהו חיצוני \"איך העסק עובד\" — כמה זמן היה לוקח?",
+        text: "אם היית צריך/ה להסביר למישהו חיצוני \"איך העסק עובד\", כמה זמן היה לוקח?",
         cluster: "deepening",
         answers: [
           {
