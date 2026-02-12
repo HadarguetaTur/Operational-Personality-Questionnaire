@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { diagnosticConfig, getQuestionQueueAfterContext, LAST_STRATEGIC_ID } from '../config/diagnosticConfig';
 import { UserState, Question, AnswerOption, ScaleContext } from '../types';
@@ -28,15 +28,76 @@ const DiagnosticChat: React.FC = () => {
     leadId: leadId ?? undefined
   }));
 
+  // Keep a ref to the latest state so unload handlers can read it without stale closures
+  const stateRef = useRef(state);
+  useEffect(() => { stateRef.current = state; }, [state]);
+
   useEffect(() => {
     if (leadId && state.leadId === leadId) {
       supabase
         .from('leads')
-        .update({ started_at: new Date().toISOString() })
+        .update({
+          started_at: new Date().toISOString(),
+          lead_status: 'in_progress',
+          last_active_at: new Date().toISOString()
+        })
         .eq('id', leadId)
         .then(() => {});
     }
   }, [leadId, state.leadId]);
+
+  // --- beforeunload + visibilitychange: save progress on tab close / switch ---
+  useEffect(() => {
+    if (!leadId) return;
+
+    const saveProgressOnExit = () => {
+      const s = stateRef.current;
+      if (s.completed || s.currentQuestionIndex === 0) return; // nothing to save
+
+      const pct = Math.round((s.currentQuestionIndex / s.questionQueue.length) * 100);
+      const lastQ = s.questionQueue[s.currentQuestionIndex - 1] ?? s.questionQueue[0];
+      const payload = {
+        lead_status: 'in_progress',
+        last_active_at: new Date().toISOString(),
+        drop_off_question: lastQ,
+        progress_percent: pct,
+        partial_answers: s.answers
+      };
+
+      // Use fetch + keepalive so the request survives page unload
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/leads?id=eq.${leadId}`;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      try {
+        fetch(url, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: anonKey,
+            Authorization: `Bearer ${anonKey}`,
+            Prefer: 'return=minimal'
+          },
+          body: JSON.stringify(payload),
+          keepalive: true
+        });
+      } catch {
+        // best-effort – ignore errors during unload
+      }
+    };
+
+    const handleBeforeUnload = () => saveProgressOnExit();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') saveProgressOnExit();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [leadId]);
 
   const [phase, setPhase] = useState<'question' | 'exit' | 'interim'>('question');
   const [renderKey, setRenderKey] = useState(0);
@@ -121,6 +182,22 @@ const DiagnosticChat: React.FC = () => {
 
       const nextIndex = state.currentQuestionIndex + 1;
 
+      // --- Track progress to Supabase (fire-and-forget) ---
+      if (leadId) {
+        const pct = Math.round((nextIndex / nextQueue.length) * 100);
+        supabase
+          .from('leads')
+          .update({
+            lead_status: 'in_progress',
+            last_active_at: new Date().toISOString(),
+            drop_off_question: currentQuestion.id,
+            progress_percent: pct,
+            partial_answers: newState.answers
+          })
+          .eq('id', leadId)
+          .then(() => {});
+      }
+
       if (nextIndex < nextQueue.length) {
         setState({
           ...newState,
@@ -134,7 +211,7 @@ const DiagnosticChat: React.FC = () => {
         setPhase('interim');
       }
     }, 220);
-  }, [currentQuestion, state, findQuestion]);
+  }, [currentQuestion, state, leadId, findQuestion]);
 
   const handleContinue = () => {
     localStorage.setItem('diagnosticResult', JSON.stringify(state));

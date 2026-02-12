@@ -211,7 +211,8 @@ const FinalReport: React.FC = () => {
             result_scale_stage: scaleStage ? SCALE_LABELS[scaleStage] ?? scaleStage : null,
             result_top_metric: topMetric,
             result_snapshot: resultSnapshot,
-            report_token: reportToken
+            report_token: reportToken,
+            lead_status: 'completed'
           })
           .eq('id', state.leadId)
           .select('report_token')
