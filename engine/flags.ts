@@ -2,49 +2,44 @@ import { UserState, Flag, MetricScores } from '../types';
 
 export const calculateFlags = (state: UserState, normalized: MetricScores): Flag[] => {
   const flags: Flag[] = [];
-  const answers = state.answers;
 
-  // SPOF
-  if (normalized.Dependency_Index >= 0.75 && normalized.Knowledge_Asset_Value <= 0.35) {
+  // SPOF — Single Point of Failure
+  if (normalized.Dependency_Index >= 0.75 && (1 - normalized.Knowledge_Asset_Value) >= 0.65) {
     flags.push({
       id: "SPOF",
       title: "נקודת כשל יחידה",
-      message: "העסק תלוי בך ברמה שמסכנת את ההמשכיות שלו.",
+      message: "העסק כרגע תלוי בצומת אחד ברמה שמשפיעה על המשכיות. מומלץ לתעד ידע קריטי ולפזר החלטות חוזרות.",
       severity: "High"
     });
   }
 
-  // TOOL_FIRST_TRAP
-  // A4_2: "חיפוש כלי (App)..."
-  // B_STR_1_2: "חיפוש כלי שיפתור את הסימפטום."
-  const hasToolAnswer = Object.values(answers).some(aId => aId === "A4_2" || aId === "B_STR_1_2");
-  if (hasToolAnswer) {
-    flags.push({
-      id: "TOOL_FIRST_TRAP",
-      title: "מלכודת ה-'כלי קודם'",
-      message: "נטייה לחפש פתרונות טכנולוגיים לפני הגדרת תהליכים, מה שמוביל לרוב לעומס כלי מיותר.",
-      severity: "Medium"
-    });
-  }
-
-  // CONTEXT_SWITCH_TAX
+  // CONTEXT_SWITCH_TAX — high cognitive load
   if (normalized.Cognitive_Load >= 0.70) {
     flags.push({
       id: "CONTEXT_SWITCH_TAX",
       title: "מס הקשב",
-      message: "הזגזוג בין משימות שוחק את היכולת שלך לקבל החלטות אסטרטגיות.",
+      message: "עומס המעבר בין משימות יוצר מגבלה על זמן וקשב לניהול יזום ולקבלת החלטות אסטרטגיות.",
       severity: "High"
     });
   }
 
-  // SOP_GAP (Process High (Bad), Knowledge Low (Bad score? Wait. Knowledge <= 0.5 means Low Value/Risk High?))
-  // Re-eval Knowledge: High Score = Good. 
-  // Requirement: Knowledge <= 0.5 (Low Goodness) AND Process >= 0.7 (High Chaos).
-  if (normalized.Process_Standardization >= 0.70 && normalized.Knowledge_Asset_Value <= 0.50) {
+  // SOP_GAP — Process risk high, Knowledge asset value low
+  const knowRisk = 1 - normalized.Knowledge_Asset_Value;
+  if (normalized.Process_Standardization >= 0.70 && knowRisk >= 0.50) {
     flags.push({
       id: "SOP_GAP",
       title: "פער נהלים",
-      message: "היעדר תיעוד מסודר מחייב אותך להמציא את הגלגל מחדש בכל פרויקט.",
+      message: "היעדר תיעוד מסודר יוצר חוב תהליכי – כל פרויקט דורש בנייה מחדש. מומלץ לתעד את השירות המרכזי קודם.",
+      severity: "High"
+    });
+  }
+
+  // CAPACITY_CEILING — high dependency + low strategic maturity (solo-relevant)
+  if (normalized.Dependency_Index >= 0.70 && normalized.Strategic_Maturity >= 0.60) {
+    flags.push({
+      id: "CAPACITY_CEILING",
+      title: "תקרת קיבולת",
+      message: "ההכנסה תלויה ישירות בזמן הזמין. ללא שינוי מבני, הגדלת היקף מחייבת הגדלת שעות עבודה.",
       severity: "High"
     });
   }

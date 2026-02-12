@@ -5,55 +5,65 @@ const Intro: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-8 animate-fade-in font-heebo">
-      {/* Avatar Image Section */}
-      <div className="relative mb-2">
-        <div className="w-32 h-32 rounded-full p-1 bg-gradient-to-tr from-purple-400 to-purple-600 shadow-xl shadow-purple-200">
-           {/* PLEASE PLACE YOUR IMAGE AS 'avatar.png' IN THE PUBLIC FOLDER */}
-           <img 
-             src="/avatar.png" 
-             alt="Your Business Guide" 
-             className="w-full h-full rounded-full object-cover border-4 border-white bg-slate-100"
-             onError={(e) => {
-               (e.target as HTMLImageElement).src = 'https://ui-avatars.com/api/?name=Or+Guide&background=9333ea&color=fff&size=256'; // Fallback
-             }}
-           />
-        </div>
-        <div className="absolute -bottom-2 -right-2 bg-green-400 w-6 h-6 rounded-full border-4 border-white shadow-sm"></div>
+    <div className="relative flex flex-col justify-center min-h-full py-10 md:py-16 px-6 md:px-8 text-right overflow-hidden" dir="rtl">
+      {/* גרפיקות דקורטיביות — עומק ויזואלי */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden>
+        <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-[var(--qa-accent)]/10 blur-3xl" />
+        <div className="absolute bottom-1/4 -left-16 w-64 h-64 rounded-full bg-[var(--qa-accent)]/5 blur-3xl" />
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `radial-gradient(circle at 2px 2px, white 1px, transparent 0)`,
+            backgroundSize: '32px 32px',
+          }}
+        />
       </div>
 
-      <div className="space-y-4">
-        <h1 className="text-4xl font-extrabold text-slate-900 leading-tight">
-          בדיקת בריאות תפעולית
-          <span className="block text-purple-600 text-2xl mt-2 font-normal">Business Scalability Audit</span>
-        </h1>
-        <p className="text-lg text-slate-600 max-w-md mx-auto leading-relaxed">
-          גלי מה עוצר את העסק שלך מלגדול, וקבלי מפת דרכים ברורה למעבר מעסק של "לוחמת בודדה" למערכת צומחת.
+      <div className="relative z-10 w-full max-w-[55ch] mx-auto">
+        <section className="bg-[var(--qa-surface)]/90 backdrop-blur-sm border border-[var(--qa-border)] rounded-2xl px-6 md:px-10 py-8 md:py-12 text-right shadow-xl shadow-black/20">
+          <h1 className="text-[32px] md:text-[40px] font-bold text-[var(--qa-text-primary)] leading-tight mb-3">
+            האם העסק שלך בנוי לסביבה של 10X?
+          </h1>
+          <p className="text-[17px] md:text-[18px] text-[var(--qa-accent)] font-medium mb-6">
+            אבחון Architecture of Scale (AoS)
+          </p>
+
+          <div className="space-y-5 text-[16px] md:text-[17px] text-[var(--qa-text-primary)] leading-[1.75]">
+            <p className="text-white/95">
+              רוב העסקים לא קורסים בגלל חוסר בלקוחות. הם קורסים כי המבנה שלהם &quot;רעיל&quot; לבעלים.
+            </p>
+            <p className="text-white/95">
+              השאלון הזה ימפה ב־<strong className="text-[var(--qa-accent)]">5 דקות</strong> את דפוס הניהול שלך ויגיד לך בדיוק איזה חלק במנגנון שלך יתפרק ראשון כשתנסה/י לגדול.
+            </p>
+            <p className="text-white/90">
+              אין כאן תשובות &quot;טובות&quot; או &quot;רעות&quot;.<br />
+              יש תמונת מצב, ועל בסיסה כיוון חכם להמשך.
+            </p>
+          </div>
+
+          <div className="border-t border-[var(--qa-border)] pt-6 mt-6 flex flex-wrap gap-4">
+            <div className="flex items-center gap-2 text-[15px] text-[var(--qa-text-primary)]">
+              <span className="text-[var(--qa-accent)]">⏱</span>
+              <span>משך האבחון: 5 דקות</span>
+            </div>
+            <div className="flex items-center gap-2 text-[15px] text-[var(--qa-text-primary)]">
+              <span className="text-[var(--qa-accent)]">📄</span>
+              <span>בסיום: דוח ניהולי מותאם אישית</span>
+            </div>
+          </div>
+        </section>
+
+        <button
+          onClick={() => navigate('/lead-form')}
+          className="mt-8 w-full h-14 rounded-xl bg-[var(--qa-accent)] text-white text-[17px] font-semibold transition-all duration-200 hover:bg-[var(--qa-accent-hover)] hover:shadow-lg hover:shadow-[var(--qa-accent)]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qa-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--qa-bg)] active:scale-[0.99] shadow-lg shadow-[var(--qa-accent)]/25"
+        >
+          התחל סריקת מערכת (5 דקות)
+        </button>
+
+        <p className="text-[14px] text-[var(--qa-text-secondary)] mt-5">
+          נתחיל בהבנת ההקשר שבו העסק פועל כיום.
         </p>
       </div>
-
-      <div className="bg-purple-50 p-6 rounded-2xl w-full max-w-sm border border-purple-100">
-        <ul className="text-right space-y-3 text-sm text-slate-700">
-          <li className="flex items-center gap-2">
-            <span className="text-purple-500 font-bold">✓</span> אבחון מהיר (2 דקות)
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="text-purple-500 font-bold">✓</span> מותאם אישית למצבך
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="text-purple-500 font-bold">✓</span> דוח מקצועי בסיום
-          </li>
-        </ul>
-      </div>
-
-      <button
-        onClick={() => navigate('/diagnostic')}
-        className="bg-purple-600 text-white text-xl font-bold py-4 px-12 rounded-full shadow-lg shadow-purple-200 hover:bg-purple-700 hover:shadow-xl transition-all active:scale-95 w-full max-w-xs"
-      >
-        התחילי עכשיו
-      </button>
-      
-      <p className="text-xs text-gray-400 mt-8">גרסה 3.0 | MVP Demo</p>
     </div>
   );
 };

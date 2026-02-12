@@ -1,10 +1,17 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { MetricScores, MetricID } from '../types';
 
 interface RadarChartProps {
   scores: MetricScores;
   size?: number;
+  /** Show target line at 0.66 (medium threshold) */
+  showTarget?: boolean;
 }
+
+const getResponsiveSize = (preferred: number) => {
+  if (typeof window === 'undefined') return preferred;
+  return Math.min(preferred, window.innerWidth - 48);
+};
 
 const METRICS_ORDER: MetricID[] = [
   "Dependency_Index",
@@ -15,28 +22,31 @@ const METRICS_ORDER: MetricID[] = [
 ];
 
 const METRIC_LABELS: Record<MetricID, string> = {
-  Dependency_Index: "תלות",
-  Cognitive_Load: "עומס",
-  Process_Standardization: "תהליכים",
-  Knowledge_Asset_Value: "ידע",
-  Strategic_Maturity: "אסטרטגיה"
+  Dependency_Index: 'תלות',
+  Cognitive_Load: 'עומס',
+  Process_Standardization: 'תהליכים',
+  Knowledge_Asset_Value: 'ידע',
+  Strategic_Maturity: 'אסטרטגיה'
 };
 
-export const RadarChart: React.FC<RadarChartProps> = ({ scores, size = 300 }) => {
-  const center = size / 2;
-  const radius = (size / 2) - 40; // Padding for labels
+export const RadarChart: React.FC<RadarChartProps> = ({ scores, size = 300, showTarget = true }) => {
+  const [responsiveSize, setResponsiveSize] = useState(() => getResponsiveSize(size));
+
+  useEffect(() => {
+    const update = () => setResponsiveSize(getResponsiveSize(size));
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, [size]);
+
+  const chartSize = responsiveSize;
+  const center = chartSize / 2;
+  const radius = (chartSize / 2) - 40;
   const angleStep = (Math.PI * 2) / 5;
 
-  // Helper to calculate coordinates
   const getCoordinates = (value: number, index: number) => {
-    const angle = (Math.PI / 2) + (index * angleStep); // Start from top
-    // Note: SVG y-axis is inverted (down is positive), but sin/cos standard is up.
-    // We rotate -90deg (start top) which is -PI/2.
-    // Actually, let's just do standard math:
-    // x = r * cos(a), y = r * sin(a)
-    // We want index 0 at top (-y). 
     const finalAngle = index * angleStep - (Math.PI / 2);
-    
+
     return {
       x: center + (radius * value) * Math.cos(finalAngle),
       y: center + (radius * value) * Math.sin(finalAngle)
@@ -48,43 +58,44 @@ export const RadarChart: React.FC<RadarChartProps> = ({ scores, size = 300 }) =>
     const value = scores[metric] || 0.1; // Min value for visibility
     const coords = getCoordinates(value, i);
     return `${coords.x},${coords.y}`;
-  }).join(" ");
+  }).join(' ');
 
-  // Generate grid levels (0.2, 0.4, 0.6, 0.8, 1.0)
   const levels = [0.2, 0.4, 0.6, 0.8, 1.0];
+  const TARGET_LEVEL = 0.66;
+  const targetPoints = METRICS_ORDER.map((_, i) => {
+    const { x, y } = getCoordinates(TARGET_LEVEL, i);
+    return `${x},${y}`;
+  }).join(' ');
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-full relative" style={{ direction: 'ltr' }}>
-      <svg width={size} height={size} className="overflow-visible">
-        {/* Background Grid */}
+      <svg width={chartSize} height={chartSize} className="overflow-visible">
         {levels.map((level, lvlIdx) => (
           <polygon
             key={level}
             points={METRICS_ORDER.map((_, i) => {
               const { x, y } = getCoordinates(level, i);
               return `${x},${y}`;
-            }).join(" ")}
-            fill={lvlIdx === levels.length - 1 ? "#f8fafc" : "none"}
-            stroke="#e2e8f0"
+            }).join(' ')}
+            fill={lvlIdx === levels.length - 1 ? 'var(--qa-bg)' : 'none'}
+            stroke="var(--qa-border)"
             strokeWidth="1"
-            strokeDasharray={lvlIdx < levels.length - 1 ? "4 4" : ""}
+            strokeDasharray={lvlIdx < levels.length - 1 ? '3 3' : ''}
           />
         ))}
 
-        {/* Axes */}
         {METRICS_ORDER.map((metric, i) => {
           const start = getCoordinates(0, i);
           const end = getCoordinates(1, i);
           return (
             <g key={metric}>
-              <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="#e2e8f0" strokeWidth="1" />
-              {/* Labels */}
+              <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="var(--qa-border)" strokeWidth="1" />
               <text
                 x={end.x}
                 y={end.y}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                className="text-[10px] fill-slate-500 font-medium"
+                className="text-[11px] sm:text-[10px] fill-[var(--qa-text-secondary)] font-normal"
                 transform={`translate(${Math.cos(i * angleStep - Math.PI / 2) * 20}, ${Math.sin(i * angleStep - Math.PI / 2) * 15})`}
               >
                 {METRIC_LABELS[metric]}
@@ -93,15 +104,22 @@ export const RadarChart: React.FC<RadarChartProps> = ({ scores, size = 300 }) =>
           );
         })}
 
-        {/* Data Polygon */}
+        {showTarget && (
+          <polygon
+            points={targetPoints}
+            fill="none"
+            stroke="var(--report-gap)"
+            strokeWidth="1.5"
+            strokeDasharray="6 4"
+          />
+        )}
         <polygon
           points={points}
-          fill="rgba(147, 51, 234, 0.2)" // Purple-600 with opacity
-          stroke="#9333ea"
-          strokeWidth="2"
+          fill="var(--qa-accent-soft)"
+          stroke="var(--qa-accent)"
+          strokeWidth="1.5"
         />
 
-        {/* Data Points */}
         {METRICS_ORDER.map((metric, i) => {
           const { x, y } = getCoordinates(scores[metric] || 0.1, i);
           return (
@@ -109,14 +127,17 @@ export const RadarChart: React.FC<RadarChartProps> = ({ scores, size = 300 }) =>
               key={metric}
               cx={x}
               cy={y}
-              r="4"
-              fill="#9333ea"
-              stroke="white"
-              strokeWidth="2"
+              r="3.5"
+              fill="var(--qa-accent)"
+              stroke="var(--qa-surface)"
+              strokeWidth="1.5"
             />
           );
         })}
       </svg>
+      <p className="text-xs text-[var(--qa-text-muted)] mt-2 text-center" style={{ direction: 'rtl' }}>
+        סולם 0–1 (גבוה = פער גדול יותר) | קו מקווקו = יעד בינוני
+      </p>
     </div>
   );
 };

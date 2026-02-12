@@ -1,240 +1,253 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { diagnosticConfig } from '../config/diagnosticConfig';
-import { UserState, Question, AnswerOption } from '../types';
-import { updateScores } from '../engine/scoring';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { diagnosticConfig, getQuestionQueueAfterContext, LAST_STRATEGIC_ID } from '../config/diagnosticConfig';
+import { UserState, Question, AnswerOption, ScaleContext } from '../types';
+import { updateScores, initialScores } from '../engine/scoring';
 import { calculateBranches } from '../engine/branching';
-import { initialScores } from '../engine/scoring';
-import { ChatBubble } from '../components/ChatBubble';
 import { AnswerButtons } from '../components/AnswerButtons';
+import { getQuestionMeta } from '../config/designSystem';
+import { supabase } from '../lib/supabase';
 
 const DiagnosticChat: React.FC = () => {
   const navigate = useNavigate();
-  // We use a ref for the scrollable container instead of a bottom element
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+  const locationState = location.state as { leadId?: string; userInfo?: { name: string; email: string } } | undefined;
+  const leadId = locationState?.leadId ?? sessionStorage.getItem('diagnosticLeadId');
+  const userInfoFromLead = locationState?.userInfo;
 
-  const [state, setState] = useState<UserState>({
+  const [state, setState] = useState<UserState>(() => ({
     answers: {},
     scores: initialScores,
     maxScores: initialScores,
-    questionQueue: diagnosticConfig.questions.map(q => q.id),
+    questionQueue: ['Q1'],
     currentQuestionIndex: 0,
     completed: false,
     history: [],
     startTime: Date.now(),
-    userInfo: { name: '', email: '' }
-  });
+    userInfo: userInfoFromLead ?? { name: '', email: '' },
+    leadId: leadId ?? undefined
+  }));
 
-  const [chatHistory, setChatHistory] = useState<{ id: string; text: string; isUser: boolean }[]>([]);
-  const [isTyping, setIsTyping] = useState(false);
-  const [showAnswers, setShowAnswers] = useState(false);
-  const [showLeadForm, setShowLeadForm] = useState(false);
-  const [formData, setFormData] = useState({ name: '', email: '' });
+  useEffect(() => {
+    if (leadId && state.leadId === leadId) {
+      supabase
+        .from('leads')
+        .update({ started_at: new Date().toISOString() })
+        .eq('id', leadId)
+        .then(() => {});
+    }
+  }, [leadId, state.leadId]);
+
+  const [phase, setPhase] = useState<'question' | 'exit' | 'interim'>('question');
+  const [renderKey, setRenderKey] = useState(0);
 
   const currentQuestionId = state.questionQueue[state.currentQuestionIndex];
-  
-  // Find current question object. Check main list or branch lists.
-  const findQuestion = (id: string): Question | undefined => {
-    let q = diagnosticConfig.questions.find(q => q.id === id);
+
+  const findQuestion = useCallback((id: string): Question | undefined => {
+    let q = diagnosticConfig.questions.find(item => item.id === id);
     if (!q) {
       Object.values(diagnosticConfig.branchQuestions).forEach(list => {
-        const found = list.find(bq => bq.id === id);
+        const found = list.find(item => item.id === id);
         if (found) q = found;
       });
     }
     return q;
-  };
+  }, []);
 
   const currentQuestion = findQuestion(currentQuestionId);
+  const prevQuestionId = state.currentQuestionIndex > 0 ? state.questionQueue[state.currentQuestionIndex - 1] : null;
+  const prevQuestion = prevQuestionId ? findQuestion(prevQuestionId) : null;
 
-  // Initialize first message
-  useEffect(() => {
-    if (state.currentQuestionIndex === 0 && chatHistory.length === 0 && currentQuestion) {
-      setIsTyping(true);
-      setTimeout(() => {
-        setChatHistory([{ id: 'init', text: currentQuestion.text, isUser: false }]);
-        setIsTyping(false);
-        setShowAnswers(true);
-      }, 600);
+  const questionMeta = useMemo(
+    () => getQuestionMeta(currentQuestion?.cluster),
+    [currentQuestion?.cluster]
+  );
+
+  const showTransition = useMemo(() => {
+    if (!currentQuestion) return null;
+    if (state.currentQuestionIndex === 0) return questionMeta.transitionText ?? null;
+    if (prevQuestion?.cluster !== currentQuestion.cluster && currentQuestion.cluster) {
+      return questionMeta.transitionText ?? null;
     }
-  }, [state.currentQuestionIndex, chatHistory.length, currentQuestion]);
+    return null;
+  }, [state.currentQuestionIndex, currentQuestion, prevQuestion?.cluster, questionMeta.transitionText]);
 
-  // Auto scroll - Force scroll to bottom whenever content changes
-  useEffect(() => {
-    if (scrollRef.current) {
-      const scrollElement = scrollRef.current;
-      // Use a timeout to ensure the DOM has updated (e.g., new bubble added, answers shown)
-      setTimeout(() => {
-        scrollElement.scrollTo({
-          top: scrollElement.scrollHeight,
-          behavior: 'smooth'
-        });
-      }, 150);
-    }
-  }, [chatHistory, isTyping, showAnswers, showLeadForm]);
+  const progressPercent = useMemo(() => {
+    if (state.questionQueue.length <= 1) return 0;
+    return Math.round((state.currentQuestionIndex / state.questionQueue.length) * 100);
+  }, [state.currentQuestionIndex, state.questionQueue.length]);
 
-  const handleAnswer = (answer: AnswerOption) => {
+  const handleAnswer = useCallback((answer: AnswerOption) => {
     if (!currentQuestion) return;
-    
-    setShowAnswers(false);
-    
-    // Add user bubble
-    setChatHistory(prev => [...prev, { id: `ans-${Date.now()}`, text: answer.text, isUser: true }]);
 
-    // Update state
-    const { scores, maxScores } = updateScores(state.scores, state.maxScores, answer);
-    
-    const newState = {
-      ...state,
-      answers: { ...state.answers, [currentQuestion.id]: answer.id },
-      scores,
-      maxScores,
-      history: [...state.history, { questionId: currentQuestion.id, answerText: answer.text }]
-    };
+    // Start exit animation
+    setPhase('exit');
 
-    // Check branching if Layer A is done
-    const currentIsLayerA = currentQuestion.layer === "A";
-    let nextQueue = [...state.questionQueue];
-    
-    // If this was the last A question (A5), trigger branching calculation
-    if (currentQuestion.id === "A5") {
-      const branches = calculateBranches(newState);
-      nextQueue = [...nextQueue, ...branches];
-    }
+    // After exit animation, process and advance
+    setTimeout(() => {
+      const { scores, maxScores } = updateScores(state.scores, state.maxScores, answer);
 
-    const nextIndex = state.currentQuestionIndex + 1;
+      const scaleContextFromQ1: ScaleContext | undefined =
+        currentQuestion.id === 'Q1'
+          ? (answer.id === 'Q1_A' ? 'solo' : answer.id === 'Q1_B' ? 'small_team' : 'growing_team')
+          : state.scaleContext;
 
-    if (nextIndex < nextQueue.length) {
-      // Proceed to next
-      setState({
-        ...newState,
-        questionQueue: nextQueue,
-        currentQuestionIndex: nextIndex
-      });
+      const newState: UserState = {
+        ...state,
+        answers: { ...state.answers, [currentQuestion.id]: answer.id },
+        scores,
+        maxScores,
+        history: [...state.history, { questionId: currentQuestion.id, answerText: answer.text }],
+        ...(scaleContextFromQ1 !== undefined && { scaleContext: scaleContextFromQ1 })
+      };
 
-      // Show typing then next question
-      setIsTyping(true);
-      setTimeout(() => {
-        const nextQId = nextQueue[nextIndex];
-        const nextQ = findQuestion(nextQId);
-        if (nextQ) {
-          setChatHistory(prev => [...prev, { id: `q-${nextQId}`, text: nextQ.text, isUser: false }]);
-          setIsTyping(false);
-          setShowAnswers(true);
+      let nextQueue = [...state.questionQueue];
+      if (currentQuestion.id === 'Q1' && scaleContextFromQ1) {
+        nextQueue = ['Q1', ...getQuestionQueueAfterContext(scaleContextFromQ1)];
+      }
+
+      // Adaptive branching: inject deepening questions after last strategic question
+      if (currentQuestion.id === LAST_STRATEGIC_ID) {
+        const stateForBranching: UserState = {
+          ...newState,
+          questionQueue: nextQueue,
+          currentQuestionIndex: state.currentQuestionIndex
+        };
+        const branchIds = calculateBranches(stateForBranching);
+        if (branchIds.length > 0) {
+          nextQueue = [...nextQueue, ...branchIds];
         }
-      }, 800);
+      }
 
-    } else {
-      // Questions Complete -> Show Lead Form
-      setState({ ...newState, completed: true });
-      setIsTyping(true);
-      setTimeout(() => {
-        setChatHistory(prev => [...prev, { id: 'pre-lead', text: "תודה רבה! עיבדתי את הנתונים שלך.", isUser: false }]);
-        setTimeout(() => {
-            setShowLeadForm(true);
-            setIsTyping(false);
-        }, 800);
-      }, 600);
-    }
+      const nextIndex = state.currentQuestionIndex + 1;
+
+      if (nextIndex < nextQueue.length) {
+        setState({
+          ...newState,
+          questionQueue: nextQueue,
+          currentQuestionIndex: nextIndex
+        });
+        setRenderKey(prev => prev + 1);
+        setPhase('question');
+      } else {
+        setState({ ...newState, completed: true });
+        setPhase('interim');
+      }
+    }, 220);
+  }, [currentQuestion, state, findQuestion]);
+
+  const handleContinue = () => {
+    localStorage.setItem('diagnosticResult', JSON.stringify(state));
+    navigate('/result/new');
   };
 
-  const handleLeadSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name || !formData.email) return;
-
-    const finalState = { ...state, userInfo: formData };
-    
-    // Save and Navigate
-    localStorage.setItem('diagnosticResult', JSON.stringify(finalState));
-    navigate('/result');
-  };
-
-  // Progress Calculation
-  const progressPercent = Math.min(100, Math.round(((state.currentQuestionIndex) / state.questionQueue.length) * 100));
-
-  if (!currentQuestion && !state.completed) return <div className="flex items-center justify-center h-full bg-slate-50">Loading...</div>;
+  if (!currentQuestion && phase !== 'interim') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-5 h-5 border-2 border-[var(--qa-accent)] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 relative font-sans">
-      
-      {/* Modern Progress Bar - Purple Gradient */}
-      <div className="bg-slate-100 h-1.5 w-full sticky top-0 z-30">
-        <div 
-          className="bg-gradient-to-l from-purple-600 to-fuchsia-500 h-1.5 transition-all duration-700 ease-out shadow-[0_0_10px_rgba(147,51,234,0.5)]" 
-          style={{ width: `${progressPercent}%` }}
-        ></div>
-      </div>
-
-      {/* Main Chat Area - Scroll Container */}
-      <div 
-        ref={scrollRef} 
-        className="flex-1 overflow-y-auto px-4 hide-scrollbar bg-slate-50/50 scroll-smooth"
-      >
-        <div className="max-w-3xl mx-auto pt-6 pb-24 space-y-8 flex flex-col">
-          {chatHistory.map((msg) => (
-             <ChatBubble key={msg.id} text={msg.text} isUser={msg.isUser} />
-          ))}
-          
-          {isTyping && <ChatBubble text="" isUser={false} isTyping />}
-          
-          {/* Lead Form Embedded in Chat Flow */}
-          {showLeadForm && (
-            <div className="animate-fade-in-up mt-8 mb-12">
-               <div className="bg-white/80 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/50 max-w-md ml-auto mr-auto ring-1 ring-black/5">
-                 <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mb-4 mx-auto text-2xl">✨</div>
-                 <h3 className="text-2xl font-bold text-slate-900 mb-2 text-center">הדוח שלך מוכן</h3>
-                 <p className="text-slate-600 mb-8 text-center text-base">שלחי לנו את הפרטים כדי שנוכל להתאים את ההמלצות הסופיות ולשלוח עותק למייל.</p>
-                 <form onSubmit={handleLeadSubmit} className="space-y-5">
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">שם מלא</label>
-                      <input 
-                        type="text" 
-                        required
-                        className="w-full px-5 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
-                        value={formData.name}
-                        onChange={(e) => setFormData({...formData, name: e.target.value})}
-                        placeholder="איך לקרוא לך?"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">מייל לקבלת הדוח</label>
-                      <input 
-                        type="email" 
-                        required
-                        className="w-full px-5 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
-                        value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value})}
-                        placeholder="your@email.com"
-                      />
-                    </div>
-                    <button 
-                      type="submit"
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-purple-500/30 active:scale-[0.98] mt-2 text-lg"
-                    >
-                      הצג תוצאות
-                    </button>
-                 </form>
-               </div>
-            </div>
-          )}
-
-          {/* Inline Answers - Natural Flow */}
-          {showAnswers && !state.completed && !showLeadForm && (
-            <div className="animate-fade-in mt-6 mb-8 w-full flex flex-col items-center">
-               <div className="w-full max-w-2xl">
-                 <div className="text-center text-xs font-medium text-slate-400 mb-4 tracking-wider uppercase">
-                   אפשרויות תשובה
-                 </div>
-                 <AnswerButtons 
-                   answers={currentQuestion.answers} 
-                   onSelect={handleAnswer} 
-                   disabled={isTyping} 
-                 />
-               </div>
-            </div>
-          )}
+    <div className="flex flex-col min-h-screen relative text-right" dir="rtl">
+      {/* === Progress Bar === */}
+      <div className="sticky top-0 z-50 bg-[var(--qa-bg)]">
+        <div className="w-full h-1.5 bg-[var(--qa-border-light)] overflow-hidden">
+          <div
+            className="qa-progress-fill h-full rounded-full"
+            style={{ width: phase === 'interim' ? '100%' : `${progressPercent}%` }}
+          />
         </div>
+        {phase !== 'interim' && currentQuestion && (
+          <div className="flex flex-col gap-1 px-6 md:px-8 py-3 text-right">
+            <span className="text-[13px] text-[var(--qa-text-muted)]">
+              {questionMeta.progressSmartLabel}
+            </span>
+            <span className="text-[12px] text-[var(--qa-text-muted)] tabular-nums opacity-80">
+              {state.currentQuestionIndex + 1} / {state.questionQueue.length}
+            </span>
+          </div>
+        )}
       </div>
+
+      {/* === Question Area === */}
+      {phase !== 'interim' && currentQuestion && (
+        <div className="flex-1 flex flex-col justify-center px-6 md:px-8 pb-12 md:pb-16 text-right">
+          <div
+            key={renderKey}
+            className={`${phase === 'exit' ? 'qa-question-exit' : 'qa-question-enter'} text-right`}
+          >
+            {/* Stage indicator - minimal, smart label is in progress bar */}
+            <div className="mb-6 md:mb-8">
+              <span className="inline-block text-[12px] font-medium tracking-wide text-[var(--qa-text-muted)] uppercase">
+                שלב {questionMeta.stage} מתוך {questionMeta.totalStages}
+              </span>
+            </div>
+
+            {/* Transition sentence (opening or between clusters) */}
+            {showTransition && (
+              <p className="text-[15px] md:text-[16px] text-[var(--qa-text-primary)] font-medium mb-6 md:mb-8 leading-8 border-r-2 border-[var(--qa-accent)] pr-3 max-w-[640px]" dir="rtl">
+                {showTransition}
+              </p>
+            )}
+
+            {/* Question text */}
+            <h2 className="text-[22px] md:text-[26px] font-medium leading-[1.6] mb-10 md:mb-12 max-w-[640px]">
+              {currentQuestion.text}
+            </h2>
+
+            {/* Answers */}
+            <div className="max-w-[600px]">
+              <AnswerButtons
+                answers={currentQuestion.answers}
+                onSelect={handleAnswer}
+                disabled={phase === 'exit'}
+              />
+            </div>
+
+            {/* Microcopy - only on first question */}
+            {state.currentQuestionIndex === 0 && (
+              <p className="mt-8 text-[13px] text-[var(--qa-text-muted)]">
+                אין תשובות נכונות. רק תמונת מצב נוכחית.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* === Interim Summary === */}
+      {phase === 'interim' && (
+        <div className="flex-1 flex flex-col justify-center px-6 md:px-8 pb-12 md:pb-16 qa-fade-in text-right">
+          <div className="max-w-[560px] text-right">
+            <div className="mb-6">
+              <span className="inline-block text-[12px] font-medium tracking-wide text-[var(--qa-text-muted)] uppercase">
+                סיכום
+              </span>
+            </div>
+
+            <h2 className="text-[26px] md:text-[32px] font-semibold leading-[1.4] mb-5">
+              המיפוי הושלם.
+            </h2>
+
+            <p className="text-[17px] md:text-[18px] text-[var(--qa-text-secondary)] leading-[1.8] mb-4">
+              הדוח מבוסס על דפוסים שעלו מ־{state.questionQueue.length} נקודות בדיקה, לא על שאלה בודדת.
+            </p>
+
+            <p className="text-[16px] text-[var(--qa-text-muted)] leading-[1.7] mb-10">
+              הדוח הבא מציג תמונת מצב תפעולית, חוזקות קיימות, סיכוני צמיחה וכיוון עבודה מומלץ.
+            </p>
+
+            <button
+              type="button"
+              onClick={handleContinue}
+              className="w-full sm:w-auto px-10 h-[52px] rounded-[12px] bg-[var(--qa-accent)] text-white text-[16px] font-medium transition-all duration-200 hover:opacity-90 active:scale-[0.99]"
+            >
+              צפייה בדוח
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
