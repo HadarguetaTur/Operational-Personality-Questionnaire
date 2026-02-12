@@ -22,7 +22,7 @@ const Intro: React.FC = () => {
       <div className="relative z-10 w-full max-w-[55ch] mx-auto">
         <section className="bg-[var(--qa-surface)]/90 backdrop-blur-sm border border-[var(--qa-border)] rounded-2xl px-6 md:px-10 py-8 md:py-12 text-right shadow-xl shadow-black/20">
           <h1 className="text-[32px] md:text-[40px] font-bold text-[var(--qa-text-primary)] leading-tight mb-3">
-            האם העסק שלך בנוי לסביבה של 10X?
+            אם הגעתם לכאן, לקוחות זה לא הבעיה שלכם
           </h1>
           <p className="text-[17px] md:text-[18px] text-[var(--qa-accent)] font-medium mb-6">
             אבחון Architecture of Scale (AoS)
