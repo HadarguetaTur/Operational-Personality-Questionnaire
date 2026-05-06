@@ -1,6 +1,6 @@
 # Supabase migrations
 
-Run these **once**, in order, in the Supabase SQL Editor (see repository root **[`DEPLOY-VERCEL.md`](../DEPLOY-VERCEL.md)** for full deployment steps).
+Run these **once**, in order, in the Supabase SQL Editor (see **[`DEPLOY-VERCEL.md`](../../DEPLOY-VERCEL.md)** at repo root for full deployment steps).
 
 | Order | File |
 |------:|------|
