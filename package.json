@@ -1,0 +1,14 @@
+{
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail -n next,quiz -c cyan,magenta \"npm run dev --prefix operational-system\" \"npm run dev --prefix Operational-Personality-Questionnaire\"",
+    "dev:next": "npm run dev --prefix operational-system",
+    "dev:quiz": "npm run dev --prefix Operational-Personality-Questionnaire"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.95.3",
+    "html2pdf.js": "^0.14.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

@@ -1,0 +1,70 @@
+/* ============================
+   Animations
+   ============================ */
+
+/* Question enter */
+.qa-question-enter {
+  animation: qaQuestionEnter 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes qaQuestionEnter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Question exit */
+.qa-question-exit {
+  animation: qaQuestionExit 200ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+@keyframes qaQuestionExit {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-8px); }
+}
+
+/* Fade in */
+.qa-fade-in {
+  animation: qaFadeIn 400ms ease-out;
+}
+@keyframes qaFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Stagger children */
+.qa-stagger > * {
+  opacity: 0;
+  animation: qaStaggerIn 300ms ease-out forwards;
+}
+.qa-stagger > *:nth-child(1) { animation-delay: 60ms; }
+.qa-stagger > *:nth-child(2) { animation-delay: 120ms; }
+.qa-stagger > *:nth-child(3) { animation-delay: 180ms; }
+.qa-stagger > *:nth-child(4) { animation-delay: 240ms; }
+.qa-stagger > *:nth-child(5) { animation-delay: 300ms; }
+@keyframes qaStaggerIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Progress bar */
+.qa-progress-fill {
+  transition: width 500ms cubic-bezier(0.22, 1, 0.36, 1);
+  background: var(--qa-accent);
+  position: relative;
+}
+.qa-progress-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent 60%, rgba(255,255,255,0.3));
+}
+
+/* Answer button pulse */
+.qa-answer-selected {
+  animation: qaAnswerPulse 300ms ease-out;
+  box-shadow: 0 0 0 2px var(--qa-accent);
+}
+@keyframes qaAnswerPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}

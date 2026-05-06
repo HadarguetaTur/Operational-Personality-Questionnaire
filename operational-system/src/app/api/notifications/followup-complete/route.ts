@@ -1,0 +1,118 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
+
+export async function POST(request: NextRequest) {
+  try {
+    const { leadId } = await request.json();
+
+    if (!leadId) {
+      return NextResponse.json({ error: 'Missing leadId' }, { status: 400 });
+    }
+
+    const supabase = createServiceRoleClient();
+
+    const { data: lead } = await supabase
+      .from('leads')
+      .select('id, name, email, phone, funnel_id')
+      .eq('id', leadId)
+      .single();
+
+    if (!lead) {
+      return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+    }
+
+    const calComUrl = process.env.NEXT_PUBLIC_CALCOM_URL || process.env.CALCOM_URL;
+    const results: { email: boolean; whatsapp: boolean } = { email: false, whatsapp: false };
+
+    // 1. Send meeting booking email
+    const hasGmail = process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REFRESH_TOKEN;
+    if (hasGmail && calComUrl) {
+      try {
+        const { sendEmail, injectTemplateVariables } = await import('@/lib/google/gmail');
+
+        // Check for a custom template
+        const { data: template } = await supabase
+          .from('email_templates')
+          .select('html_content, subject')
+          .eq('name', 'קביעת פגישה')
+          .limit(1)
+          .single();
+
+        const defaultHtml = `<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head><meta charset="utf-8"></head>
+<body style="font-family: 'Heebo', Arial, sans-serif; background: #f8fafc; padding: 40px 20px; direction: rtl;">
+  <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <h1 style="color: #1e293b; font-size: 24px; margin-bottom: 16px;">שלום {{name}},</h1>
+    <p style="color: #475569; font-size: 16px; line-height: 1.7;">
+      תודה שמילאת את כל הפרטים! קיבלתי הכל ואני מתחילה להתכונן.
+    </p>
+    <p style="color: #475569; font-size: 16px; line-height: 1.7;">
+      השלב הבא: בואי נקבע את הפגישה שלנו.
+    </p>
+    <div style="text-align: center; margin: 32px 0;">
+      <a href="{{meeting_url}}" style="background: #14b8a6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
+        קבעי פגישה עכשיו
+      </a>
+    </div>
+    <p style="color: #94a3b8; font-size: 14px; text-align: center; margin-top: 32px;">
+      ארכיטקטורת סקייל
+    </p>
+  </div>
+</body>
+</html>`;
+
+        const htmlTemplate = template?.html_content || defaultHtml;
+        const subjectTemplate = template?.subject || 'הכל מוכן — נקבע פגישה? 📅';
+
+        const variables: Record<string, string> = {
+          name: lead.name || '',
+          email: lead.email,
+          meeting_url: calComUrl,
+        };
+
+        await sendEmail({
+          to: lead.email,
+          subject: injectTemplateVariables(subjectTemplate, variables),
+          htmlBody: injectTemplateVariables(htmlTemplate, variables),
+        });
+
+        await supabase.from('email_logs').insert({
+          lead_id: leadId,
+          funnel_id: lead.funnel_id,
+          subject: subjectTemplate,
+          recipient_email: lead.email,
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+        });
+
+        results.email = true;
+      } catch (emailErr) {
+        console.error('[Notification] Email failed:', emailErr);
+      }
+    }
+
+    // 2. Send WhatsApp/SMS notification
+    if (lead.phone) {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/notifications/whatsapp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            leadId,
+            phone: lead.phone,
+            message: `שלום ${lead.name}, תודה שמילאת את הטופס! לקביעת פגישה: ${calComUrl || '(קישור יישלח במייל)'}`,
+          }),
+        });
+        results.whatsapp = response.ok;
+      } catch (waErr) {
+        console.error('[Notification] WhatsApp failed:', waErr);
+      }
+    }
+
+    return NextResponse.json({ success: true, results });
+  } catch (error) {
+    console.error('[Notification] followup-complete error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
