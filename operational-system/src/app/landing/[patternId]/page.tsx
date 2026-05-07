@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getLandingCopy } from '@/config/landingCopy';
+import { getLandingCopy, PROFILE_PHOTO_CIRCLE_URL } from '@/config/landingCopy';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { CostSection } from '@/components/landing/CostSection';
 import { ProcessSection } from '@/components/landing/ProcessSection';
@@ -60,8 +60,8 @@ export default function LandingPage() {
       <ProcessSection copy={copy} />
       <StepsSection copy={copy} />
       <DeliverablesSection copy={copy} />
-      <WhyMeSection copy={copy} photoSrc="/landing-photo.jpg" />
-      <FAQAccordion copy={copy} />
+      <WhyMeSection {...copy} photoSrc={PROFILE_PHOTO_CIRCLE_URL} />
+      <FAQAccordion faq={copy.faq} />
       <ContactSection />
       <FinalCTASection copy={copy} />
       <LandingFooter />

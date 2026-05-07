@@ -348,6 +348,27 @@ export function useReport(token: string | undefined): UseReportResult {
       if (finalize.pipelineStatus === 'failed') {
         setEmailWarning(true);
       }
+
+      void fetch('/api/quiz/send-completion-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reportToken: finalize.reportToken }),
+      })
+        .then(async (res) => {
+          if (cancelled) return;
+          const data = (await res.json().catch(() => ({}))) as { sent?: boolean; alreadySent?: boolean };
+          const ok = res.ok && (data.sent === true || data.alreadySent === true);
+          if (!ok) {
+            console.warn('[useReport] send-completion-email not confirmed', res.status, data);
+            setEmailWarning(true);
+          }
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          console.warn('[useReport] send-completion-email failed', err);
+          setEmailWarning(true);
+        });
+
       await new Promise((r) => setTimeout(r, 300));
       router.replace(`/quiz/result/${finalize.reportToken}`);
     };

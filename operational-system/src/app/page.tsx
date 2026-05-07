@@ -3,6 +3,14 @@
 import Link from 'next/link';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ContactSection } from '@/components/landing/ContactSection';
+import { FAQAccordion } from '@/components/landing/FAQAccordion';
+import { WhyMeSection } from '@/components/landing/WhyMeSection';
+import {
+  HOME_ABOUT_SECTION,
+  HOME_FAQ_INTRO,
+  PROFILE_PHOTO_CIRCLE_URL,
+  SHARED_FAQ,
+} from '@/config/landingCopy';
 import { trackEvent, getQuizUrl } from '@/lib/analytics';
 
 function useInView(threshold = 0.15) {
@@ -156,6 +164,18 @@ export default function HomePage() {
               className="hover:text-white/80 transition-colors"
             >
               עדויות
+            </button>
+            <button
+              onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })}
+              className="hover:text-white/80 transition-colors"
+            >
+              קצת עליי
+            </button>
+            <button
+              onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
+              className="hover:text-white/80 transition-colors"
+            >
+              שאלות נפוצות
             </button>
             <button
               onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
@@ -443,6 +463,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <WhyMeSection {...HOME_ABOUT_SECTION} photoSrc={PROFILE_PHOTO_CIRCLE_URL} sectionId="about" variant="home" />
+      <FAQAccordion faq={SHARED_FAQ} intro={HOME_FAQ_INTRO} sectionId="faq" variant="home" />
 
       <ContactSection variant="home" />
 

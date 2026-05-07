@@ -77,6 +77,11 @@ export const sendReportEmailSchema = z.object({
   pattern: z.string().max(200).optional(),
 });
 
+/** Public quiz completion email: capability is the report token (same as report URL). */
+export const quizCompletionEmailSchema = z.object({
+  reportToken: z.string().min(10).max(200).trim(),
+});
+
 export const driveCreateFolderSchema = z.object({
   leadId: uuid,
 });
