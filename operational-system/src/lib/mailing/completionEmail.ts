@@ -10,15 +10,44 @@ export const QUIZ_COMPLETION_TEMPLATE_NAME = 'quiz_completion' as const;
 export const defaultQuizCompletionSubjectTemplate =
   'הדוח התפעולי שלך מוכן — {{name}}';
 
-function calcomSectionHtml(calcomUrl: string): string {
-  const u = calcomUrl.trim();
-  if (!u) return '';
+/** Converts an Israeli mobile number like "050-434-3547" → "972504343547". */
+function buildWhatsappUrl(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  if (!digits) return '';
+  const international = digits.startsWith('0') ? `972${digits.slice(1)}` : digits;
+  return `https://wa.me/${international}`;
+}
+
+function ctaBlockHtml(calcomUrl: string, whatsappUrl: string): string {
+  const hasCalcom = !!calcomUrl.trim();
+  const hasWhatsapp = !!whatsappUrl.trim();
+  if (!hasCalcom && !hasWhatsapp) return '';
+
+  const calcomBtn = hasCalcom
+    ? `<a href="${calcomUrl.trim()}"
+         style="display:inline-block; background:#14b8a6; color:white; padding:12px 22px;
+                border-radius:8px; text-decoration:none; font-weight:700; font-size:15px; margin: 0 6px 10px 6px;">
+         📅 קביעת מועד לשיחה
+       </a>`
+    : '';
+
+  const waBtn = hasWhatsapp
+    ? `<a href="${whatsappUrl}"
+         style="display:inline-block; background:#25D366; color:white; padding:12px 22px;
+                border-radius:8px; text-decoration:none; font-weight:700; font-size:15px; margin: 0 6px 10px 6px;">
+         💬 שלחי לי הודעה בוואטסאפ
+       </a>`
+    : '';
+
   return `
-    <div style="margin: 28px 0; padding: 20px; background: #f1f5f9; border-radius: 8px;">
-      <p style="color: #334155; font-size: 16px; line-height: 1.7; margin: 0 0 12px 0;">
-        מוכנה לעבור על הדוח יחד? אפשר לקבוע שיחת בהירות של כ־30 דקות:
+    <div style="margin: 32px 0; padding: 24px; background: #f1f5f9; border-radius: 10px; text-align: center;">
+      <p style="color: #334155; font-size: 16px; line-height: 1.7; margin: 0 0 18px 0; font-weight: 600;">
+        מוכנה לעבור על הדוח יחד?
       </p>
-      <a href="${u}" style="color: #0d9488; font-weight: 600; font-size: 16px;">קביעת מועד →</a>
+      <p style="color: #475569; font-size: 14px; margin: 0 0 18px 0;">
+        אפשר לקבוע שיחת בהירות של כ־30 דקות, או פשוט לכתוב לי בוואטסאפ.
+      </p>
+      ${calcomBtn}${waBtn}
     </div>`;
 }
 
@@ -61,7 +90,7 @@ export function getDefaultQuizCompletionHtmlTemplate(): string {
       ${aboutIntro.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
     </p>
 
-    {{calcom_block}}
+    {{cta_block}}
 
     <div style="border-top: 1px solid #e2e8f0; margin-top: 32px; padding-top: 24px;">
       <p style="color: #94a3b8; font-size: 13px; line-height: 1.6; margin: 0 0 8px 0;">
@@ -97,13 +126,15 @@ export function buildQuizCompletionVariables(input: QuizCompletionVariableInput)
   const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL?.trim() ?? '';
   const supportPhone = process.env.NEXT_PUBLIC_BUSINESS_PHONE?.trim() ?? '';
   const businessAddress = process.env.NEXT_PUBLIC_BUSINESS_ADDRESS?.trim() ?? '';
+  const whatsappUrl = buildWhatsappUrl(supportPhone);
 
   return {
     name: input.name || '',
     pattern: input.pattern || '',
     report_url: input.reportUrl,
     calcom_url: calRaw,
-    calcom_block: calcomSectionHtml(calRaw),
+    whatsapp_url: whatsappUrl,
+    cta_block: ctaBlockHtml(calRaw, whatsappUrl),
     support_email: supportEmail,
     support_phone: supportPhone,
     business_address: businessAddress,
