@@ -6,6 +6,8 @@ import { getSiteUrl } from '@/lib/site';
 const ogTitle = 'אבחון ניהולי – Architecture of Scale';
 const ogDescription =
   'מיפוי דפוס הניהול שלך ב-5 דקות. דוח מותאם אישית עם תמונת מצב, חוזקות וסיכוני צמיחה.';
+const ogImage =
+  'https://res.cloudinary.com/wecare-img/image/upload/v1778154341/%D7%90%D7%AA%D7%A8_tbpsjd.png';
 
 export const metadata: Metadata = {
   metadataBase: getSiteUrl(),
@@ -18,11 +20,20 @@ export const metadata: Metadata = {
     locale: 'he_IL',
     siteName: 'Architecture of Scale',
     url: '/',
+    images: [
+      {
+        url: ogImage,
+        width: 1200,
+        height: 630,
+        alt: ogTitle,
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: ogTitle,
     description: ogDescription,
+    images: [ogImage],
   },
   icons: {
     icon: [{ url: '/icon', type: 'image/png' }],
