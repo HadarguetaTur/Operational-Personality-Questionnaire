@@ -121,12 +121,8 @@ export default function HomePage() {
   }, []);
 
   const goToQuiz = useCallback(async (ctaId: string) => {
-    // Track click first; await briefly so the insert reaches Supabase before
-    // the page unloads, but never block the user for more than ~600ms.
-    await Promise.race([
-      trackEvent('cta_click', { ctaId }),
-      new Promise((r) => setTimeout(r, 600))
-    ]);
+    // keepalive: POST survives full-page navigation to /quiz
+    await trackEvent('cta_click', { ctaId, keepalive: true });
     window.location.href = getQuizUrl();
   }, []);
 

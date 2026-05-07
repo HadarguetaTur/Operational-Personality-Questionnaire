@@ -17,6 +17,14 @@ function safeUUID(): string {
   });
 }
 
+function logAnalyticsError(stage: string, detail?: unknown): void {
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('[analytics]', stage, detail);
+    return;
+  }
+  console.warn('[analytics]', stage);
+}
+
 export function getVisitorId(): string {
   if (typeof window === 'undefined') return 'ssr';
   try {
@@ -64,31 +72,77 @@ export interface TrackOptions {
   ctaId?: string;
   pagePath?: string;
   metadata?: Record<string, unknown>;
+  /** Use fetch with keepalive so the request survives full-page navigation (e.g. CTA → /quiz). */
+  keepalive?: boolean;
+}
+
+function buildLandingEventRow(
+  eventType: LandingEventType,
+  opts: TrackOptions
+): Record<string, unknown> {
+  const utm = readUtmParams();
+  return {
+    event_type: eventType,
+    page_path: opts.pagePath ?? (typeof window !== 'undefined' ? window.location.pathname : '/'),
+    cta_id: opts.ctaId ?? null,
+    visitor_id: getVisitorId(),
+    session_id: getSessionId(),
+    referrer: typeof document !== 'undefined' ? document.referrer || null : null,
+    user_agent: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 500) : null,
+    ...utm,
+    metadata: opts.metadata ?? null
+  };
+}
+
+/**
+ * Supabase-js does not support fetch keepalive. Use REST directly so the browser
+ * keeps the POST alive across `window.location` changes.
+ */
+async function insertLandingEventViaRestKeepalive(row: Record<string, unknown>): Promise<void> {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '');
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!base || !anonKey) return;
+
+  const res = await fetch(`${base}/rest/v1/landing_events`, {
+    method: 'POST',
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal'
+    },
+    body: JSON.stringify(row),
+    keepalive: true
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    logAnalyticsError(`rest_insert ${res.status}`, text || undefined);
+  }
 }
 
 /**
  * Fire-and-forget event tracking. Never blocks UX, never throws.
- * Returns a promise that resolves when the insert finishes (or fails silently).
+ * Returns a promise that resolves when the insert finishes (or fails gracefully).
  */
 export async function trackEvent(eventType: LandingEventType, opts: TrackOptions = {}): Promise<void> {
   if (typeof window === 'undefined') return;
   try {
+    const row = buildLandingEventRow(eventType, opts);
+
+    if (opts.keepalive) {
+      await insertLandingEventViaRestKeepalive(row);
+      return;
+    }
+
     const supabase = createClient();
     if (!supabase) return;
-    const utm = readUtmParams();
-    await supabase.from('landing_events').insert({
-      event_type: eventType,
-      page_path: opts.pagePath ?? window.location.pathname,
-      cta_id: opts.ctaId ?? null,
-      visitor_id: getVisitorId(),
-      session_id: getSessionId(),
-      referrer: document.referrer || null,
-      user_agent: navigator.userAgent.slice(0, 500),
-      ...utm,
-      metadata: opts.metadata ?? null
-    });
-  } catch {
-    // best-effort — analytics must never break the user flow
+    const { error } = await supabase.from('landing_events').insert(row as never);
+    if (error) {
+      logAnalyticsError('supabase_insert', error);
+    }
+  } catch (err) {
+    logAnalyticsError('trackEvent', err);
   }
 }
 

@@ -59,6 +59,8 @@ interface SourceRow {
 export default function AnalyticsPage() {
   const [range, setRange] = useState<RangeKey>('30d');
   const [events, setEvents] = useState<LandingEvent[]>([]);
+  /** Total rows visible to this admin (RLS). Used to distinguish empty range vs empty table. */
+  const [globalEventCount, setGlobalEventCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,24 +69,35 @@ export default function AnalyticsPage() {
     const load = async () => {
       setLoading(true);
       setError(null);
+      setGlobalEventCount(null);
       const supabase = createClient();
       if (!supabase) return;
       const since = new Date();
       since.setDate(since.getDate() - RANGE_DAYS[range]);
 
-      const { data, error: queryError } = await supabase
-        .from('landing_events')
-        .select('event_type, visitor_id, cta_id, utm_source, utm_medium, utm_campaign, referrer, created_at')
-        .gte('created_at', since.toISOString())
-        .order('created_at', { ascending: false });
+      const [eventsRes, countRes] = await Promise.all([
+        supabase
+          .from('landing_events')
+          .select('event_type, visitor_id, cta_id, utm_source, utm_medium, utm_campaign, referrer, created_at')
+          .gte('created_at', since.toISOString())
+          .order('created_at', { ascending: false }),
+        supabase.from('landing_events').select('*', { count: 'exact', head: true })
+      ]);
 
       if (cancelled) return;
-      if (queryError) {
-        setError(queryError.message || 'טעינת נתונים נכשלה');
+
+      if (!countRes.error && typeof countRes.count === 'number') {
+        setGlobalEventCount(countRes.count);
+      } else if (!countRes.error) {
+        setGlobalEventCount(null);
+      }
+
+      if (eventsRes.error) {
+        setError(eventsRes.error.message || 'טעינת נתונים נכשלה');
         setLoading(false);
         return;
       }
-      setEvents((data ?? []) as LandingEvent[]);
+      setEvents((eventsRes.data ?? []) as LandingEvent[]);
       setLoading(false);
     };
     load();
@@ -183,7 +196,17 @@ export default function AnalyticsPage() {
 
       {error && (
         <div role="alert" className="px-4 py-3 rounded-lg border border-rose-300 bg-rose-50 text-rose-700 text-sm">
-          {error}. ייתכן שהמיגרציה <code>004_landing_analytics.sql</code> לא הורצה ב-Supabase.
+          {error}. ייתכן שהמיגרציה <code>004_landing_analytics.sql</code> לא הורצה ב-Supabase, או שהמיגרציה{' '}
+          <code>008_is_admin_alignment.sql</code> לא הורצה ו־RLS חוסם קריאה (במקביל צריך לסנכרן את רשימת{' '}
+          <code>ADMIN_EMAILS</code> ל־Postgres — ראי הערה ב־<code>.env.example</code>).
+        </div>
+      )}
+
+      {!loading && !error && globalEventCount !== null && globalEventCount > 0 && events.length === 0 && (
+        <div role="status" className="px-4 py-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-900 text-sm">
+          יש בסך הכל <strong>{globalEventCount}</strong> אירועים במסד, אבל אף אחד מהם לא בטווח{' '}
+          {RANGE_DAYS[range]} הימים האחרונים. נסי טווח ארוך יותר או בדקי ב־Supabase את{' '}
+          <code>landing_events.created_at</code>.
         </div>
       )}
 
