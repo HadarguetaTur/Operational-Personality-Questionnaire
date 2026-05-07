@@ -7,7 +7,7 @@ const ogTitle = 'אבחון ניהולי – Architecture of Scale';
 const ogDescription =
   'מיפוי דפוס הניהול שלך ב-5 דקות. דוח מותאם אישית עם תמונת מצב, חוזקות וסיכוני צמיחה.';
 const ogImage =
-  'https://res.cloudinary.com/wecare-img/image/upload/v1778154341/%D7%90%D7%AA%D7%A8_tbpsjd.png';
+  'https://res.cloudinary.com/wecare-img/image/upload/w_1200,h_630,c_fill,q_auto,f_jpg/v1778154341/%D7%90%D7%AA%D7%A8_tbpsjd.jpg';
 
 export const metadata: Metadata = {
   metadataBase: getSiteUrl(),
