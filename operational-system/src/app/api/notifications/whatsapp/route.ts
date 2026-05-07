@@ -1,31 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { sendWhatsAppMessage, injectMessageVariables } from '@/lib/notifications/whatsapp';
+import { requireAdmin } from '@/lib/auth/requireAdmin';
+import { checkRateLimit } from '@/lib/rateLimit';
+import { whatsappNotifySchema } from '@/lib/validation/schemas';
 
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { leadId, phone, message, templateName, variables } = body;
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
 
-    if (!phone) {
-      return NextResponse.json({ error: 'Missing phone number' }, { status: 400 });
+  if (!checkRateLimit(request, 'whatsapp', 60, 60_000)) {
+    return NextResponse.json({ error: 'יותר מדי בקשות. נסי שוב בעוד דקה.' }, { status: 429 });
+  }
+
+  try {
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'בקשה לא תקינה' }, { status: 400 });
     }
 
-    const supabase = createServiceRoleClient();
-    let finalMessage = message || '';
+    const parsed = whatsappNotifySchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? 'פרטים לא תקינים' },
+        { status: 400 },
+      );
+    }
 
-    // If template name is provided, look up the message template
-    if (templateName && !message) {
-      // Could be extended to have WhatsApp templates in DB
+    const { leadId, phone, message, templateName, variables } = parsed.data;
+    let finalMessage = (message ?? '').trim();
+
+    if (templateName && !finalMessage) {
       const defaultTemplates: Record<string, string> = {
-        followup_complete: 'שלום {{name}}, תודה שמילאת את הטופס! לקביעת פגישה: {{meeting_url}}',
-        payment_received: 'שלום {{name}}, התשלום התקבל בהצלחה. בקרוב תקבלי טופס למילוי.',
-        meeting_reminder: 'שלום {{name}}, רק להזכיר — הפגישה שלנו מחר. מחכה!',
+        followup_complete:
+          'שלום {{name}}, תודה שמילאת את הטופס! לקביעת פגישה: {{meeting_url}}',
+        payment_received:
+          'שלום {{name}}, התשלום התקבל בהצלחה. בקרוב תקבלי טופס למילוי.',
+        meeting_reminder:
+          'שלום {{name}}, רק להזכיר — הפגישה שלנו מחר. מחכה!',
       };
       finalMessage = defaultTemplates[templateName] || '';
     }
 
-    // Inject variables
     if (variables && typeof variables === 'object') {
       finalMessage = injectMessageVariables(finalMessage, variables);
     }
@@ -34,10 +52,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No message content' }, { status: 400 });
     }
 
-    // Send the message
     const result = await sendWhatsAppMessage(phone, finalMessage);
 
-    // Log the notification
+    const supabase = createServiceRoleClient();
     if (leadId) {
       await supabase.from('notification_logs').insert({
         lead_id: leadId,

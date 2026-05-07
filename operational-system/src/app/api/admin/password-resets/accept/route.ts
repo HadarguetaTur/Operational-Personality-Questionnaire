@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  passwordResetAcceptPostSchema,
+  passwordResetAcceptQuerySchema,
+} from '@/lib/validation/schemas';
 
 interface ResetRow {
   id: string;
@@ -39,11 +43,14 @@ async function loadReset(token: string): Promise<
 }
 
 export async function GET(request: NextRequest) {
-  const token = request.nextUrl.searchParams.get('token');
-  if (!token) {
+  const tokenRaw = request.nextUrl.searchParams.get('token');
+  const qp = passwordResetAcceptQuerySchema.safeParse({
+    token: tokenRaw ?? '',
+  });
+  if (!qp.success) {
     return NextResponse.json({ valid: false, reason: 'not_found' }, { status: 400 });
   }
-  const result = await loadReset(token);
+  const result = await loadReset(qp.data.token);
   if (!result.ok) {
     return NextResponse.json({ valid: false, reason: result.reason });
   }
@@ -55,24 +62,24 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  let body: { token?: string; password?: string };
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  if (!body.token) {
-    return NextResponse.json({ error: 'Token חסר' }, { status: 400 });
-  }
-  if (!body.password || body.password.length < 8) {
+  const parsed = passwordResetAcceptPostSchema.safeParse(body);
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: 'הסיסמה חייבת להכיל לפחות 8 תווים' },
-      { status: 400 }
+      { error: parsed.error.issues[0]?.message ?? 'פרטים לא תקינים' },
+      { status: 400 },
     );
   }
 
-  const result = await loadReset(body.token);
+  const { token, password } = parsed.data;
+
+  const result = await loadReset(token);
   if (!result.ok) {
     const messages = {
       not_found: 'הקישור לא נמצא',
@@ -87,7 +94,7 @@ export async function POST(request: NextRequest) {
 
   const { error: updateError } = await supabase.auth.admin.updateUserById(
     result.reset.user_id,
-    { password: body.password }
+    { password }
   );
 
   if (updateError) {

@@ -67,6 +67,37 @@ export function useReport(token: string | undefined): UseReportResult {
       };
 
       const fetchByToken = async () => {
+        const rpc = await supabase.rpc('get_lead_for_report', { p_token: token });
+
+        const rowFromRpc =
+          rpc.data !== null &&
+          rpc.data !== undefined &&
+          typeof rpc.data === 'object'
+            ? (rpc.data as Record<string, unknown>)
+            : null;
+
+        if (!rpc.error && rowFromRpc && Object.keys(rowFromRpc).length > 0) {
+          return {
+            data: rowFromRpc as unknown as Record<string, unknown>,
+            error: null as typeof rpc.error | null,
+          };
+        }
+
+        const msg = (rpc.error?.message ?? '').toLowerCase();
+        const missingFn =
+          /function .* does not exist|could not find.*function|pgrst202/.test(msg) ||
+          rpc.error?.code === 'PGRST202';
+
+        if (!missingFn && rpc.error) {
+          return { data: null, error: rpc.error };
+        }
+
+        if (missingFn) {
+          console.warn(
+            '[useReport] get_lead_for_report missing — falling back to legacy select.',
+          );
+        }
+
         const full = await supabase
           .from('leads')
           .select(COLUMNS_FULL)
@@ -75,7 +106,7 @@ export function useReport(token: string | undefined): UseReportResult {
         if (full.error && isMissingColumnError(full.error)) {
           console.warn(
             '[useReport] AI/PDF columns missing — running pre-migration. ' +
-            'Run supabase/add_ai_diagnosis.sql and supabase/add_pdf_columns.sql to enable.',
+              'Run supabase/add_ai_diagnosis.sql and supabase/add_pdf_columns.sql to enable.',
           );
           const base = await supabase
             .from('leads')

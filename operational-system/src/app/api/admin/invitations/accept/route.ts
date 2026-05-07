@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { invitationAcceptPostSchema, invitationAcceptQuerySchema } from '@/lib/validation/schemas';
 
 interface InvitationRow {
   id: string;
@@ -39,11 +40,14 @@ async function loadInvitation(token: string): Promise<
 }
 
 export async function GET(request: NextRequest) {
-  const token = request.nextUrl.searchParams.get('token');
-  if (!token) {
+  const tokenRaw = request.nextUrl.searchParams.get('token');
+  const qp = invitationAcceptQuerySchema.safeParse({
+    token: tokenRaw ?? '',
+  });
+  if (!qp.success) {
     return NextResponse.json({ valid: false, reason: 'not_found' }, { status: 400 });
   }
-  const result = await loadInvitation(token);
+  const result = await loadInvitation(qp.data.token);
   if (!result.ok) {
     return NextResponse.json({ valid: false, reason: result.reason });
   }
@@ -56,24 +60,24 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  let body: { token?: string; password?: string; full_name?: string };
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  if (!body.token) {
-    return NextResponse.json({ error: 'Token חסר' }, { status: 400 });
-  }
-  if (!body.password || body.password.length < 8) {
+  const parsed = invitationAcceptPostSchema.safeParse(body);
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: 'הסיסמה חייבת להכיל לפחות 8 תווים' },
-      { status: 400 }
+      { error: parsed.error.issues[0]?.message ?? 'פרטים לא תקינים' },
+      { status: 400 },
     );
   }
 
-  const result = await loadInvitation(body.token);
+  const { token, password, full_name: full_name_input } = parsed.data;
+
+  const result = await loadInvitation(token);
   if (!result.ok) {
     const messages = {
       not_found: 'הזימון לא נמצא',
@@ -85,11 +89,11 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createServiceRoleClient();
-  const fullName = body.full_name?.trim() || result.invitation.full_name;
+  const fullName = full_name_input?.trim() || result.invitation.full_name;
 
   const { error: createError } = await supabase.auth.admin.createUser({
     email: result.invitation.email,
-    password: body.password,
+    password,
     email_confirm: true,
     user_metadata: {
       full_name: fullName,

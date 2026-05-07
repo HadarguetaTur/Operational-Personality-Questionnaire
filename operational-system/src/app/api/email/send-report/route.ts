@@ -1,29 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth/requireAdmin';
+import { sendReportEmailSchema } from '@/lib/validation/schemas';
 
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { leadId, email, name, reportToken, pattern } = body;
+  const reportSecret = process.env.REPORT_SEND_SECRET?.trim();
+  const headerSecret = request.headers.get('x-report-send-secret')?.trim();
 
-    if (!leadId || !email || !reportToken) {
+  if (reportSecret) {
+    if (headerSecret !== reportSecret) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  } else {
+    const auth = await requireAdmin();
+    if (!auth.ok) return auth.response;
+  }
+
+  try {
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'בקשה לא תקינה' }, { status: 400 });
+    }
+
+    const parsed = sendReportEmailSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Missing required fields: leadId, email, reportToken' },
-        { status: 400 }
+        { error: parsed.error.issues[0]?.message ?? 'פרטים לא תקינים' },
+        { status: 400 },
       );
     }
 
+    const { leadId, email, name, reportToken, pattern } = parsed.data;
+
     const supabase = createServiceRoleClient();
-    const quizBase = (process.env.NEXT_PUBLIC_QUIZ_URL || 'http://localhost:5173').replace(/\/$/, '');
+    const quizBase = (
+      process.env.NEXT_PUBLIC_QUIZ_URL || 'http://localhost:5173'
+    ).replace(/\/$/, '');
     const reportUrl = `${quizBase}/#/result/${encodeURIComponent(reportToken)}`;
 
-    // Log the email attempt
     const { data: emailLog } = await supabase
       .from('email_logs')
       .insert({
         lead_id: leadId,
         template_id: null,
-        subject: `הדוח שלך מוכן — ${name}`,
+        subject: `הדוח שלך מוכן — ${name ?? ''}`,
         recipient_email: email,
         status: 'pending',
         error: null,
@@ -34,20 +56,21 @@ export async function POST(request: NextRequest) {
     let sent = false;
     let sendError: string | null = null;
 
-    // Try Gmail API if credentials are configured
-    const hasGoogleCreds = process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REFRESH_TOKEN;
+    const hasGoogleCreds =
+      process.env.GOOGLE_CLIENT_ID &&
+      process.env.GOOGLE_CLIENT_SECRET &&
+      process.env.GOOGLE_REFRESH_TOKEN;
 
     if (hasGoogleCreds) {
       try {
         const { sendEmail, injectTemplateVariables } = await import('@/lib/google/gmail');
 
-        // Check if there's a template for report emails
         const { data: template } = await supabase
           .from('email_templates')
           .select('html_content, subject')
           .eq('name', 'דוח אבחון')
           .limit(1)
-          .single();
+          .maybeSingle();
 
         const defaultHtml = `<!DOCTYPE html>
 <html dir="rtl" lang="he">
@@ -99,16 +122,18 @@ export async function POST(request: NextRequest) {
       }
     } else {
       console.log(`[Email] Gmail not configured. Report email for ${email} logged but not sent.`, {
-        name, reportUrl, pattern, leadId,
+        name,
+        reportUrl,
+        pattern,
+        leadId,
       });
     }
 
-    // Update log status
     if (emailLog?.id) {
       await supabase
         .from('email_logs')
         .update({
-          status: sent ? 'sent' : (hasGoogleCreds ? 'failed' : 'pending'),
+          status: sent ? 'sent' : hasGoogleCreds ? 'failed' : 'pending',
           sent_at: sent ? new Date().toISOString() : null,
           error: sendError,
         })
@@ -118,14 +143,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       sent,
-      message: sent ? 'Report email sent' : 'Report email logged (Gmail not configured or failed)',
+      message: sent
+        ? 'Report email sent'
+        : 'Report email logged (Gmail not configured or failed)',
       reportUrl,
     });
   } catch (error) {
     console.error('[Email] send-report error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

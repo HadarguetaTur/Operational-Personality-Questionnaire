@@ -5,12 +5,15 @@ import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Search, FileText, ExternalLink } from 'lucide-react';
+import { toast } from 'sonner';
+import { openLeadDocument } from '@/lib/admin/openLeadDocument';
 
 interface DocumentRow {
   id: string;
   lead_id: string;
   file_name: string;
   file_url: string;
+  storage_path: string | null;
   drive_url: string | null;
   mime_type: string | null;
   file_size: number | null;
@@ -104,9 +107,17 @@ export default function DocumentsPage() {
                         <td className="py-3 px-4 text-gray-500">{new Date(doc.uploaded_at).toLocaleDateString('he-IL')}</td>
                         <td className="py-3 px-4">
                           <div className="flex gap-2">
-                            <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const r = await openLeadDocument(doc.storage_path, doc.file_url);
+                                if (!r.ok) toast.error(r.message);
+                              }}
+                              className="text-blue-600 hover:text-blue-800 p-1 rounded"
+                              title="פתח קובץ"
+                            >
                               <ExternalLink className="w-4 h-4" />
-                            </a>
+                            </button>
                             {doc.drive_url && (
                               <a href={doc.drive_url} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-800" title="Google Drive">
                                 <ExternalLink className="w-4 h-4" />

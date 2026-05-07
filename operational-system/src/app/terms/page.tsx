@@ -33,7 +33,7 @@ export default function TermsPage() {
 
       <main className="max-w-3xl mx-auto px-5 md:px-8 py-16 md:py-24">
         <h1 className="text-3xl md:text-4xl font-extrabold mb-3">תנאי שימוש</h1>
-        <p className="text-white/40 text-sm mb-12">עדכון אחרון: מאי 2025</p>
+        <p className="text-white/40 text-sm mb-12">עדכון אחרון: מאי 2026</p>
 
         <div className="prose prose-invert prose-sm md:prose-base max-w-none space-y-10 text-white/75 leading-relaxed">
 

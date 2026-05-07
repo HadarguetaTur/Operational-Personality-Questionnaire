@@ -1,7 +1,7 @@
 -- ============================================================
--- טבלת לידים – אבחון Architecture of Scale
+-- LEGACY — טבלת לידים (מינימלי, RLS לא בטוח לפרודקשן)
 -- ============================================================
--- איך להריץ: Supabase Dashboard → SQL Editor → New query → הדבק והרץ (Run)
+-- ארכיון בלבד. המקור הרשמי: operational-system/supabase/migrations/
 -- ============================================================
 
 create table if not exists public.leads (

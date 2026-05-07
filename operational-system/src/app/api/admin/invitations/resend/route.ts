@@ -3,27 +3,34 @@ import { randomBytes } from 'node:crypto';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/requireAdmin';
 import { sendInvitationEmail } from '@/lib/invitations/email';
+import { adminInvitationIdBodySchema } from '@/lib/validation/schemas';
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
   if (!auth.ok) return auth.response;
 
-  let body: { invitation_id?: string };
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  if (!body.invitation_id) {
-    return NextResponse.json({ error: 'invitation_id is required' }, { status: 400 });
+  const parsed = adminInvitationIdBodySchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? 'פרטים לא תקינים' },
+      { status: 400 },
+    );
   }
+
+  const { invitation_id } = parsed.data;
 
   const supabase = createServiceRoleClient();
   const { data: invitation, error: fetchError } = await supabase
     .from('admin_invitations')
     .select('id, email, full_name, status')
-    .eq('id', body.invitation_id)
+    .eq('id', invitation_id)
     .maybeSingle();
 
   if (fetchError || !invitation) {

@@ -16,6 +16,9 @@
 4. `supabase/migrations/004_landing_analytics.sql` — נדרש ל־`landing_events` בדף הנחיתה
 5. `supabase/migrations/005_lead_attribution.sql`
 6. `supabase/migrations/006_admin_invitations.sql`
+7. `supabase/migrations/007_leads_rls_followup_token.sql` — RLS מחוזק ל־`leads`, טוקן המשך, RPC לשאלון
+
+לאחר ההתקנה בדקו שה־bucket `documents` **פרטי** — ראו [`supabase/STORAGE_DOCUMENTS.md`](operational-system/supabase/STORAGE_DOCUMENTS.md).
 
 ### מפתח service role
 
@@ -101,7 +104,7 @@ git push -u origin main
 | `NEXT_PUBLIC_SUPABASE_URL` | מ־Supabase API |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | מ־Supabase API |
 | `SUPABASE_SERVICE_ROLE_KEY` | service_role בלבד |
-| `NEXT_PUBLIC_APP_URL` | `https://www.automateyourbiznow.com` (ללא סלאש בסוף) |
+| `NEXT_PUBLIC_APP_URL` | `https://www.automateyourbiznow.com` (ללא סלאש בסוף) — **חובה** ל־Open Graph / canonical |
 | `NEXT_PUBLIC_QUIZ_URL` | `https://quiz.automateyourbiznow.com` |
 | `ADMIN_EMAILS` | מופרד בפסיקים |
 | `ADMIN_NOTIFICATION_EMAIL` | התראות |
@@ -110,7 +113,8 @@ git push -u origin main
 | `NEXT_PUBLIC_PAYMENT_URL` | Sumit |
 | `NEXT_PUBLIC_BUSINESS_*` , `NEXT_PUBLIC_SUPPORT_EMAIL` | פרטי עסק (אם בשימוש) |
 | `NEXT_PUBLIC_GA4_ID` | לדוגמה `G-XXXXXXXXXX` |
-| `SUMIT_WEBHOOK_SECRET` | אם webhooks Sumit פעילים |
+| `SUMIT_WEBHOOK_SECRET` | **חובה** בעלייה לאוויר — אימות Webhook תשלום |
+| `REPORT_SEND_SECRET` | אופציונלי — אימות ראוט שליחת דוח מאוטומציה חיצונית |
 
 5. **Domains:** חברו `automateyourbiznow.com` ו־`www` לפי הוראות Vercel DNS.
 
@@ -126,7 +130,7 @@ git push -u origin main
 |--------|------|
 | `VITE_SUPABASE_URL` | כמו Next |
 | `VITE_SUPABASE_ANON_KEY` | anon בלבד |
-| `VITE_PUBLIC_APP_URL` | `https://quiz.automateyourbiznow.com` (ל־OG ולקישורים בתוך האפליקציה על המארח הזה) |
+| `VITE_PUBLIC_APP_URL` | `https://quiz.automateyourbiznow.com` (חובה ל־OG בתוך אפליקציית ה־Vite והקישורים המוחלטים) |
 | `VITE_PAYMENT_URL` | Sumit |
 
 4. **Domain:** `quiz.automateyourbiznow.com`

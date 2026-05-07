@@ -1,16 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-
-const contactSchema = z.object({
-  name: z.string().min(1, 'נא למלא שם').max(200).trim(),
-  email: z.string().email('כתובת אימייל לא תקינה').max(320),
-  phone: z
-    .string()
-    .max(50)
-    .optional()
-    .transform((s) => (s == null || s.trim() === '' ? undefined : s.trim())),
-  message: z.string().min(1, 'נא למלא הודעה').max(5000).trim(),
-});
+import { checkRateLimit } from '@/lib/rateLimit';
+import { contactFormSchema } from '@/lib/validation/schemas';
 
 function escapeHtml(text: string): string {
   return text
@@ -38,6 +28,9 @@ function buildSubject(name: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  if (!checkRateLimit(request, 'contact', 20, 60_000)) {
+    return NextResponse.json({ error: 'יותר מדי בקשות. נסי שוב בעוד דקה.' }, { status: 429 });
+  }
   try {
     let json: unknown;
     try {
@@ -46,7 +39,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'בקשה לא תקינה' }, { status: 400 });
     }
 
-    const parsed = contactSchema.safeParse(json);
+    const parsed = contactFormSchema.safeParse(json);
     if (!parsed.success) {
       const first = parsed.error.issues[0]?.message ?? 'פרטים לא תקינים';
       return NextResponse.json({ error: first }, { status: 400 });

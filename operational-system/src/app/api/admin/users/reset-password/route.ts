@@ -3,25 +3,32 @@ import { randomBytes } from 'node:crypto';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/requireAdmin';
 import { sendPasswordResetEmail } from '@/lib/invitations/email';
+import { adminUserIdBodySchema } from '@/lib/validation/schemas';
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
   if (!auth.ok) return auth.response;
 
-  let body: { user_id?: string };
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  if (!body.user_id) {
-    return NextResponse.json({ error: 'user_id is required' }, { status: 400 });
+  const parsed = adminUserIdBodySchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? 'פרטים לא תקינים' },
+      { status: 400 },
+    );
   }
+
+  const { user_id } = parsed.data;
 
   const supabase = createServiceRoleClient();
 
-  const { data: userResp, error: userError } = await supabase.auth.admin.getUserById(body.user_id);
+  const { data: userResp, error: userError } = await supabase.auth.admin.getUserById(user_id);
   if (userError || !userResp.user) {
     return NextResponse.json({ error: 'משתמש לא נמצא' }, { status: 404 });
   }
@@ -34,14 +41,14 @@ export async function POST(request: NextRequest) {
   await supabase
     .from('password_resets')
     .update({ status: 'revoked' })
-    .eq('user_id', body.user_id)
+    .eq('user_id', user_id)
     .eq('status', 'pending');
 
   const token = randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
   const { error: insertError } = await supabase.from('password_resets').insert({
-    user_id: body.user_id,
+    user_id,
     email: targetEmail,
     token,
     status: 'pending',

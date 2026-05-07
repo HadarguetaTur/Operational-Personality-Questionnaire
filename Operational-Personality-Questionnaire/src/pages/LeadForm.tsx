@@ -57,24 +57,44 @@ const LeadForm: React.FC = () => {
     try {
       // Step 1 — create the lead with the fields that always exist.
       // This is the critical path; never block it on attribution.
-      const { data, error: insertError } = await supabase
-        .from('leads')
-        .insert({
-          name: trimmedName,
-          email: trimmedEmail,
-          marketing_consent: marketingConsent
-        })
-        .select('id')
-        .single();
+      const { data: leadIdNew, error: rpcError } = await supabase.rpc('create_quiz_lead', {
+        p_name: trimmedName,
+        p_email: trimmedEmail,
+        p_marketing_consent: marketingConsent,
+      });
 
-      if (insertError) {
-        console.error('Supabase insert error:', insertError);
-        setError(insertError.message || 'שגיאה בשמירה. נסה שוב.');
-        setSubmitting(false);
-        return;
+      let leadId: string | null = typeof leadIdNew === 'string' ? leadIdNew : null;
+
+      if (rpcError) {
+        const msg = rpcError.message ?? '';
+        const fallback =
+          /function .* does not exist|could not find.*function|PGRST202/i.test(msg)
+          || rpcError.code === 'PGRST202';
+        if (!fallback) {
+          console.error('Supabase create_quiz_lead error:', rpcError);
+          setError(rpcError.message || 'שגיאה בשמירה. נסה שוב.');
+          setSubmitting(false);
+          return;
+        }
+
+        const ins = await supabase
+          .from('leads')
+          .insert({
+            name: trimmedName,
+            email: trimmedEmail,
+            marketing_consent: marketingConsent,
+          })
+          .select('id')
+          .single();
+        if (ins.error) {
+          console.error('Supabase insert error:', ins.error);
+          setError(ins.error.message || 'שגיאה בשמירה. נסה שוב.');
+          setSubmitting(false);
+          return;
+        }
+        leadId = ins.data?.id ?? null;
       }
 
-      const leadId = data?.id;
       if (leadId) {
         sessionStorage.setItem('diagnosticLeadId', leadId);
 

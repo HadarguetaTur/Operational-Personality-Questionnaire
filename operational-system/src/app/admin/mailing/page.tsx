@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Send, Users, Mail, Eye, CheckCircle } from 'lucide-react';
+import DOMPurify from 'isomorphic-dompurify';
 import { toast } from 'sonner';
 
 interface Template {
@@ -226,7 +227,9 @@ export default function MailingPage() {
               <CardContent>
                 <div
                   className="border rounded-lg p-4 bg-white max-h-[300px] overflow-y-auto"
-                  dangerouslySetInnerHTML={{ __html: selectedTemplate$.html_content }}
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(selectedTemplate$.html_content ?? ''),
+                  }}
                 />
               </CardContent>
             </Card>

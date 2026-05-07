@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import React, { useCallback, useEffect, useMemo, useRef, useState, Suspense } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,11 +30,23 @@ const DEFAULT_FIELDS: FormFieldDef[] = [
   { id: 'additional_notes', type: 'textarea', label: 'הערות נוספות', placeholder: 'כל מה שחשוב שאדע לפני הפגישה...', required: false },
 ];
 
-export default function FollowupFormPage() {
+interface MetadataResponse {
+  lead: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    followup_submitted_at: string | null;
+  };
+  fields: FormFieldDef[] | null;
+}
+
+function FollowupFormInner() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const leadId = params.leadId as string;
-  const supabase = createClient();
+  const followupToken =
+    searchParams.get('t') ?? searchParams.get('token') ?? undefined;
 
   const [lead, setLead] = useState<{ name: string; email: string } | null>(null);
   const [fields, setFields] = useState<FormFieldDef[]>(DEFAULT_FIELDS);
@@ -47,46 +58,42 @@ export default function FollowupFormPage() {
   const [loading, setLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const fetchLead = async () => {
-      const { data } = await supabase
-        .from('leads')
-        .select('name, email, funnel_id, current_stage_id, followup_submitted_at')
-        .eq('id', leadId)
-        .single();
+  const query = useMemo(() => {
+    const q = new URLSearchParams({ leadId });
+    if (followupToken) q.set('token', followupToken);
+    return q.toString();
+  }, [leadId, followupToken]);
 
-      if (!data) {
-        setError('טופס לא נמצא');
-        setLoading(false);
-        return;
-      }
-
-      if (data.followup_submitted_at) {
-        setSubmitted(true);
-        setLoading(false);
-        return;
-      }
-
-      setLead({ name: data.name, email: data.email });
-
-      // Load custom form config if exists
-      if (data.current_stage_id) {
-        const { data: config } = await supabase
-          .from('questionnaire_configs')
-          .select('questions')
-          .eq('stage_id', data.current_stage_id)
-          .single();
-
-        if (config?.questions && Array.isArray(config.questions) && config.questions.length > 0) {
-          setFields(config.questions as FormFieldDef[]);
-        }
-      }
-
+  const loadMetadata = useCallback(async () => {
+    const res = await fetch(`/api/followup/metadata?${query}`, { credentials: 'include' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError(typeof data?.error === 'string' ? data.error : 'טופס לא נמצא');
       setLoading(false);
-    };
+      return;
+    }
+    const m = data as MetadataResponse;
+    if (m.lead?.followup_submitted_at) {
+      setSubmitted(true);
+      setLoading(false);
+      return;
+    }
 
-    fetchLead();
-  }, [leadId, supabase]);
+    setLead({
+      name: m.lead.name ?? '',
+      email: m.lead.email ?? '',
+    });
+
+    if (m.fields && Array.isArray(m.fields) && m.fields.length > 0) {
+      setFields(m.fields as FormFieldDef[]);
+    }
+
+    setLoading(false);
+  }, [query]);
+
+  useEffect(() => {
+    loadMetadata();
+  }, [loadMetadata]);
 
   const handleChange = (fieldId: string, value: string) => {
     setFormData((prev) => ({ ...prev, [fieldId]: value }));
@@ -109,7 +116,6 @@ export default function FollowupFormPage() {
     setError('');
 
     try {
-      // Validate required fields
       for (const field of fields) {
         if (field.required && field.type !== 'file' && !formData[field.id]?.trim()) {
           setError(`נא למלא את השדה: ${field.label}`);
@@ -118,84 +124,34 @@ export default function FollowupFormPage() {
         }
       }
 
-      // Upload files to Supabase Storage
-      const uploadedDocs: Array<{ fileName: string; fileUrl: string; mimeType: string; fileSize: number; storagePath: string }> = [];
-
-      for (const file of files) {
-        const ext = file.name.split('.').pop() ?? 'bin';
-        const storagePath = `followup/${leadId}/${Date.now()}_${file.name}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('documents')
-          .upload(storagePath, file);
-
-        if (uploadError) {
-          console.error('File upload error:', uploadError);
-          continue;
+      const payload: Record<string, unknown> = { ...formData };
+      fields.forEach((f) => {
+        if (f.type === 'checkbox') {
+          payload[f.id] = formData[f.id] === 'true';
         }
-
-        const { data: urlData } = supabase.storage
-          .from('documents')
-          .getPublicUrl(storagePath);
-
-        uploadedDocs.push({
-          fileName: file.name,
-          fileUrl: urlData.publicUrl,
-          mimeType: file.type || `application/${ext}`,
-          fileSize: file.size,
-          storagePath,
-        });
-      }
-
-      // Save form submission
-      await supabase.from('followup_submissions').insert({
-        lead_id: leadId,
-        form_data: formData,
       });
 
-      // Save document records
-      for (const doc of uploadedDocs) {
-        await supabase.from('documents').insert({
-          lead_id: leadId,
-          file_name: doc.fileName,
-          file_url: doc.fileUrl,
-          mime_type: doc.mimeType,
-          file_size: doc.fileSize,
-          storage_path: doc.storagePath,
-        });
-      }
+      const fd = new FormData();
+      fd.append('leadId', leadId);
+      if (followupToken) fd.append('token', followupToken);
+      fd.append('formData', JSON.stringify(payload));
+      files.forEach((f) => fd.append('file', f));
 
-      // Update lead status
-      await supabase
-        .from('leads')
-        .update({ followup_submitted_at: new Date().toISOString(), lead_status: 'completed' })
-        .eq('id', leadId);
+      const res = await fetch('/api/followup/submit', {
+        method: 'POST',
+        body: fd,
+        credentials: 'include',
+      });
 
-      // Trigger Drive folder creation and file sync
-      try {
-        await fetch('/api/drive/create-folder', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ leadId }),
-        });
-      } catch (driveErr) {
-        console.error('Drive folder creation failed:', driveErr);
-      }
-
-      // Send meeting booking email + WhatsApp
-      try {
-        await fetch('/api/notifications/followup-complete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ leadId }),
-        });
-      } catch (notifErr) {
-        console.error('Notification send failed:', notifErr);
+      const out = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof out?.error === 'string' ? out.error : 'שגיאה בשליחת הטופס');
+        setSubmitting(false);
+        return;
       }
 
       setSubmitted(true);
-    } catch (err) {
-      console.error('Form submission error:', err);
+    } catch {
       setError('שגיאה בשליחת הטופס. נסי שוב.');
     } finally {
       setSubmitting(false);
@@ -220,7 +176,9 @@ export default function FollowupFormPage() {
             <p className="text-gray-500 mb-6">
               תודה! קיבלנו את כל הפרטים. בקרוב תקבלי למייל קישור לקביעת פגישה.
             </p>
-            <Button variant="outline" onClick={() => router.push('/')}>חזרה לדף הבית</Button>
+            <Button variant="outline" onClick={() => router.push('/')}>
+              חזרה לדף הבית
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -233,7 +191,9 @@ export default function FollowupFormPage() {
         <Card className="max-w-md w-full text-center">
           <CardContent className="py-12">
             <p className="text-red-500 mb-4">{error}</p>
-            <Button variant="outline" onClick={() => router.push('/')}>חזרה לדף הבית</Button>
+            <Button variant="outline" onClick={() => router.push('/')}>
+              חזרה לדף הבית
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -289,7 +249,9 @@ export default function FollowupFormPage() {
                     >
                       <option value="">בחר...</option>
                       {field.options?.map((opt) => (
-                        <option key={opt} value={opt}>{opt}</option>
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
                       ))}
                     </select>
                   ) : field.type === 'checkbox' ? (
@@ -301,7 +263,9 @@ export default function FollowupFormPage() {
                         onChange={(e) => handleChange(field.id, e.target.checked ? 'true' : 'false')}
                         className="h-4 w-4 rounded border-gray-300"
                       />
-                      <label htmlFor={field.id} className="text-sm text-gray-700">{field.placeholder}</label>
+                      <label htmlFor={field.id} className="text-sm text-gray-700">
+                        {field.placeholder}
+                      </label>
                     </div>
                   ) : field.type === 'file' ? (
                     <div className="space-y-3">
@@ -328,7 +292,11 @@ export default function FollowupFormPage() {
                           {files.map((file, i) => (
                             <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
                               <span className="text-sm text-gray-700 truncate">{file.name}</span>
-                              <button type="button" onClick={() => removeFile(i)} className="text-gray-400 hover:text-red-500">
+                              <button
+                                type="button"
+                                onClick={() => removeFile(i)}
+                                className="text-gray-400 hover:text-red-500"
+                              >
                                 <X className="w-4 h-4" />
                               </button>
                             </div>
@@ -361,5 +329,21 @@ export default function FollowupFormPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function FollowupLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+    </div>
+  );
+}
+
+export default function FollowupFormPage() {
+  return (
+    <Suspense fallback={<FollowupLoading />}>
+      <FollowupFormInner />
+    </Suspense>
   );
 }

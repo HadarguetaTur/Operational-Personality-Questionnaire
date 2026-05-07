@@ -3,27 +3,28 @@ import { randomBytes } from 'node:crypto';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/requireAdmin';
 import { sendInvitationEmail } from '@/lib/invitations/email';
+import { adminInviteSchema } from '@/lib/validation/schemas';
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
   if (!auth.ok) return auth.response;
 
-  let body: { email?: string; full_name?: string };
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const email = body.email?.trim().toLowerCase();
-  const fullName = body.full_name?.trim();
+  const parsed = adminInviteSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? 'פרטים לא תקינים' },
+      { status: 400 },
+    );
+  }
 
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return NextResponse.json({ error: 'אימייל לא תקין' }, { status: 400 });
-  }
-  if (!fullName) {
-    return NextResponse.json({ error: 'יש להזין שם מלא' }, { status: 400 });
-  }
+  const { email, full_name: fullName } = parsed.data;
 
   const supabase = createServiceRoleClient();
 

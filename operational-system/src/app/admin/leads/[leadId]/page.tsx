@@ -30,6 +30,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { openLeadDocument } from '@/lib/admin/openLeadDocument';
 
 interface LeadDetail {
   id: string;
@@ -68,6 +69,7 @@ interface DocumentRow {
   id: string;
   file_name: string;
   file_url: string;
+  storage_path: string | null;
   drive_url: string | null;
   uploaded_at: string;
 }
@@ -107,7 +109,7 @@ export default function LeadDetailPage() {
     const [leadRes, emailsRes, docsRes] = await Promise.all([
       supabase.from('leads').select('*').eq('id', leadId).single(),
       supabase.from('email_logs').select('id, subject, status, sent_at, created_at').eq('lead_id', leadId).order('created_at', { ascending: false }),
-      supabase.from('documents').select('id, file_name, file_url, drive_url, uploaded_at').eq('lead_id', leadId).order('uploaded_at', { ascending: false }),
+      supabase.from('documents').select('id, file_name, file_url, storage_path, drive_url, uploaded_at').eq('lead_id', leadId).order('uploaded_at', { ascending: false }),
     ]);
 
     if (leadRes.data) {
@@ -309,9 +311,17 @@ export default function LeadDetailPage() {
                       <span className="text-sm font-medium">{doc.file_name}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-gray-400">{formatDate(doc.uploaded_at)}</span>
-                        <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="text-blue-600">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const r = await openLeadDocument(doc.storage_path, doc.file_url);
+                            if (!r.ok) toast.error(r.message);
+                          }}
+                          className="text-blue-600 p-1 rounded hover:bg-blue-50"
+                          title="פתח קובץ"
+                        >
                           <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
+                        </button>
                       </div>
                     </div>
                   ))}

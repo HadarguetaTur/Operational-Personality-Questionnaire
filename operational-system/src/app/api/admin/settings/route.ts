@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth/requireAdmin';
+import { adminSettingsUpsertSchema } from '@/lib/validation/schemas';
 
 export async function GET() {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
+
   try {
     const supabase = createServiceRoleClient();
     const { data, error } = await supabase.from('system_settings').select('key, value');
@@ -23,17 +28,34 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const supabase = createServiceRoleClient();
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
 
-    const entries = Object.entries(body);
+  try {
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'בקשה לא תקינה' }, { status: 400 });
+    }
+
+    const parsed = adminSettingsUpsertSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? 'פרטים לא תקינים' },
+        { status: 400 },
+      );
+    }
+
+    const supabase = createServiceRoleClient();
+    const entries = Object.entries(parsed.data);
+
     for (const [key, value] of entries) {
       await supabase
         .from('system_settings')
         .upsert(
           { key, value, updated_at: new Date().toISOString() },
-          { onConflict: 'key' }
+          { onConflict: 'key' },
         );
     }
 

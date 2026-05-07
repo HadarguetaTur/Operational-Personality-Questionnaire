@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ContactSection } from '@/components/landing/ContactSection';
 import { trackEvent, getQuizUrl } from '@/lib/analytics';
@@ -491,8 +492,8 @@ export default function HomePage() {
               <span className="text-sm font-medium text-white/50">Architecture of Scale</span>
             </div>
             <nav className="flex items-center gap-5 text-sm text-white/30 flex-wrap justify-center" aria-label="ניווט תחתון">
-              <a href="/privacy" className="hover:text-white/55 transition-colors">מדיניות פרטיות</a>
-              <a href="/terms" className="hover:text-white/55 transition-colors">תנאי שימוש</a>
+              <Link href="/privacy" className="hover:text-white/55 transition-colors">מדיניות פרטיות</Link>
+              <Link href="/terms" className="hover:text-white/55 transition-colors">תנאי שימוש</Link>
               <a href="/admin/login" className="hover:text-white/55 transition-colors">כניסת מנהל</a>
             </nav>
           </div>

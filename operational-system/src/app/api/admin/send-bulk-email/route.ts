@@ -1,32 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth/requireAdmin';
+import { bulkEmailSchema } from '@/lib/validation/schemas';
 
 export async function POST(request: NextRequest) {
-  try {
-    const { template_id, lead_ids } = await request.json();
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
 
-    if (!template_id || !Array.isArray(lead_ids) || lead_ids.length === 0) {
-      return NextResponse.json({ error: 'Missing template_id or lead_ids' }, { status: 400 });
+  try {
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'בקשה לא תקינה' }, { status: 400 });
     }
 
+    const parsed = bulkEmailSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? 'פרטים לא תקינים' },
+        { status: 400 },
+      );
+    }
+
+    const { template_id: templateId, lead_ids: leadIds } = parsed.data;
     const supabase = createServiceRoleClient();
 
-    // Fetch template
     const { data: template } = await supabase
       .from('email_templates')
       .select('*')
-      .eq('id', template_id)
+      .eq('id', templateId)
       .single();
 
     if (!template) {
       return NextResponse.json({ error: 'Template not found' }, { status: 404 });
     }
 
-    // Fetch leads
     const { data: leads } = await supabase
       .from('leads')
       .select('id, name, email, result_pattern, report_token')
-      .in('id', lead_ids);
+      .in('id', leadIds);
 
     if (!leads || leads.length === 0) {
       return NextResponse.json({ error: 'No leads found' }, { status: 404 });
@@ -37,17 +50,19 @@ export async function POST(request: NextRequest) {
 
     for (const lead of leads) {
       try {
-        // Replace template variables with lead data
         let html = template.html_content || '';
         const subject = template.subject || '';
+        const quizBase = (process.env.NEXT_PUBLIC_QUIZ_URL || 'http://localhost:5173').replace(/\/$/, '');
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+
         const vars: Record<string, string> = {
           name: lead.name ?? '',
           email: lead.email ?? '',
           pattern: lead.result_pattern ?? '',
           report_url: lead.report_token
-            ? `${(process.env.NEXT_PUBLIC_QUIZ_URL || 'http://localhost:5173').replace(/\/$/, '')}/#/result/${encodeURIComponent(lead.report_token)}`
+            ? `${quizBase}/#/result/${encodeURIComponent(lead.report_token)}`
             : '',
-          form_url: `${process.env.NEXT_PUBLIC_APP_URL || ''}/followup/${lead.id}`,
+          form_url: `${appUrl}/followup/${lead.id}`,
           meeting_url: process.env.NEXT_PUBLIC_CALCOM_URL || '',
         };
 
@@ -60,10 +75,9 @@ export async function POST(request: NextRequest) {
           renderedSubject = renderedSubject.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
         });
 
-        // Log the email (actual Gmail API sending would go here)
         await supabase.from('email_logs').insert({
           lead_id: lead.id,
-          template_id: template_id,
+          template_id: templateId,
           funnel_id: template.funnel_id ?? null,
           subject: renderedSubject,
           recipient_email: lead.email,

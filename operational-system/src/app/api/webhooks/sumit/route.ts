@@ -1,29 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomBytes } from 'node:crypto';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { parseSumitWebhook } from '@/lib/validation/schemas';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { email, amount, transactionId, status, CustomerName } = body;
-
-    console.log('[Sumit Webhook] Payment received:', { email, amount, transactionId, status });
-
-    // Verify webhook secret if configured
-    const webhookSecret = process.env.SUMIT_WEBHOOK_SECRET;
-    if (webhookSecret) {
-      const headerSecret = request.headers.get('x-sumit-secret') || request.headers.get('authorization');
-      if (headerSecret !== webhookSecret && headerSecret !== `Bearer ${webhookSecret}`) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
+    const webhookSecret = process.env.SUMIT_WEBHOOK_SECRET?.trim();
+    if (!webhookSecret) {
+      console.error('[Sumit Webhook] SUMIT_WEBHOOK_SECRET is not configured');
+      return NextResponse.json(
+        { error: 'Webhook not configured' },
+        { status: 500 },
+      );
     }
 
-    if (!email || (status !== 'success' && status !== 'approved' && status !== 'completed')) {
-      return NextResponse.json({ error: 'Invalid webhook payload or payment not successful' }, { status: 400 });
+    const headerSecret =
+      request.headers.get('x-sumit-secret') || request.headers.get('authorization');
+    if (
+      headerSecret !== webhookSecret &&
+      headerSecret !== `Bearer ${webhookSecret}`
+    ) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
+
+    const parsed = parseSumitWebhook(body);
+    if (!parsed) {
+      return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+    }
+
+    const { email, amount, transactionId, status, customerName } = parsed;
+
+    const okStatus =
+      status === 'success' || status === 'approved' || status === 'completed';
+    if (!okStatus) {
+      return NextResponse.json(
+        { error: 'Invalid webhook payload or payment not successful' },
+        { status: 400 },
+      );
+    }
+
+    console.log('[Sumit Webhook] Payment received:', {
+      email,
+      amount,
+      transactionId,
+      status,
+    });
 
     const supabase = createServiceRoleClient();
 
-    // Find the lead by email
     const { data: lead, error: leadError } = await supabase
       .from('leads')
       .select('id, name, funnel_id, current_stage_id')
@@ -37,19 +68,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
     }
 
-    // Update payment status
     await supabase
       .from('leads')
       .update({
         payment_status: 'paid',
         payment_date: new Date().toISOString(),
-        payment_amount: amount ? parseFloat(amount) : null,
+        payment_amount: amount != null ? amount : null,
         payment_transaction_id: transactionId || null,
         lead_status: 'paid',
       })
       .eq('id', lead.id);
 
-    // Find the next stage (follow-up form) if funnel is configured
     if (lead.funnel_id) {
       const { data: nextStage } = await supabase
         .from('funnel_stages')
@@ -62,13 +91,17 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (nextStage) {
-        // Advance lead to follow-up form stage
+        const followupToken = randomBytes(24).toString('hex');
+
         await supabase
           .from('leads')
-          .update({ current_stage_id: nextStage.id, lead_status: 'followup_sent' })
+          .update({
+            current_stage_id: nextStage.id,
+            lead_status: 'followup_sent',
+            followup_access_token: followupToken,
+          })
           .eq('id', lead.id);
 
-        // Send follow-up form email
         if (nextStage.email_template_id) {
           const { data: template } = await supabase
             .from('email_templates')
@@ -77,15 +110,20 @@ export async function POST(request: NextRequest) {
             .single();
 
           if (template) {
-            const hasGmail = process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REFRESH_TOKEN;
+            const hasGmail =
+              process.env.GOOGLE_CLIENT_ID &&
+              process.env.GOOGLE_CLIENT_SECRET &&
+              process.env.GOOGLE_REFRESH_TOKEN;
             if (hasGmail) {
               try {
-                const { sendEmail, injectTemplateVariables } = await import('@/lib/google/gmail');
+                const { sendEmail, injectTemplateVariables } = await import(
+                  '@/lib/google/gmail'
+                );
                 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-                const formUrl = `${appUrl}/followup/${lead.id}`;
+                const formUrl = `${appUrl}/followup/${lead.id}?t=${encodeURIComponent(followupToken)}`;
 
                 const variables: Record<string, string> = {
-                  name: lead.name || CustomerName || '',
+                  name: lead.name || customerName || '',
                   email,
                   form_url: formUrl,
                 };

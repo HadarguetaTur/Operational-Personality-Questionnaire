@@ -1,23 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { injectTemplateVariables } from '@/lib/google/gmail';
+import { requireAdmin } from '@/lib/auth/requireAdmin';
+import { bulkEmailV2Schema } from '@/lib/validation/schemas';
 
 /**
  * Send a template-based email to a list of leads.
  * Used by the admin dashboard for manual campaigns.
  */
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { templateId, leadIds, funnelId, filters } = body;
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
 
-    if (!templateId) {
-      return NextResponse.json({ error: 'Missing templateId' }, { status: 400 });
+  try {
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'בקשה לא תקינה' }, { status: 400 });
     }
+
+    const parsed = bulkEmailV2Schema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? 'פרטים לא תקינים' },
+        { status: 400 },
+      );
+    }
+
+    const { templateId, leadIds, funnelId, filters } = parsed.data;
 
     const supabase = createServiceRoleClient();
 
-    // Get the template
     const { data: template, error: tplError } = await supabase
       .from('email_templates')
       .select('*')
@@ -28,17 +42,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Template not found' }, { status: 404 });
     }
 
-    // Get leads
-    let leadsQuery = supabase.from('leads').select('id, name, email, result_pattern, report_token');
+    let leadsQuery = supabase
+      .from('leads')
+      .select('id, name, email, result_pattern, report_token');
 
-    if (leadIds && Array.isArray(leadIds) && leadIds.length > 0) {
+    if (leadIds && leadIds.length > 0) {
       leadsQuery = leadsQuery.in('id', leadIds);
     } else if (funnelId) {
       leadsQuery = leadsQuery.eq('funnel_id', funnelId);
     } else if (filters) {
-      if (filters.payment_status) leadsQuery = leadsQuery.eq('payment_status', filters.payment_status);
-      if (filters.result_pattern) leadsQuery = leadsQuery.eq('result_pattern', filters.result_pattern);
-      if (filters.has_email !== false) leadsQuery = leadsQuery.not('email', 'is', null);
+      if (filters.payment_status) {
+        leadsQuery = leadsQuery.eq('payment_status', filters.payment_status);
+      }
+      if (filters.result_pattern) {
+        leadsQuery = leadsQuery.eq('result_pattern', filters.result_pattern);
+      }
+      if (filters.has_email !== false) {
+        leadsQuery = leadsQuery.not('email', 'is', null);
+      }
     }
 
     const { data: leads } = await leadsQuery.limit(500);
@@ -47,20 +68,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No leads found', sent: 0 }, { status: 200 });
     }
 
-    const hasGmail = process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REFRESH_TOKEN;
+    const hasGmail =
+      process.env.GOOGLE_CLIENT_ID &&
+      process.env.GOOGLE_CLIENT_SECRET &&
+      process.env.GOOGLE_REFRESH_TOKEN;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     let sentCount = 0;
     let failCount = 0;
     const errors: string[] = [];
-    const quizBase = (process.env.NEXT_PUBLIC_QUIZ_URL || 'http://localhost:5173').replace(/\/$/, '');
+    const quizBase = (
+      process.env.NEXT_PUBLIC_QUIZ_URL || 'http://localhost:5173'
+    ).replace(/\/$/, '');
 
     for (const lead of leads) {
       const variables: Record<string, string> = {
         name: lead.name || '',
         email: lead.email || '',
         pattern: lead.result_pattern || '',
-        report_url: lead.report_token ? `${quizBase}/#/result/${encodeURIComponent(lead.report_token)}` : '',
+        report_url: lead.report_token
+          ? `${quizBase}/#/result/${encodeURIComponent(lead.report_token)}`
+          : '',
         form_url: `${appUrl}/followup/${lead.id}`,
         meeting_url: process.env.NEXT_PUBLIC_CALCOM_URL || '',
       };
@@ -98,7 +126,6 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        // Rate limiting: wait 100ms between sends
         await new Promise((resolve) => setTimeout(resolve, 100));
       } else {
         await supabase.from('email_logs').insert({
