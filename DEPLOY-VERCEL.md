@@ -72,6 +72,12 @@
 1. **New Project** → Import מהריפו.
 2. **Root Directory:** `operational-system`
 3. **Framework Preset:** Next.js.
+4. **Build & Development Settings** (חשוב אחרי מיגרציה מ־Vite):  
+   **Project → Settings → Build and Deployment** — ודאו שאין Override ישן:
+   - **Build Command:** השאירו ריק (ברירת המחדל של Next), או **`npm run build`**.  
+     אם רשום **`vite build`** — מחקו והשאירו ריק / עדכנו כמו למעלה ושמרו.
+   - **Install Command:** בדרך כלל ריק (`npm install`), אלא אם אתם יודעים שצריך אחרת.
+   - **Output Directory:** ריק ל־Next.js (לא `dist` של Vite).
 
 ### משתני סביבה (Production + Preview לפי הצורך)
 
@@ -87,12 +93,14 @@
 
 **חשוב:** אין עוד `NEXT_PUBLIC_QUIZ_URL` ואין פרויקט Vite נפרד. מחקו מפרויקט Vercel ישן כל משתנה כזה אם נשאר ממיגרציה קודמת.
 
-4. **Domains:** חברו את הדומיין הציבורי (למשל `hadarturgemanautomations.com` ו־`www`).
-5. אם היה פרויקט Vercel נפרד לשאלון (`quiz.*`) — ניתן למחוק אותו ולבטל את תת־הדומיין.
+5. **Domains:** חברו את הדומיין הציבורי (למשל `hadarturgemanautomations.com` ו־`www`).
+6. אם היה פרויקט Vercel נפרד לשאלון (`quiz.*`) — ניתן למחוק אותו ולבטל את תת־הדומיין.
 
 ---
 
-## 5. Troubleshooting — Root Directory
+## 5. Troubleshooting
+
+### Root Directory לא קיים
 
 אם הבילד נכשל עם הודעה כמו  
 `The specified Root Directory "Operational-Personality-Questionnaire" does not exist`:
@@ -102,6 +110,17 @@
 3. **Save**, ואז **Deployments → … → Redeploy** (או דחיפת commit חדש).
 
 אם נשאר פרויקט Vercel נפרד לשאלון הישן — עדכנו אותו באותו אופן או מחקו אותו וחברו רק פרויקט אחד לריפו.
+
+### `vite: command not found` / `vite build` exited with 127
+
+הפרויקט כבר **לא** משתמש ב־Vite. השגיאה מגיעה כמעט תמיד מ־**Override ישן** בהגדרות Vercel:
+
+1. **Project → Settings → Build and Deployment**.
+2. תחת **Build Command** — אם מופיע **`vite build`**, לחצו **Edit** מחקו את הערך והשאירו ריק, או הגדירו **`npm run build`**.
+3. תחת **Output Directory** — אם מוגדר משהו כמו `dist`, נקו את השדה (Next משרת מ־`.next`).
+4. **Save** ו־**Redeploy**.
+
+בקובץ [`operational-system/vercel.json`](operational-system/vercel.json) מוגדר `buildCommand`/`installCommand` תואמים Next — אם עדיין רואים `vite build`, זה כמעט תמיד כי ב־Dashboard עדיין יש Override (ההגדרות ב־UI גוברות על ברירות המחדל).
 
 ---
 
