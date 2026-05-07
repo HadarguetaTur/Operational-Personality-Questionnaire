@@ -382,6 +382,15 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      create_quiz_lead: {
+        Args: {
+          p_name: string;
+          p_email: string;
+          p_marketing_consent: boolean;
+          p_phone?: string | null;
+        };
+        Returns: string;
+      };
       is_admin: {
         Args: Record<string, never>;
         Returns: boolean;

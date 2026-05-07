@@ -7,15 +7,21 @@ import { trackEvent, getVisitorId, getSessionId, readUtmParams } from '@/lib/ana
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** Optional phone: allow digits, spaces, +, hyphen; require 7–15 digits when non-empty. */
+function phoneDigitsOnly(value: string): string {
+  return value.replace(/\D/g, '');
+}
+
 /** Quiz lead capture — same Supabase flow as legacy Vite app. */
 export function QuizLeadForm() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [marketingConsent, setMarketingConsent] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [touched, setTouched] = useState<{ email?: boolean; name?: boolean }>({});
+  const [touched, setTouched] = useState<{ email?: boolean; name?: boolean; phone?: boolean }>({});
 
   useEffect(() => {
     trackEvent('quiz_start');
@@ -32,12 +38,29 @@ export function QuizLeadForm() {
     return '';
   }, [name, touched.name]);
 
+  const phoneHint = useMemo(() => {
+    if (!touched.phone || !phone.trim()) return '';
+    const digits = phoneDigitsOnly(phone);
+    if (digits.length < 7 || digits.length > 15) {
+      return 'נא להזין מספר טלפון תקין (7–15 ספרות).';
+    }
+    return '';
+  }, [phone, touched.phone]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setTouched({ name: true, email: true });
+    setTouched({ name: true, email: true, phone: true });
     const trimmedName = name.trim();
     const trimmedEmail = email.trim().toLowerCase();
+    const trimmedPhoneRaw = phone.trim();
+    const phoneDigits = phoneDigitsOnly(trimmedPhoneRaw);
+    const trimmedPhone =
+      trimmedPhoneRaw === ''
+        ? null
+        : phoneDigits.length >= 7 && phoneDigits.length <= 15
+          ? trimmedPhoneRaw
+          : null;
     if (!trimmedName) {
       setError('נא להזין איך לקרוא לך.');
       return;
@@ -54,6 +77,10 @@ export function QuizLeadForm() {
       setError('נא לאשר קבלת דיוור כדי להמשיך.');
       return;
     }
+    if (trimmedPhoneRaw !== '' && trimmedPhone === null) {
+      setError('נא להזין מספר טלפון תקין (7–15 ספרות) או להשאיר ריק.');
+      return;
+    }
 
     const supabase = createClient();
     if (!supabase) {
@@ -67,6 +94,7 @@ export function QuizLeadForm() {
         p_name: trimmedName,
         p_email: trimmedEmail,
         p_marketing_consent: marketingConsent,
+        p_phone: trimmedPhone,
       });
 
       let leadId: string | null = typeof leadIdNew === 'string' ? leadIdNew : null;
@@ -89,6 +117,7 @@ export function QuizLeadForm() {
             name: trimmedName,
             email: trimmedEmail,
             marketing_consent: marketingConsent,
+            phone: trimmedPhone,
           })
           .select('id')
           .single();
@@ -105,7 +134,11 @@ export function QuizLeadForm() {
         sessionStorage.setItem('diagnosticLeadId', leadId);
         sessionStorage.setItem(
           'diagnosticUserInfo',
-          JSON.stringify({ name: trimmedName, email: trimmedEmail }),
+          JSON.stringify({
+            name: trimmedName,
+            email: trimmedEmail,
+            phone: trimmedPhone,
+          }),
         );
 
         try {
@@ -197,6 +230,29 @@ export function QuizLeadForm() {
             />
             {emailHint && (
               <p id="lead-email-hint" className="mt-1.5 text-[13px] text-rose-400" role="alert">{emailHint}</p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="lead-phone" className="block text-[15px] font-medium text-[var(--qa-text-primary)] mb-2">
+              מספר טלפון (לא חובה)
+            </label>
+            <input
+              id="lead-phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
+              placeholder="לדוגמה: 050-1234567"
+              className={`w-full h-12 px-4 rounded-xl border bg-[var(--qa-bg)] text-[var(--qa-text-primary)] placeholder-[var(--qa-text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qa-accent)] focus-visible:border-transparent transition-colors ${phoneHint ? 'border-rose-400' : 'border-[var(--qa-border)]'}`}
+              dir="ltr"
+              autoComplete="tel"
+              aria-invalid={!!phoneHint}
+              aria-describedby={phoneHint ? 'lead-phone-hint' : undefined}
+              disabled={submitting}
+            />
+            {phoneHint && (
+              <p id="lead-phone-hint" className="mt-1.5 text-[13px] text-rose-400" role="alert">{phoneHint}</p>
             )}
           </div>
 
