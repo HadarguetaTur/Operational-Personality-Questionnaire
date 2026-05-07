@@ -96,7 +96,7 @@ export const WhyMeSection: React.FC<
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={photoSrc}
-                          alt="הדר גואטה"
+                          alt="הדר מזל תורג'מן גואטה — מייסדת הדר אוטומציות"
                           width={208}
                           height={208}
                           loading="lazy"
@@ -149,7 +149,7 @@ export const WhyMeSection: React.FC<
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={photoSrc}
-                        alt="הדר גואטה"
+                        alt="הדר מזל תורג'מן גואטה — מייסדת הדר אוטומציות"
                         width={208}
                         height={208}
                         loading="lazy"

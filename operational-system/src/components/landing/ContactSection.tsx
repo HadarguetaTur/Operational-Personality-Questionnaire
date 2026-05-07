@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { isTurnstileSiteConfigured, TurnstileWidget } from '@/components/security/TurnstileWidget';
 import { FadeInSection } from './FadeInSection';
 
 type FormState = 'idle' | 'submitting' | 'success' | 'error';
@@ -32,24 +33,35 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ variant = 'landi
   const [message, setMessage] = useState('');
   const [formState, setFormState] = useState<FormState>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileMountKey, setTurnstileMountKey] = useState(0);
 
   const inputClassName = variant === 'home' ? homeInputClass : landingInputClass;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isTurnstileSiteConfigured() && (!turnstileToken || turnstileToken.trim() === '')) {
+      setFormState('error');
+      setErrorMessage('נא לאמת את האבטחה לפני השליחה');
+      return;
+    }
+
     setFormState('submitting');
     setErrorMessage(null);
 
     try {
+      const body: Record<string, unknown> = {
+        name,
+        email,
+        phone: phone.trim() || undefined,
+        message,
+      };
+      if (turnstileToken) body.turnstileToken = turnstileToken;
+
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          email,
-          phone: phone.trim() || undefined,
-          message,
-        }),
+        body: JSON.stringify(body),
       });
 
       const data = (await res.json()) as { success?: boolean; error?: string };
@@ -57,6 +69,8 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ variant = 'landi
       if (!res.ok) {
         setFormState('error');
         setErrorMessage(data.error ?? 'משהו השתבש. נסי שוב.');
+        setTurnstileToken(null);
+        setTurnstileMountKey((k) => k + 1);
         return;
       }
 
@@ -68,6 +82,8 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ variant = 'landi
     } catch {
       setFormState('error');
       setErrorMessage('לא ניתן להתחבר לשרת. בדקי את החיבור ונסי שוב.');
+      setTurnstileToken(null);
+      setTurnstileMountKey((k) => k + 1);
     }
   };
 
@@ -124,7 +140,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ variant = 'landi
                   href={CAL_BOOKING_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label="קביעת פגישת הטמעה עם הדר"
+                  aria-label="קביעת פגישת הטמעה עם הדר אוטומציות"
                   className="mt-3 inline-flex min-h-[46px] items-center justify-center rounded-xl border border-white/12 bg-white/[0.03] px-6 text-sm font-semibold text-white/75 transition-all duration-200 hover:border-white/25 hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c1220] sm:mr-3"
                 >
                   לקביעת פגישה
@@ -252,9 +268,22 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ variant = 'landi
                     </div>
                   ) : null}
 
+                  {isTurnstileSiteConfigured() ? (
+                    <div className="flex justify-center sm:justify-start">
+                      <TurnstileWidget
+                        key={turnstileMountKey}
+                        onToken={setTurnstileToken}
+                        className="min-h-[65px]"
+                      />
+                    </div>
+                  ) : null}
+
                   <button
                     type="submit"
-                    disabled={formState === 'submitting'}
+                    disabled={
+                      formState === 'submitting' ||
+                      (isTurnstileSiteConfigured() && !turnstileToken)
+                    }
                     className={`w-full min-h-[54px] rounded-xl bg-gradient-to-l from-teal-500 to-emerald-500 font-bold text-white text-base hover:shadow-[0_0_48px_-10px_rgba(20,184,166,0.5)] hover:scale-[1.01] active:scale-[0.99] disabled:opacity-55 disabled:pointer-events-none disabled:hover:shadow-none disabled:hover:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/55 focus-visible:ring-offset-2 transition-all duration-300 ${
                       variant === 'home' ? 'focus-visible:ring-offset-[#0c1220]' : 'focus-visible:ring-offset-transparent'
                     }`}

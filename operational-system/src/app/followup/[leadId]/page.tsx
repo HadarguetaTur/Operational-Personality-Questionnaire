@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Upload, X, CheckCircle, Loader2 } from 'lucide-react';
+import { isTurnstileSiteConfigured, TurnstileWidget } from '@/components/security/TurnstileWidget';
 
 interface FormFieldDef {
   id: string;
@@ -56,6 +57,8 @@ function FollowupFormInner() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileMountKey, setTurnstileMountKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const query = useMemo(() => {
@@ -112,6 +115,12 @@ function FollowupFormInner() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isTurnstileSiteConfigured() && (!turnstileToken || turnstileToken.trim() === '')) {
+      setError('נא לאמת את האבטחה לפני השליחה');
+      return;
+    }
+
     setSubmitting(true);
     setError('');
 
@@ -134,6 +143,7 @@ function FollowupFormInner() {
       const fd = new FormData();
       fd.append('leadId', leadId);
       if (followupToken) fd.append('token', followupToken);
+      if (turnstileToken) fd.append('turnstileToken', turnstileToken);
       fd.append('formData', JSON.stringify(payload));
       files.forEach((f) => fd.append('file', f));
 
@@ -146,6 +156,8 @@ function FollowupFormInner() {
       const out = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(typeof out?.error === 'string' ? out.error : 'שגיאה בשליחת הטופס');
+        setTurnstileToken(null);
+        setTurnstileMountKey((k) => k + 1);
         setSubmitting(false);
         return;
       }
@@ -153,6 +165,8 @@ function FollowupFormInner() {
       setSubmitted(true);
     } catch {
       setError('שגיאה בשליחת הטופס. נסי שוב.');
+      setTurnstileToken(null);
+      setTurnstileMountKey((k) => k + 1);
     } finally {
       setSubmitting(false);
     }
@@ -314,7 +328,25 @@ function FollowupFormInner() {
                 </div>
               )}
 
-              <Button type="submit" className="w-full" size="lg" disabled={submitting}>
+              {isTurnstileSiteConfigured() ? (
+                <div className="flex justify-center">
+                  <TurnstileWidget
+                    key={turnstileMountKey}
+                    onToken={setTurnstileToken}
+                    className="min-h-[65px]"
+                  />
+                </div>
+              ) : null}
+
+              <Button
+                type="submit"
+                className="w-full"
+                size="lg"
+                disabled={
+                  submitting ||
+                  (isTurnstileSiteConfigured() && !turnstileToken)
+                }
+              >
                 {submitting ? (
                   <>
                     <Loader2 className="w-4 h-4 ml-2 animate-spin" />

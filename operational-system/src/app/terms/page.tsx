@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'תנאי שימוש – Architecture of Scale',
-  description: 'תנאי השימוש של האתר והשירותים של Architecture of Scale / הדר אוטומציות.',
+  title: 'תנאי שימוש – הדר אוטומציות',
+  description: 'תנאי השימוש של האתר והשירותים של הדר אוטומציות — תורג׳מן גואטה הדר מזל.',
 };
 
 export default function TermsPage() {
@@ -19,7 +19,7 @@ export default function TermsPage() {
               </svg>
             </span>
             <span className="text-sm font-semibold text-white/80 group-hover:text-white transition-colors">
-              Architecture of Scale
+              הדר אוטומציות
             </span>
           </Link>
           <Link href="/" className="text-sm text-white/40 hover:text-white/70 transition-colors flex items-center gap-1">
@@ -40,7 +40,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-bold text-white mb-3">1. הסכמה לתנאים</h2>
             <p>
-              השימוש באתר ובשאלון האבחון של <strong className="text-white">Architecture of Scale / הדר אוטומציות</strong> מהווה הסכמה לתנאים המפורטים להלן.
+              השימוש באתר ובשאלון האבחון של <strong className="text-white">הדר אוטומציות — תורג&apos;מן גואטה הדר מזל</strong> (ח.פ. 204174361) מהווה הסכמה לתנאים המפורטים להלן.
               אם אינך מסכימ/ה לתנאים, אנא הפסק/י את השימוש.
             </p>
           </section>
@@ -97,9 +97,14 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-bold text-white mb-3">8. יצירת קשר</h2>
             <p>
-              לשאלות בנוגע לתנאים:{' '}
+              לשאלות בנוגע לתנאים ניתן לפנות אל <strong className="text-white">הדר אוטומציות — תורג&apos;מן גואטה הדר מזל</strong>:{' '}
+              מייל:{' '}
               <a href="mailto:cs@hadarturgemanautomations.com" className="text-teal-400 hover:underline">
                 cs@hadarturgemanautomations.com
+              </a>{' '}
+              | טלפון/וואטסאפ:{' '}
+              <a href="https://wa.me/972504343547" className="text-teal-400 hover:underline">
+                050-434-3547
               </a>
             </p>
           </section>
@@ -108,13 +113,31 @@ export default function TermsPage() {
       </main>
 
       <footer className="border-t border-white/[0.06] py-8 px-5 md:px-8">
-        <div className="max-w-3xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-sm text-white/25">
-          <span>&copy; {new Date().getFullYear()} הדר אוטומציות. כל הזכויות שמורות.</span>
-          <nav className="flex gap-5" aria-label="ניווט תחתון">
-            <Link href="/privacy" className="hover:text-white/50 transition-colors">מדיניות פרטיות</Link>
-            <Link href="/terms" className="hover:text-white/50 transition-colors">תנאי שימוש</Link>
-            <Link href="/" className="hover:text-white/50 transition-colors">דף הבית</Link>
-          </nav>
+        <div className="max-w-3xl mx-auto flex flex-col gap-4 text-sm text-white/25">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex flex-col gap-1">
+              <span className="text-white/40 font-medium">הדר אוטומציות — תורג&apos;מן גואטה הדר מזל</span>
+              <span>
+                מייל:{' '}
+                <a href="mailto:cs@hadarturgemanautomations.com" className="hover:text-white/50 transition-colors">
+                  cs@hadarturgemanautomations.com
+                </a>
+              </span>
+              <span>
+                טלפון/וואטסאפ:{' '}
+                <a href="https://wa.me/972504343547" className="hover:text-white/50 transition-colors">
+                  050-434-3547
+                </a>
+              </span>
+            </div>
+            <nav className="flex gap-5" aria-label="ניווט תחתון">
+              <Link href="/contact" className="hover:text-white/50 transition-colors">יצירת קשר</Link>
+              <Link href="/privacy" className="hover:text-white/50 transition-colors">מדיניות פרטיות</Link>
+              <Link href="/terms" className="hover:text-white/50 transition-colors">תנאי שימוש</Link>
+              <Link href="/" className="hover:text-white/50 transition-colors">דף הבית</Link>
+            </nav>
+          </div>
+          <p className="text-xs text-white/20">&copy; {new Date().getFullYear()} הדר אוטומציות. כל הזכויות שמורות.</p>
         </div>
       </footer>
     </div>

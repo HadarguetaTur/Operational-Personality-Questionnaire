@@ -48,6 +48,16 @@ export const contactFormSchema = z.object({
   message: z.string().min(1, 'נא למלא הודעה').max(5000).trim(),
 });
 
+/** Body for POST /api/contact — includes optional Turnstile token. */
+export const contactPostBodySchema = contactFormSchema.extend({
+  turnstileToken: z
+    .string()
+    .max(5000)
+    .trim()
+    .optional()
+    .transform((s) => (s === '' || s == null ? undefined : s)),
+});
+
 export const adminInviteSchema = z.object({
   email: z.string().email('אימייל לא תקין').max(320).trim().transform((s) => s.toLowerCase()),
   full_name: z.string().min(1, 'יש להזין שם מלא').max(200).trim(),
@@ -145,10 +155,9 @@ export function parseSumitWebhook(body: unknown): {
   };
 }
 
-export const followupSubmitFormSchema = z.record(
-  z.string(),
-  z.union([z.string(), z.boolean()]),
-);
+export const followupSubmitFormSchema = z
+  .record(z.string(), z.union([z.string(), z.boolean()]))
+  .refine((obj) => Object.keys(obj).length <= 200, 'יותר מדי שדות בטופס');
 
 export const followupMetaQuerySchema = z.object({
   leadId: uuid,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rateLimit';
-import { contactFormSchema } from '@/lib/validation/schemas';
+import { getRequestClientIp, isTurnstileEnabled, verifyTurnstileToken } from '@/lib/security/turnstile';
+import { contactPostBodySchema } from '@/lib/validation/schemas';
 
 function escapeHtml(text: string): string {
   return text
@@ -39,13 +40,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'בקשה לא תקינה' }, { status: 400 });
     }
 
-    const parsed = contactFormSchema.safeParse(json);
+    const parsed = contactPostBodySchema.safeParse(json);
     if (!parsed.success) {
       const first = parsed.error.issues[0]?.message ?? 'פרטים לא תקינים';
       return NextResponse.json({ error: first }, { status: 400 });
     }
 
-    const { name, email, phone, message } = parsed.data;
+    const { turnstileToken, name, email, phone, message } = parsed.data;
+
+    if (isTurnstileEnabled()) {
+      if (!turnstileToken) {
+        return NextResponse.json({ error: 'נא לאמת שאינך רובוט' }, { status: 400 });
+      }
+      const ok = await verifyTurnstileToken(turnstileToken, getRequestClientIp(request));
+      if (!ok) {
+        return NextResponse.json(
+          { error: 'אימות אבטחה נכשל. נסי שוב.' },
+          { status: 400 },
+        );
+      }
+    }
     const to = getContactRecipient();
     if (!to) {
       console.error('[contact] Missing CONTACT_FORM_TO_EMAIL, ADMIN_NOTIFICATION_EMAIL, or ADMIN_EMAILS');

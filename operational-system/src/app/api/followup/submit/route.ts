@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { checkRateLimit } from '@/lib/rateLimit';
+import { getRequestClientIp, isTurnstileEnabled, verifyTurnstileToken } from '@/lib/security/turnstile';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { runDriveFolderForLead, runFollowupNotifications } from '@/lib/followup/sideEffects';
+import { followupSubmitFormSchema } from '@/lib/validation/schemas';
 
 const ALLOWED_TYPES = new Set([
   'application/pdf',
@@ -66,7 +69,33 @@ const uuid = z.string().uuid();
 
 export async function POST(request: NextRequest) {
   try {
+    if (!checkRateLimit(request, 'followup-submit', 10, 300_000)) {
+      return NextResponse.json(
+        { error: 'יותר מדי ניסיונות שליחה. נסי שוב בעוד כמה דקות.' },
+        { status: 429 },
+      );
+    }
+
     const formData = await request.formData();
+
+    const rawTurnstile = formData.get('turnstileToken');
+    const turnstileToken =
+      typeof rawTurnstile === 'string' && rawTurnstile.trim() !== ''
+        ? rawTurnstile.trim()
+        : undefined;
+
+    if (isTurnstileEnabled()) {
+      if (!turnstileToken) {
+        return NextResponse.json({ error: 'נא לאמת שאינך רובוט' }, { status: 400 });
+      }
+      const tsOk = await verifyTurnstileToken(turnstileToken, getRequestClientIp(request));
+      if (!tsOk) {
+        return NextResponse.json(
+          { error: 'אימות אבטחה נכשל. נסי שוב.' },
+          { status: 400 },
+        );
+      }
+    }
 
     const leadParsed = uuid.safeParse(formData.get('leadId'));
 
@@ -88,13 +117,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'נתונים לא תקינים' }, { status: 400 });
     }
 
-    let formPayload: Record<string, unknown>;
+    let formPayloadParsed: Record<string, string | boolean>;
     try {
       const parsed = JSON.parse(rawForm) as unknown;
       if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
         return NextResponse.json({ error: 'formData לא תקין' }, { status: 400 });
       }
-      formPayload = parsed as Record<string, unknown>;
+      const validated = followupSubmitFormSchema.safeParse(parsed);
+      if (!validated.success) {
+        const first = validated.error.issues[0]?.message ?? 'formData לא תקין';
+        return NextResponse.json({ error: first }, { status: 400 });
+      }
+      formPayloadParsed = validated.data;
     } catch {
       return NextResponse.json({ error: 'formData JSON לא תקין' }, { status: 400 });
     }
@@ -168,7 +202,7 @@ export async function POST(request: NextRequest) {
 
     await supabase.from('followup_submissions').insert({
       lead_id: leadId,
-      form_data: formPayload,
+      form_data: formPayloadParsed as Record<string, unknown>,
     });
 
     for (const doc of uploadedMeta) {

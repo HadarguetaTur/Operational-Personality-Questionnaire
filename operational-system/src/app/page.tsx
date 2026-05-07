@@ -291,7 +291,7 @@ export default function HomePage() {
                   href={WHATSAPP_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label="שליחת הודעת וואטסאפ להדר"
+                  aria-label="שליחת הודעת וואטסאפ להדר אוטומציות"
                   className="group inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-xl border border-emerald-400/30 bg-emerald-500/[0.08] text-emerald-200 text-sm font-semibold transition-all duration-200 hover:bg-emerald-500/[0.16] hover:border-emerald-300/60 hover:text-white hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c1220]"
                 >
                   <svg className="w-4 h-4 text-emerald-300 group-hover:text-emerald-200 transition-colors" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -304,7 +304,7 @@ export default function HomePage() {
                   href={CAL_BOOKING_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label="קביעת פגישת הטמעה עם הדר"
+                  aria-label="קביעת פגישת הטמעה עם הדר אוטומציות"
                   className="group inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-xl border border-white/12 bg-white/[0.025] text-white/75 text-sm font-semibold transition-all duration-200 hover:bg-white/[0.06] hover:border-teal-400/40 hover:text-white hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c1220]"
                 >
                   <svg className="w-4 h-4 text-white/55 group-hover:text-teal-300 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden>
@@ -501,16 +501,38 @@ export default function HomePage() {
       <footer className="border-t border-white/[0.06] py-10 px-5 md:px-8">
         <div className="max-w-6xl mx-auto flex flex-col gap-6">
           {/* Top row */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2.5">
-              <span className="w-6 h-6 rounded-md bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center">
-                <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3" />
-                </svg>
+          <div className="flex flex-col md:flex-row items-start justify-between gap-6">
+            {/* Brand + contact block */}
+            <div className="flex flex-col gap-1.5 text-sm text-white/45">
+              <div className="flex items-center gap-2.5 mb-1">
+                <span className="w-6 h-6 rounded-md bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center shrink-0">
+                  <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3" />
+                  </svg>
+                </span>
+                <span className="font-semibold text-white/70">הדר אוטומציות — תורג&apos;מן גואטה הדר מזל</span>
+              </div>
+              <span>
+                מייל:{' '}
+                <a href="mailto:cs@hadarturgemanautomations.com" className="hover:text-teal-400 transition-colors">
+                  cs@hadarturgemanautomations.com
+                </a>
               </span>
-              <span className="text-sm font-medium text-white/50">Architecture of Scale</span>
+              <span>
+                טלפון/וואטסאפ:{' '}
+                <a href="https://wa.me/972504343547" className="hover:text-teal-400 transition-colors">
+                  050-434-3547
+                </a>
+              </span>
+              <span>
+                אתר:{' '}
+                <a href="https://hadarturgemanautomations.com" className="hover:text-teal-400 transition-colors">
+                  hadarturgemanautomations.com
+                </a>
+              </span>
             </div>
-            <nav className="flex items-center gap-5 text-sm text-white/30 flex-wrap justify-center" aria-label="ניווט תחתון">
+            <nav className="flex items-center gap-5 text-sm text-white/30 flex-wrap justify-center md:justify-end" aria-label="ניווט תחתון">
+              <Link href="/contact" className="hover:text-white/55 transition-colors">יצירת קשר</Link>
               <Link href="/privacy" className="hover:text-white/55 transition-colors">מדיניות פרטיות</Link>
               <Link href="/terms" className="hover:text-white/55 transition-colors">תנאי שימוש</Link>
               <a href="/admin/login" className="hover:text-white/55 transition-colors">כניסת מנהל</a>
@@ -518,7 +540,7 @@ export default function HomePage() {
           </div>
           {/* Bottom row */}
           <p className="text-xs text-white/20 text-center md:text-right">
-            &copy; {new Date().getFullYear()} הדר אוטומציות. כל הזכויות שמורות.
+            &copy; {new Date().getFullYear()} הדר אוטומציות — תורג&apos;מן גואטה הדר מזל. כל הזכויות שמורות.
           </p>
         </div>
       </footer>
