@@ -92,7 +92,20 @@
 
 ---
 
-## 5. בדיקות אחרי פריסה (Smoke test)
+## 5. Troubleshooting — Root Directory
+
+אם הבילד נכשל עם הודעה כמו  
+`The specified Root Directory "Operational-Personality-Questionnaire" does not exist`:
+
+1. ב־Vercel: **Project → Settings → General**.
+2. בשדה **Root Directory** החליפו ל־**`operational-system`** (בלי סלאש בתחילה/סוף).
+3. **Save**, ואז **Deployments → … → Redeploy** (או דחיפת commit חדש).
+
+אם נשאר פרויקט Vercel נפרד לשאלון הישן — עדכנו אותו באותו אופן או מחקו אותו וחברו רק פרויקט אחד לריפו.
+
+---
+
+## 6. בדיקות אחרי פריסה (Smoke test)
 
 - [ ] `https://<דומיין>/` נטען; וידאו ו־CTA עובדים.
 - [ ] לחיצה על "להתחיל אבחון חינם" מובילה ל־`/quiz` (עם שמירת `?utm_*` אם היו).
