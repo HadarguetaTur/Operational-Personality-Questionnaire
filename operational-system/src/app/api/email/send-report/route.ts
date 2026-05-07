@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/requireAdmin';
 import { sendReportEmailSchema } from '@/lib/validation/schemas';
+import { buildReportLink } from '@/lib/quiz/buildReportLink';
 
 export async function POST(request: NextRequest) {
   const reportSecret = process.env.REPORT_SEND_SECRET?.trim();
@@ -35,10 +36,7 @@ export async function POST(request: NextRequest) {
     const { leadId, email, name, reportToken, pattern } = parsed.data;
 
     const supabase = createServiceRoleClient();
-    const quizBase = (
-      process.env.NEXT_PUBLIC_QUIZ_URL || 'http://localhost:5173'
-    ).replace(/\/$/, '');
-    const reportUrl = `${quizBase}/#/result/${encodeURIComponent(reportToken)}`;
+    const reportUrl = buildReportLink(reportToken);
 
     const { data: emailLog } = await supabase
       .from('email_logs')

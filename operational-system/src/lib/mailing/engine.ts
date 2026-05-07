@@ -1,5 +1,6 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { injectTemplateVariables } from '@/lib/google/gmail';
+import { buildReportLink } from '@/lib/quiz/buildReportLink';
 
 interface MailingContext {
   leadId: string;
@@ -37,14 +38,13 @@ export async function sendStageEmail(context: MailingContext): Promise<{ sent: b
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const quizBase = (process.env.NEXT_PUBLIC_QUIZ_URL || 'http://localhost:5173').replace(/\/$/, '');
   const calComUrl = process.env.NEXT_PUBLIC_CALCOM_URL || '';
 
   const variables: Record<string, string> = {
     name: context.name || '',
     email: context.email || '',
     pattern: context.pattern || '',
-    report_url: context.reportToken ? `${quizBase}/#/result/${encodeURIComponent(context.reportToken)}` : '',
+    report_url: context.reportToken ? buildReportLink(context.reportToken) : '',
     form_url: `${appUrl}/followup/${context.leadId}`,
     meeting_url: calComUrl,
     ...context.customVariables,

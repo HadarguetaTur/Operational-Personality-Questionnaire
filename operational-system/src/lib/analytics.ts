@@ -17,7 +17,7 @@ function safeUUID(): string {
   });
 }
 
-function getVisitorId(): string {
+export function getVisitorId(): string {
   if (typeof window === 'undefined') return 'ssr';
   try {
     let id = localStorage.getItem(VISITOR_KEY);
@@ -31,7 +31,7 @@ function getVisitorId(): string {
   }
 }
 
-function getSessionId(): string {
+export function getSessionId(): string {
   if (typeof window === 'undefined') return 'ssr';
   try {
     const now = Date.now();
@@ -48,7 +48,7 @@ function getSessionId(): string {
   }
 }
 
-function readUtmParams(): Record<string, string | null> {
+export function readUtmParams(): Record<string, string | null> {
   if (typeof window === 'undefined') return {};
   const params = new URLSearchParams(window.location.search);
   return {
@@ -92,31 +92,15 @@ export async function trackEvent(eventType: LandingEventType, opts: TrackOptions
   }
 }
 
-function quizBase(): string {
-  const fromEnv =
-    typeof process.env.NEXT_PUBLIC_QUIZ_URL === 'string'
-      ? process.env.NEXT_PUBLIC_QUIZ_URL.trim()
-      : '';
-  return (fromEnv || 'http://localhost:5173').replace(/\/$/, '');
-}
-
 /**
- * Build the quiz lead-form URL from env, preserving UTM params so attribution
- * flows through to the questionnaire app's first event.
- *
- * The Vite app uses HashRouter, so internal routes live after `#`. UTM params
- * have to appear before the hash (in `window.location.search` after navigation).
- *
- * Concatenating `${base}/${search}` keeps `/` before `?` when search is nonempty.
+ * Same-origin quiz entry. Preserves `?utm_*` from the current URL for attribution.
  */
 export function getQuizUrl(): string {
-  const base = quizBase();
-  const search =
-    typeof window !== 'undefined' ? window.location.search : '';
-  return `${base}/${search}#/lead-form`;
+  const search = typeof window !== 'undefined' ? window.location.search : '';
+  return `/quiz${search}`;
 }
 
-/** URL of the rendered report on the Vite app. Safe to use server- and client-side. */
+/** Public report path on this Next.js app (same origin). */
 export function getReportUrl(token: string): string {
-  return `${quizBase()}/#/result/${encodeURIComponent(token)}`;
+  return `/quiz/result/${encodeURIComponent(token)}`;
 }

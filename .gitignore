@@ -1,5 +1,4 @@
-# Root workspace (Next + Vite monorepo helpers)
-# See operational-system/.gitignore and Operational-Personality-Questionnaire/.gitignore
+# Monorepo root — primary app: operational-system/
 
 # Dependencies
 node_modules/

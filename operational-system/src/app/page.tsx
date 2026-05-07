@@ -353,9 +353,9 @@ export default function HomePage() {
           <FadeIn>
             <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-3">מה אני עושה</p>
             <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-16">
-              לא מדביקים תיקון זמני.
+              אני עוזרת לך להבין למה העסק נתקע,
               <br />
-              <span className="text-white/60">בונים תשתית שמחזיקה כשמתרחבים.</span>
+              <span className="text-white/60">ואז לבנות סביב זה תהליך עבודה מסודר שלא תלוי רק בזיכרון, באנרגיה ובכיבוי שריפות.</span>
             </h2>
           </FadeIn>
 

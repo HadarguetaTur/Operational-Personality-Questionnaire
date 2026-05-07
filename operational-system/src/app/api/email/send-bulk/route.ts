@@ -3,6 +3,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { injectTemplateVariables } from '@/lib/google/gmail';
 import { requireAdmin } from '@/lib/auth/requireAdmin';
 import { bulkEmailV2Schema } from '@/lib/validation/schemas';
+import { buildReportLink } from '@/lib/quiz/buildReportLink';
 
 /**
  * Send a template-based email to a list of leads.
@@ -77,18 +78,13 @@ export async function POST(request: NextRequest) {
     let sentCount = 0;
     let failCount = 0;
     const errors: string[] = [];
-    const quizBase = (
-      process.env.NEXT_PUBLIC_QUIZ_URL || 'http://localhost:5173'
-    ).replace(/\/$/, '');
 
     for (const lead of leads) {
       const variables: Record<string, string> = {
         name: lead.name || '',
         email: lead.email || '',
         pattern: lead.result_pattern || '',
-        report_url: lead.report_token
-          ? `${quizBase}/#/result/${encodeURIComponent(lead.report_token)}`
-          : '',
+        report_url: lead.report_token ? buildReportLink(lead.report_token) : '',
         form_url: `${appUrl}/followup/${lead.id}`,
         meeting_url: process.env.NEXT_PUBLIC_CALCOM_URL || '',
       };

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/requireAdmin';
 import { bulkEmailSchema } from '@/lib/validation/schemas';
+import { buildReportLink } from '@/lib/quiz/buildReportLink';
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
@@ -52,16 +53,13 @@ export async function POST(request: NextRequest) {
       try {
         let html = template.html_content || '';
         const subject = template.subject || '';
-        const quizBase = (process.env.NEXT_PUBLIC_QUIZ_URL || 'http://localhost:5173').replace(/\/$/, '');
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
 
         const vars: Record<string, string> = {
           name: lead.name ?? '',
           email: lead.email ?? '',
           pattern: lead.result_pattern ?? '',
-          report_url: lead.report_token
-            ? `${quizBase}/#/result/${encodeURIComponent(lead.report_token)}`
-            : '',
+          report_url: lead.report_token ? buildReportLink(lead.report_token) : '',
           form_url: `${appUrl}/followup/${lead.id}`,
           meeting_url: process.env.NEXT_PUBLIC_CALCOM_URL || '',
         };
