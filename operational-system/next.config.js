@@ -34,6 +34,7 @@ const securityHeaders = [
         'wss:',
       ].join(' '),
       'frame-src https://challenges.cloudflare.com',
+      "media-src 'self' https://res.cloudinary.com",
     ].join('; '),
   },
 ];
