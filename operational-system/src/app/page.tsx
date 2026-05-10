@@ -46,8 +46,8 @@ const SERVICES = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
     ),
-    title: 'אבחון תפעולי',
-    desc: 'שאלון קצר שמראה לאן העסק שלך תלוי בך, מה נתקע, ומה כדאי לטפל בו קודם.',
+    title: 'איפה הזמן נוזל',
+    desc: 'לא כל משימה שגוזלת זמן היא הבעיה. לפעמים הבעיה היא שאין בהירות מי אחראית, ואז הכל חוזר אלייך.',
   },
   {
     icon: (
@@ -55,8 +55,8 @@ const SERVICES = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
       </svg>
     ),
-    title: 'מפת פעולות',
-    desc: 'דוח בהיר עם פערים מדידים וצעדים מוחשיים, כדי לא לקבל תכנון שלא מתחבר למציאות בעסק.',
+    title: 'איפה אין תהליך',
+    desc: 'יש דברים שקורים כי את זוכרת אותם. אם יש תהליך, הם קורים גם כשלא. האבחון מזהה איפה העסק עדיין נשען על הזיכרון והאנרגיה שלך.',
   },
   {
     icon: (
@@ -64,52 +64,56 @@ const SERVICES = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12a7.5 7.5 0 0015 0m-15 0a7.5 7.5 0 1115 0m-15 0H3m16.5 0H21m-1.5 0H12m-8.457 3.077l1.41-.513m14.095-5.13l1.41-.513M5.106 17.785l1.15-.964m11.49-9.642l1.149-.964M7.501 19.795l.75-1.3m7.5-12.99l.75-1.3m-6.063 16.658l.26-1.477m2.605-14.772l.26-1.477m0 17.726l-.26-1.477M10.698 4.614l-.26-1.477M16.5 19.794l-.75-1.299M7.5 4.205L12 12m6.894 5.785l-1.149-.964M6.256 7.178l-1.15-.964m12.04 12.571l-1.41-.513M4.954 9.435l-1.41-.514M12.002 12l-3.75 6.495" />
       </svg>
     ),
-    title: 'ארכיטקטורת מערכות',
-    desc: 'חיבור בין כלים לתהליך ברור כך שהמשימות זזות בלי שהכל נשען על הגישה האישית שלך לכל פריט קטן.',
+    title: 'איפה נכון להתחיל',
+    desc: 'לא כל בעיה שווה לטפל בה עכשיו. אחרי האבחון יש לך תמונה ברורה של מה לשנות קודם, כדי שכל שלב אחריו יהיה קל יותר.',
   },
 ];
 
 const PROCESS_STEPS = [
   {
     num: '01',
-    title: 'אבחון',
-    desc: 'שאלון של כמה דקות שמראה מה דפוס הניהול הנוכחי ואיפה את נתקעת.',
+    title: 'מלאי את האבחון',
+    desc: 'כמה דקות. שאלות על אופן הניהול שלך, מה חוזר אלייך ומה גוזל ממך הכי הרבה זמן.',
   },
   {
     num: '02',
-    title: 'דוח מותאם',
-    desc: 'את מקבלת תמונה מסודרת של חוזקות, חולשות והכיוון ההגיוני לפעולה הבאה.',
+    title: 'מקבלת דוח מותאם',
+    desc: 'הדוח מגיע למייל. הוא מסביר מה הדפוס שמנהל את העסק שלך ואיפה הוא נשען עלייך יותר מדי.',
   },
   {
     num: '03',
-    title: 'העמקה',
-    desc: 'טופס מפורט ומסמכים רלוונטיים, כדי שאפשר יהיה לעבוד על המצב האמיתי ולא על הערכה מהירה בלבד.',
+    title: 'מבינה את הדפוס',
+    desc: 'לא רק מה נתקע, אלא למה. כדי שתדעי מה שווה לשנות קודם ומה לא.',
   },
   {
     num: '04',
-    title: 'סשן אפיון',
-    desc: 'שלושים דקות ממוקדות עם תכנון מראש, לא שיחת היכרות שבה את מסבירה הכל מאפס.',
+    title: 'בוחרת איך להמשיך',
+    desc: 'ליישם לבד עם מה שקיבלת, או לקבוע סשן אפיון ממוקד של 30 דקות. אין חובה להמשיך.',
   },
 ];
 
 const TESTIMONIALS = [
   {
-    text: 'הדר עשתה באופן מאוד מקצועי את האוטומציה לקמפיין שלנו, ובעיקר אהבנו את הלב שלה. היא פשוט הייתה שם בשבילנו בכל דבר שרצינו. הרגשנו שאכפת לה, שהיא רוצה שהכל יעבוד כמו שצריך, שיהיה נכון. היא לא חסכה, בדקה בדיוק, הלוך חזור, הלוך חזור, עד שהכל היה בדיוק כמו שצריך. ממליצה בחום.',
+    headline: 'בנתה אוטומציה לקמפיין ובדקה עד שהכל עבד בדיוק',
+    text: 'הדר עשתה באופן מאוד מקצועי את האוטומציה לקמפיין שלנו. הרגשנו שאכפת לה, שהיא רוצה שהכל יעבוד כמו שצריך. היא לא חסכה, בדקה הלוך חזור, עד שהכל היה בדיוק כמו שצריך. ממליצה בחום.',
     name: 'איילה עיצובים',
     role: '',
   },
   {
-    text: 'ברצוני להמליץ בחום על הדר טורג׳מן, שליוותה אותי בתהליך מורכב שדרש מקצועיות גבוהה, דיוק וחשיבה מערכתית. הדר סייעה לי ליצור סנכרון ואוטומציה בין מערכת הדיוור שלי לבין קמפיין שפתחתי בפייסבוק, ובמקביל בנתה תהליך אוטומטי שמחבר גם לסדרת מסרים בווטסאפ וגם לדיוור. לאורך הדרך היו לא מעט אתגרים ומניעות, אך הדר התמודדה עם כולם בסבלנות רבה, בהתמדה וביצירתיות. מעבר למקצועיות, בלטו במיוחד הסבלנות שלה, הזמינות והמענה האדיב בכל שלב. למרות שהעבודה דרשה ממנה זמן והשקעה רבים מעבר למה שתוכנן בתחילה, היא פעלה ביושר ובהגינות מלאה, בהתאם למה שסוכם בינינו. אני ממליצה עליה מכל הלב לכל מי שזקוק לאוטומציה וחיבור בין מערכות שונות.',
+    headline: 'חיברה קמפיין פייסבוק, דיוור ווואטסאפ לתהליך אחד שעובד',
+    text: 'הדר סייעה לי ליצור סנכרון ואוטומציה בין מערכת הדיוור לקמפיין בפייסבוק, ובמקביל בנתה תהליך שמחבר גם סדרת מסרים בווטסאפ. לאורך הדרך היו לא מעט אתגרים, אך הדר התמודדה עם כולם בסבלנות, בהתמדה וביצירתיות. פעלה ביושר ובהגינות מלאה. ממליצה מכל הלב.',
     name: 'נעמי',
     role: 'מכון וולפסון',
   },
   {
-    text: 'הדר עבדה איתנו על פיתוח נהלי עבודה במסגרת עבודה משותפת לביטוח לאומי, האפוטרופוס הכללי ומשרד הרווחה. בזמן קצר ביותר הדר שכללה את הנהלים, קיצרה את זמן הטיפול בתביעות הקצבה, והביאה ידע רב בתחום המחשוב, אקסל וניהול מידע. בשקט, בחן ובחריצות היא העלתה את רמת המודעות לתחום, יצרה שיתופי פעולה בין משרדים, והובילה שדרוג משמעותי בשירות ליתומים ובמיצוי זכויותיהם. הדר תורמת מהידע שלה, מהיצירתיות ומהחשיבה הכלל מערכתית, עובדת בנועם ובשקט, ומסייעת בכל מטלה ככל יכולתה. אני ממליצה עליה ביחסי העבודה ובכישוריה המקצועיים.',
+    headline: 'קיצרה זמני טיפול בתביעות ויצרה שיתוף פעולה בין משרדים',
+    text: 'הדר עבדה איתנו על פיתוח נהלי עבודה במסגרת עבודה משותפת לביטוח לאומי, האפוטרופוס הכללי ומשרד הרווחה. בזמן קצר שכללה את הנהלים, קיצרה את זמן הטיפול בתביעות, ויצרה שיתופי פעולה בין משרדים. בשקט ובחריצות הובילה שדרוג משמעותי בשירות ובמיצוי הזכויות. אני ממליצה עליה ביחסי העבודה ובכישוריה המקצועיים.',
     name: 'רחל איגר לוין',
     role: 'משרד הרווחה · עובדת סוציאלית מומחית בכירה · מפקחת אומנה ארצית',
   },
   {
-    text: 'אני רוצה להמליץ בחום על הדר ועל העסק שלה, הדר אוטומציות. פניתי להדר כי היו לי שתי בעיות. לא היו לי מספיק לידים, והטיפול בכל לקוח לקח המון זמן. ביחד בנינו תהליך עבודה חדש. הדר האירה דברים שלא שמתי אליהם לב, ובנתה לי אוטומציות שהקלו עליי את תהליך העבודה.',
+    headline: 'הפכה טיפול בלידים לתהליך מסודר שחוסך זמן',
+    text: 'פניתי להדר כי לא היו לי מספיק לידים, והטיפול בכל לקוח לקח המון זמן. ביחד בנינו תהליך עבודה חדש. הדר האירה דברים שלא שמתי אליהם לב, ובנתה לי אוטומציות שהקלו עליי את תהליך העבודה.',
     name: 'לאה סוליטר',
     role: 'אדריכלות ועיצוב פנים',
   },
@@ -230,17 +234,17 @@ export default function HomePage() {
           <FadeIn delay={120}>
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.15] tracking-tight mb-6 max-w-[18ch] mx-auto">
               <span className="text-transparent bg-clip-text bg-gradient-to-l from-teal-300 via-teal-400 to-emerald-400">
-                העסק שלך לא אמור להישען רק עלייך.
+                העסק גדל אבל הכול עדיין עובר דרכך?
               </span>
             </h1>
           </FadeIn>
 
           <FadeIn delay={240}>
             <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto leading-relaxed mb-6">
-              כשהכל עובר דרכך, גם עסק טוב מתחיל להיתקע. האבחון יראה לך איפה זה קורה אצלך.
+              זה לא עניין של כלים. הבעיה היא שהעסק נבנה סביבך ועדיין לא יודע לרוץ בלעדייך.
             </p>
             <p className="text-base md:text-lg text-white/60 max-w-xl mx-auto leading-relaxed mb-8">
-              עני על כמה שאלות ותקבלי תמונה ברורה של מה מעכב את העסק שלך היום.
+              האבחון מזהה בדיוק איפה זה קורה אצלך ומה כדאי לשנות קודם.
             </p>
           </FadeIn>
 
@@ -272,7 +276,7 @@ export default function HomePage() {
                 <span aria-hidden className="absolute inset-y-0 -right-1/3 w-1/3 bg-gradient-to-l from-transparent via-white/30 to-transparent skew-x-[-18deg] translate-x-0 group-hover:translate-x-[420%] transition-transform duration-[1100ms] ease-out" />
                 {/* outer glow on hover */}
                 <span aria-hidden className="absolute inset-0 rounded-2xl bg-gradient-to-l from-teal-400 to-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-2xl -z-10" />
-                <span className="relative z-10">להתחיל אבחון חינם</span>
+                <span className="relative z-10">התחילי אבחון חינם וקבלי מפת תקיעות אישית</span>
                 <svg
                   className="relative z-10 w-5 h-5 transition-transform duration-300 group-hover:-translate-x-1"
                   fill="none"
@@ -284,6 +288,8 @@ export default function HomePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
                 </svg>
               </button>
+
+              <p className="text-sm text-white/35">5 דקות. חינם לחלוטין. בלי התחייבות.</p>
 
               {/* Secondary actions row — refined pills with iconography */}
               <div className="flex flex-wrap items-center justify-center gap-2.5">
@@ -297,7 +303,7 @@ export default function HomePage() {
                   <svg className="w-4 h-4 text-emerald-300 group-hover:text-emerald-200 transition-colors" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.247-.694.247-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                   </svg>
-                  <span>חבל על הזמן, בואי נדבר</span>
+                  <span>יש שאלה? שלחי הודעה</span>
                 </a>
 
                 <a
@@ -363,16 +369,46 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ═══════════ SOCIAL PROOF BAR ═══════════ */}
+      <div className="relative px-5 md:px-8 -mt-6 z-20" dir="rtl">
+        <div className="max-w-4xl mx-auto">
+          <div className="relative overflow-hidden rounded-3xl border border-teal-300/[0.16] bg-[#0f1729]/85 px-5 py-5 md:px-8 md:py-6 shadow-[0_24px_80px_-42px_rgba(20,184,166,0.75)] backdrop-blur-xl">
+            <div className="absolute inset-y-0 right-0 w-1 bg-gradient-to-b from-teal-300 via-emerald-400 to-transparent" aria-hidden />
+            <div className="absolute -top-16 left-10 h-28 w-28 rounded-full bg-teal-400/10 blur-3xl" aria-hidden />
+
+            <div className="relative flex flex-col md:flex-row items-center justify-between gap-4 md:gap-8 text-center md:text-right">
+              <div>
+                <p className="text-[11px] font-bold tracking-[0.2em] text-teal-200/70 mb-2">
+                  ניסיון מהשטח, לא תיאוריה
+                </p>
+                <p className="text-sm md:text-base font-semibold text-white/82 leading-relaxed">
+                  בניתי תהליכים, נהלי עבודה ואוטומציות לעסקים ולארגונים — מהאבחון ועד מערכת שעובדת בפועל.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center md:justify-end gap-x-3 gap-y-2 text-[12px] md:text-[13px] text-white/48 shrink-0">
+                <span>מכון וולפסון</span>
+                <span className="h-1 w-1 rounded-full bg-teal-300/45" aria-hidden />
+                <span>משרד הרווחה</span>
+                <span className="h-1 w-1 rounded-full bg-teal-300/45" aria-hidden />
+                <span>עצמאיות בעיצוב ושיווק</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* ═══════════ SERVICES ═══════════ */}
       <section className="py-24 md:py-32 px-5 md:px-8 bg-gradient-to-b from-[#0c1220] to-[#111827]">
         <div className="max-w-6xl mx-auto">
           <FadeIn>
             <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-3">מה אני עושה</p>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-16">
-              אני עוזרת לך להבין למה העסק נתקע,
-              <br />
-              <span className="text-white/60">ואז לבנות סביב זה תהליך עבודה מסודר שלא תלוי רק בזיכרון, באנרגיה ובכיבוי שריפות.</span>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-5">
+              לפני שמוסיפים עוד כלי, צריך להבין איפה התהליך נשבר.
             </h2>
+            <p className="text-white/55 text-center text-base md:text-lg max-w-2xl mx-auto leading-relaxed mb-16">
+              האבחון בודק שלושה דברים: איפה הזמן נוזל, איפה העסק עדיין נשען על הזיכרון שלך, ואיפה נכון להתחיל לשנות.
+            </p>
           </FadeIn>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -395,12 +431,13 @@ export default function HomePage() {
       <section id="process" className="py-24 md:py-32 px-5 md:px-8 bg-[#111827]">
         <div className="max-w-4xl mx-auto">
           <FadeIn>
-            <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-3">התהליך</p>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-16">
-              מאבחון ועד תוכנית פעולה
-              <br />
-              <span className="text-white/60">ב-4 צעדים.</span>
+            <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-3">איך זה עובד</p>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-4">
+              מה קורה מרגע שלוחצים?
             </h2>
+            <p className="text-white/50 text-center text-base md:text-lg max-w-xl mx-auto leading-relaxed mb-16">
+              פשוט ולא מחייב. הנה ארבעה שלבים, מהלחיצה הראשונה ועד שיש לך תמונה ברורה.
+            </p>
           </FadeIn>
 
           <div className="relative">
@@ -428,13 +465,68 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ═══════════ FOR WHOM ═══════════ */}
+      <section className="py-24 md:py-32 px-5 md:px-8">
+        <div className="max-w-5xl mx-auto">
+          <FadeIn>
+            <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-3">למי זה מתאים?</p>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-16 leading-tight">
+              לפני שמתחילות, כדאי לדעת
+            </h2>
+          </FadeIn>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FadeIn delay={0}>
+              <div className="p-7 rounded-2xl border border-teal-500/20 bg-teal-500/[0.04] h-full">
+                <h3 className="text-lg font-bold text-teal-300 mb-5">זה בשבילך אם</h3>
+                <ul className="space-y-4">
+                  {[
+                    'את כבר עובדת ויש לך לקוחות, לידים או תהליכים קיימים.',
+                    'הכול עובר דרכך ואת מרגישה את זה ביום יום.',
+                    'את מוכנה לאבחן לפני שמוסיפים כלים חדשים.',
+                    'את מחפשת סדר ותשתית, לא עוד תוסף שמסבך.',
+                    'את מבינה שצריך להסתכל על הבעיה לפני שפותרים אותה.',
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-teal-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                      <span className="text-white/75 text-sm leading-relaxed">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </FadeIn>
+            <FadeIn delay={120}>
+              <div className="p-7 rounded-2xl border border-white/[0.06] bg-white/[0.02] h-full">
+                <h3 className="text-lg font-bold text-white/45 mb-5">פחות מתאים אם</h3>
+                <ul className="space-y-4">
+                  {[
+                    'את מחפשת פתרון מיידי בלי לגעת בתהליך.',
+                    'את רוצה שמישהי תסדר הכל ותחזור עם כפתור מוכן.',
+                    'את מחפשת כלי אחד שיפתור הכול.',
+                    'את לא מוכנה להסתכל על מה שלא עובד.',
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-white/20 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      <span className="text-white/40 text-sm leading-relaxed">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </FadeIn>
+          </div>
+        </div>
+      </section>
+
       {/* ═══════════ TESTIMONIALS ═══════════ */}
       <section id="testimonials" className="py-24 md:py-32 px-5 md:px-8 bg-gradient-to-b from-[#111827] to-[#0f1729]">
         <div className="max-w-6xl mx-auto">
           <FadeIn>
             <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-3">עדויות</p>
             <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-4">
-              לקוחות שמספרות מה באמת קרה אחרי האוטומציה
+              לקוחות שמספרות מה באמת השתנה אצלן
             </h2>
             <p className="text-white/55 text-center text-base md:text-lg max-w-3xl mx-auto mb-16 leading-relaxed">
               לא הבטחות. לידים שנכנסו, מערכות שחוברו, קמפיינים שעבדו, נהלים שקוצרו ותהליכים שנבדקו עד הסוף.
@@ -445,13 +537,14 @@ export default function HomePage() {
             {TESTIMONIALS.map((t, i) => (
               <FadeIn key={i} delay={i * 120}>
                 <div className="p-7 rounded-2xl border border-white/[0.06] bg-white/[0.02] h-full flex flex-col">
-                  <div className="flex gap-1 mb-4">
+                  <div className="flex gap-1 mb-3">
                     {[...Array(5)].map((_, j) => (
                       <svg key={j} className="w-4 h-4 text-teal-400" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
                     ))}
                   </div>
+                  <p className="text-sm font-semibold text-teal-300 mb-3 leading-snug">{t.headline}</p>
                   <p className="text-white/75 leading-relaxed flex-1 mb-5">&ldquo;{t.text}&rdquo;</p>
                   <div className="border-t border-white/[0.06] pt-4">
                     <p className="font-semibold text-sm">{t.name}</p>
@@ -490,7 +583,7 @@ export default function HomePage() {
               onClick={() => goToQuiz('footer_cta')}
               className="group relative min-h-[60px] px-12 rounded-xl bg-gradient-to-l from-teal-500 to-emerald-500 text-white text-lg font-bold transition-all duration-300 hover:shadow-[0_0_60px_-12px_rgba(20,184,166,0.6)] hover:scale-[1.03] active:scale-[0.98]"
             >
-              להתחיל אבחון חינם
+              גלי מה תוקע את העסק שלך
             </button>
             <p className="text-sm text-white/30 mt-5">זה לא דורש רישום. התוצאה מגיעה למייל.</p>
           </FadeIn>
@@ -510,7 +603,7 @@ export default function HomePage() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3" />
                   </svg>
                 </span>
-                <span className="font-semibold text-white/70">הדר אוטומציות — תורג&apos;מן גואטה הדר מזל</span>
+                <span className="font-semibold text-white/70">הדר אוטומציות, תורג&apos;מן גואטה הדר מזל</span>
               </div>
               <span>
                 מייל:{' '}
@@ -540,7 +633,7 @@ export default function HomePage() {
           </div>
           {/* Bottom row */}
           <p className="text-xs text-white/20 text-center md:text-right">
-            &copy; {new Date().getFullYear()} הדר אוטומציות — תורג&apos;מן גואטה הדר מזל. כל הזכויות שמורות.
+            &copy; {new Date().getFullYear()} הדר אוטומציות, תורג&apos;מן גואטה הדר מזל. כל הזכויות שמורות.
           </p>
         </div>
       </footer>

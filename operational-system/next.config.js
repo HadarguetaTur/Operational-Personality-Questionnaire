@@ -1,4 +1,7 @@
 /** @type {import('next').NextConfig} */
+
+const isDev = process.env.NODE_ENV === 'development';
+
 const securityHeaders = [
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -15,6 +18,8 @@ const securityHeaders = [
         'script-src',
         "'self'",
         "'unsafe-inline'",
+        // Required by Next.js Fast Refresh / webpack HMR in dev mode only
+        ...(isDev ? ["'unsafe-eval'"] : []),
         'https://challenges.cloudflare.com',
         'https://www.googletagmanager.com',
         'https://www.google-analytics.com',
