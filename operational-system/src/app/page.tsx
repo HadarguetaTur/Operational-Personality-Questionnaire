@@ -72,23 +72,18 @@ const SERVICES = [
 const PROCESS_STEPS = [
   {
     num: '01',
-    title: 'מלאי את האבחון',
-    desc: 'כמה דקות. שאלות על אופן הניהול שלך, מה חוזר אלייך ומה גוזל ממך הכי הרבה זמן.',
+    title: '6 שאלות על מה שמכביד',
+    desc: 'מסך נקי, שאלה אחת בכל פעם. כל שאלה נוגעת בנקודה אמיתית שאת מרגישה ביום-יום. לוקח פחות מ-3 דקות.',
   },
   {
     num: '02',
-    title: 'מקבלת דוח מותאם',
-    desc: 'הדוח מגיע למייל. הוא מסביר מה הדפוס שמנהל את העסק שלך ואיפה הוא נשען עלייך יותר מדי.',
+    title: 'דוח קצר ומותאם',
+    desc: 'מיד אחרי — דוח שמזהה איפה העסק נשען עלייך הכי חזק, מה זה עולה לך, ומה כדאי לסדר קודם.',
   },
   {
     num: '03',
-    title: 'מבינה את הדפוס',
-    desc: 'לא רק מה נתקע, אלא למה. כדי שתדעי מה שווה לשנות קודם ומה לא.',
-  },
-  {
-    num: '04',
-    title: 'בוחרת איך להמשיך',
-    desc: 'ליישם לבד עם מה שקיבלת, או לקבוע סשן אפיון ממוקד של 30 דקות. אין חובה להמשיך.',
+    title: 'שיחת מיפוי קצרה (אם רוצה)',
+    desc: 'אם תרצי, נעשה שיחה של 20-30 דקות ונבין מה יוריד ממך את העומס הכי הרבה, עם הכי מעט שינויים.',
   },
 ];
 
@@ -234,17 +229,17 @@ export default function HomePage() {
           <FadeIn delay={120}>
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.15] tracking-tight mb-6 max-w-[18ch] mx-auto">
               <span className="text-transparent bg-clip-text bg-gradient-to-l from-teal-300 via-teal-400 to-emerald-400">
-                העסק גדל אבל הכול עדיין עובר דרכך?
+                העסק שלך עובד. אבל הכול עדיין עובר דרכך.
               </span>
             </h1>
           </FadeIn>
 
           <FadeIn delay={240}>
             <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto leading-relaxed mb-6">
-              זה לא עניין של כלים. הבעיה היא שהעסק נבנה סביבך ועדיין לא יודע לרוץ בלעדייך.
+              לנשים עצמאיות בעסק שירות פעיל — שהעסק עובד, אבל עדיין נשען עליהן יותר מדי.
             </p>
             <p className="text-base md:text-lg text-white/60 max-w-xl mx-auto leading-relaxed mb-8">
-              האבחון מזהה בדיוק איפה זה קורה אצלך ומה כדאי לשנות קודם.
+              6 שאלות שמזהות בדיוק איפה העומס יושב, ומה כדאי לסדר קודם.
             </p>
           </FadeIn>
 
@@ -276,7 +271,7 @@ export default function HomePage() {
                 <span aria-hidden className="absolute inset-y-0 -right-1/3 w-1/3 bg-gradient-to-l from-transparent via-white/30 to-transparent skew-x-[-18deg] translate-x-0 group-hover:translate-x-[420%] transition-transform duration-[1100ms] ease-out" />
                 {/* outer glow on hover */}
                 <span aria-hidden className="absolute inset-0 rounded-2xl bg-gradient-to-l from-teal-400 to-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-2xl -z-10" />
-                <span className="relative z-10">התחילי אבחון חינם וקבלי מפת תקיעות אישית</span>
+                <span className="relative z-10">התחילי בדיקה חינם — 6 שאלות בלבד</span>
                 <svg
                   className="relative z-10 w-5 h-5 transition-transform duration-300 group-hover:-translate-x-1"
                   fill="none"
@@ -289,7 +284,7 @@ export default function HomePage() {
                 </svg>
               </button>
 
-              <p className="text-sm text-white/35">5 דקות. חינם לחלוטין. בלי התחייבות.</p>
+              <p className="text-sm text-white/35">6 שאלות. חינם לחלוטין. בלי התחייבות.</p>
 
               {/* Secondary actions row — refined pills with iconography */}
               <div className="flex flex-wrap items-center justify-center gap-2.5">
@@ -341,14 +336,14 @@ export default function HomePage() {
                   <circle cx="12" cy="13" r="8" strokeLinecap="round" strokeLinejoin="round" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4l2.5 1.5M9 2h6M12 5V2" />
                 </svg>
-                5 דקות
+                6 שאלות
               </span>
               <span aria-hidden className="w-1 h-1 rounded-full bg-white/15" />
               <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.025] backdrop-blur-sm px-3.5 py-1.5 text-xs font-medium text-white/55">
                 <svg className="w-3.5 h-3.5 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                 </svg>
-                דוח מותאם אישית
+                דוח קצר מותאם
               </span>
               <span aria-hidden className="w-1 h-1 rounded-full bg-white/15" />
               <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.025] backdrop-blur-sm px-3.5 py-1.5 text-xs font-medium text-white/55">

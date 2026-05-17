@@ -1,5 +1,5 @@
-import { QuizLeadForm } from '@/components/quiz/QuizLeadForm';
+import ShortQuizFlow from '@/components/quiz/ShortQuizFlow';
 
 export default function QuizPage() {
-  return <QuizLeadForm />;
+  return <ShortQuizFlow />;
 }

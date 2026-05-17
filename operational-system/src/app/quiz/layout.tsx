@@ -2,13 +2,13 @@ import type { Metadata } from 'next';
 import { QuizShell } from '@/components/quiz/QuizShell';
 
 export const metadata: Metadata = {
-  title: 'אבחון ניהולי – Architecture of Scale',
+  title: 'בדיקה חינמית – איפה העסק נשען עלייך?',
   description:
-    'מיפוי דפוס הניהול שלך בכמה דקות. דוח מותאם אישית עם תמונת מצב, חוזקות וסיכוני צמיחה – בחינם.',
+    '6 שאלות שמזהות בדיוק איפה העסק נשען עלייך הכי חזק. דוח קצר ומותאם — חינם, בלי התחייבות.',
   openGraph: {
-    title: 'אבחון ניהולי – Architecture of Scale',
+    title: 'בדיקה חינמית – איפה העסק נשען עלייך?',
     description:
-      'מיפוי דפוס הניהול שלך בכמה דקות. דוח מותאם אישית עם תמונת מצב, חוזקות וסיכוני צמיחה – בחינם.',
+      '6 שאלות שמזהות בדיוק איפה העסק נשען עלייך הכי חזק. דוח קצר ומותאם — חינם, בלי התחייבות.',
     locale: 'he_IL',
     type: 'website',
   },
