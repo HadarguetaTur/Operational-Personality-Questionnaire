@@ -69,6 +69,14 @@ const SERVICES = [
   },
 ];
 
+const IDENTIFICATION_ITEMS = [
+  'כשאת עונה לפגישה, את גם מנהלת את הלוח שנה, מאשרת תשלום, מזכירה ללקוחה ומוצאת את הקובץ שנשלח לפני שלושה שבועות.',
+  'יש לך מערכת לניהול לקוחות, אבל את עדיין מנהלת הכול מהראש.',
+  'כשאת חולה, בחופשה, או פשוט עייפה, העסק עוצר.',
+  'את יודעת שצריך לעשות "משהו" עם התהליכים, אבל לא ברור מאיפה מתחילים.',
+  'העסק שלך מרגיש מלא, אבל לא ברור למה הוא עדיין כל כך עמוס.',
+];
+
 const PROCESS_STEPS = [
   {
     num: '01',
@@ -111,6 +119,12 @@ const TESTIMONIALS = [
     text: 'פניתי להדר כי לא היו לי מספיק לידים, והטיפול בכל לקוח לקח המון זמן. ביחד בנינו תהליך עבודה חדש. הדר האירה דברים שלא שמתי אליהם לב, ובנתה לי אוטומציות שהקלו עליי את תהליך העבודה.',
     name: 'לאה סוליטר',
     role: 'אדריכלות ועיצוב פנים',
+  },
+  {
+    headline: 'הפכה את עולמנו לאוטומטי פחות סיזיפי',
+    text: 'הדר אהובה, חייבים לך תודה על מסירות שהפכת את עולמנו לאוטומטי פחות סיזיפי :) אין קץ, על עבודה חייבים לך תודה ענקית על מסירות אוטומציות בעסק, בטח בתחום כל כך רגיש! מודים ואוהבים!',
+    name: 'מסד גרופ',
+    role: 'סמנכ"ל תפעול ומשאבי אנוש · SHOOGLIS',
   },
 ];
 
@@ -227,19 +241,19 @@ export default function HomePage() {
           </FadeIn>
 
           <FadeIn delay={120}>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.15] tracking-tight mb-6 max-w-[18ch] mx-auto">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.15] tracking-tight mb-6 max-w-[22ch] mx-auto">
               <span className="text-transparent bg-clip-text bg-gradient-to-l from-teal-300 via-teal-400 to-emerald-400">
-                העסק שלך עובד. אבל הכול עדיין עובר דרכך.
+                אם כל לקוח, משימה ותזכורת עוברים דרכך, העסק מנוהל סביבך. וזו בדיוק הבעיה.
               </span>
             </h1>
           </FadeIn>
 
           <FadeIn delay={240}>
             <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto leading-relaxed mb-6">
-              לנשים עצמאיות בעסק שירות פעיל — שהעסק עובד, אבל עדיין נשען עליהן יותר מדי.
+              זה לא אומר שאת הבעיה. זה אומר שהעסק גדל בלי מבנה שמחזיק אותו.
             </p>
             <p className="text-base md:text-lg text-white/60 max-w-xl mx-auto leading-relaxed mb-8">
-              6 שאלות שמזהות בדיוק איפה העומס יושב, ומה כדאי לסדר קודם.
+              שאלון קצר יזהה מה מחזיר הכול אלייך, ומאיפה הכי הגיוני להתחיל.
             </p>
           </FadeIn>
 
@@ -393,16 +407,65 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* ═══════════ IDENTIFICATION ═══════════ */}
+      <section className="py-20 md:py-28 px-5 md:px-8">
+        <div className="max-w-3xl mx-auto">
+          <FadeIn>
+            <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-10">זה את, אם...</p>
+          </FadeIn>
+          <div className="space-y-3">
+            {IDENTIFICATION_ITEMS.map((item, i) => (
+              <FadeIn key={i} delay={i * 80}>
+                <div className="flex items-start gap-4 p-5 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-teal-400 shrink-0 mt-2.5" aria-hidden />
+                  <p className="text-white/72 text-base leading-relaxed">{item}</p>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+          <FadeIn delay={440}>
+            <div className="text-center mt-10">
+              <button
+                onClick={() => goToQuiz('identification_cta')}
+                className="group inline-flex items-center gap-2.5 min-h-[52px] px-9 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 font-semibold transition-all duration-200 hover:bg-teal-500/25 hover:border-teal-400/50 active:scale-[0.98]"
+              >
+                מה בדיוק מחזיר הכול אלייך?
+                <svg className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                </svg>
+              </button>
+              <p className="text-white/35 text-sm mt-3">שאלון, לא טופס. 5 דקות. אין צורך להשאיר פרטים לפני שתתחילי.</p>
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* ═══════════ WHY THIS HAPPENS ═══════════ */}
+      <section className="py-20 md:py-24 px-5 md:px-8 bg-[#111827]">
+        <div className="max-w-2xl mx-auto text-center">
+          <FadeIn>
+            <h2 className="text-2xl md:text-3xl font-bold mb-8 leading-tight">
+              בשלב מסוים, כל עסק מגיע לנקודה הזו.
+            </h2>
+            <div className="space-y-4 text-white/60 text-base md:text-lg leading-relaxed">
+              <p>כשמתחילים, הכול עובד כי הכול קטן.</p>
+              <p>ברגע שהעסק גדל, מה שעבד אז לא בהכרח מחזיק עכשיו.</p>
+              <p className="text-white/80 font-medium">זה לא אומר שמשהו השתבש. זה אומר שהעסק הגיע למקום שדורש מבנה אחר.</p>
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
       {/* ═══════════ SERVICES ═══════════ */}
       <section className="py-24 md:py-32 px-5 md:px-8 bg-gradient-to-b from-[#0c1220] to-[#111827]">
         <div className="max-w-6xl mx-auto">
           <FadeIn>
-            <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-3">מה אני עושה</p>
+            <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-3">מה השאלון מזהה</p>
             <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-5">
-              לפני שמוסיפים עוד כלי, צריך להבין איפה התהליך נשבר.
+              שאלון קצר. תמונה ברורה.
             </h2>
             <p className="text-white/55 text-center text-base md:text-lg max-w-2xl mx-auto leading-relaxed mb-16">
-              האבחון בודק שלושה דברים: איפה הזמן נוזל, איפה העסק עדיין נשען על הזיכרון שלך, ואיפה נכון להתחיל לשנות.
+              נזהה מה מחזיר הכול אלייך, איפה הזמן נוזל, ומאיפה הכי הגיוני להתחיל.
             </p>
           </FadeIn>
 
@@ -431,7 +494,7 @@ export default function HomePage() {
               מה קורה מרגע שלוחצים?
             </h2>
             <p className="text-white/50 text-center text-base md:text-lg max-w-xl mx-auto leading-relaxed mb-16">
-              פשוט ולא מחייב. הנה ארבעה שלבים, מהלחיצה הראשונה ועד שיש לך תמונה ברורה.
+              פשוט ולא מחייב. שלושה שלבים, מהלחיצה הראשונה ועד שיש לך תמונה ברורה.
             </p>
           </FadeIn>
 
@@ -456,61 +519,6 @@ export default function HomePage() {
                 </FadeIn>
               ))}
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════ FOR WHOM ═══════════ */}
-      <section className="py-24 md:py-32 px-5 md:px-8">
-        <div className="max-w-5xl mx-auto">
-          <FadeIn>
-            <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-3">למי זה מתאים?</p>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-16 leading-tight">
-              לפני שמתחילות, כדאי לדעת
-            </h2>
-          </FadeIn>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FadeIn delay={0}>
-              <div className="p-7 rounded-2xl border border-teal-500/20 bg-teal-500/[0.04] h-full">
-                <h3 className="text-lg font-bold text-teal-300 mb-5">זה בשבילך אם</h3>
-                <ul className="space-y-4">
-                  {[
-                    'את כבר עובדת ויש לך לקוחות, לידים או תהליכים קיימים.',
-                    'הכול עובר דרכך ואת מרגישה את זה ביום יום.',
-                    'את מוכנה לאבחן לפני שמוסיפים כלים חדשים.',
-                    'את מחפשת סדר ותשתית, לא עוד תוסף שמסבך.',
-                    'את מבינה שצריך להסתכל על הבעיה לפני שפותרים אותה.',
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3">
-                      <svg className="w-5 h-5 text-teal-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                      </svg>
-                      <span className="text-white/75 text-sm leading-relaxed">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </FadeIn>
-            <FadeIn delay={120}>
-              <div className="p-7 rounded-2xl border border-white/[0.06] bg-white/[0.02] h-full">
-                <h3 className="text-lg font-bold text-white/45 mb-5">פחות מתאים אם</h3>
-                <ul className="space-y-4">
-                  {[
-                    'את מחפשת פתרון מיידי בלי לגעת בתהליך.',
-                    'את רוצה שמישהי תסדר הכל ותחזור עם כפתור מוכן.',
-                    'את מחפשת כלי אחד שיפתור הכול.',
-                    'את לא מוכנה להסתכל על מה שלא עובד.',
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3">
-                      <svg className="w-5 h-5 text-white/20 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      <span className="text-white/40 text-sm leading-relaxed">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </FadeIn>
           </div>
         </div>
       </section>
