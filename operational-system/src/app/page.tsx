@@ -121,10 +121,10 @@ const TESTIMONIALS = [
     role: 'אדריכלות ועיצוב פנים',
   },
   {
-    headline: 'הפכה את עולמנו לאוטומטי פחות סיזיפי',
-    text: 'הדר אהובה, חייבים לך תודה על מסירות שהפכת את עולמנו לאוטומטי פחות סיזיפי :) אין קץ, על עבודה חייבים לך תודה ענקית על מסירות אוטומציות בעסק, בטח בתחום כל כך רגיש! מודים ואוהבים!',
+    headline: 'הפכה את עולמנו לאוטומטי ופחות סיזיפי',
+    text: 'הדר אהובה, חייבים לך תודה ענקית על מסירות אין קץ, על עבודה עם חיוך וצחוקים תוך כדי תודה שהפכת את עולמנו לאוטומטי ופחות סיזיפי, מעריכים בטירוף! נהננו לעבוד איתך ולהטמיע אוטומציות עסקיות חכמות בתחום כל כך רגיש! מודים ואוהבים! מסד גרופ',
     name: 'מסד גרופ',
-    role: 'סמנכ"ל תפעול ומשאבי אנוש · SHOOGLIS',
+    role: 'לידור בושרי · סמנכ"ל תפעול',
   },
 ];
 
@@ -537,9 +537,11 @@ export default function HomePage() {
           </FadeIn>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {TESTIMONIALS.map((t, i) => (
-              <FadeIn key={i} delay={i * 120}>
-                <div className="p-7 rounded-2xl border border-white/[0.06] bg-white/[0.02] h-full flex flex-col">
+            {TESTIMONIALS.map((t, i) => {
+              const isLastOdd = i === TESTIMONIALS.length - 1 && TESTIMONIALS.length % 2 !== 0;
+              return (
+              <FadeIn key={i} delay={i * 120} className={isLastOdd ? 'md:col-span-2' : ''}>
+                <div className={`p-7 rounded-2xl border border-white/[0.06] bg-white/[0.02] h-full flex flex-col${isLastOdd ? ' max-w-xl mx-auto w-full' : ''}`}>
                   <div className="flex gap-1 mb-3">
                     {[...Array(5)].map((_, j) => (
                       <svg key={j} className="w-4 h-4 text-teal-400" fill="currentColor" viewBox="0 0 20 20">
@@ -555,7 +557,8 @@ export default function HomePage() {
                   </div>
                 </div>
               </FadeIn>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

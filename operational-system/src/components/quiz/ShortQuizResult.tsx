@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { SHORT_QUIZ_RESULTS, ShortResultId, ShortResultContent } from '@/config/shortQuizResults';
 
@@ -21,6 +22,8 @@ function CheckIcon() {
 }
 
 export function ShortQuizResult({ token }: { token: string }) {
+  const searchParams = useSearchParams();
+  const isNew = searchParams.get('new') === '1';
   const [state, setState] = useState<ResultState>({ status: 'loading' });
 
   useEffect(() => {
@@ -51,6 +54,15 @@ export function ShortQuizResult({ token }: { token: string }) {
     load();
   }, [token]);
 
+  useEffect(() => {
+    if (!isNew || state.status !== 'ready') return;
+    fetch('/api/quiz/send-completion-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reportToken: token }),
+    }).catch(() => {});
+  }, [isNew, state.status, token]);
+
   if (state.status === 'loading') {
     return (
       <div className="flex items-center justify-center min-h-[60vh]" dir="rtl">
@@ -76,6 +88,13 @@ export function ShortQuizResult({ token }: { token: string }) {
       dir="rtl"
     >
       <div className="max-w-[600px] mx-auto text-right">
+
+        {/* Thank-you banner (shown right after form submission) */}
+        {isNew && (
+          <div className="mb-8 p-4 rounded-[12px] border border-[var(--qa-accent)] border-opacity-30 bg-[var(--qa-accent-soft)] text-[14px] text-[var(--qa-text-secondary)] leading-relaxed">
+            מפת הסדר בדרך אלייך
+          </div>
+        )}
 
         {/* Header */}
         <div className="mb-8">

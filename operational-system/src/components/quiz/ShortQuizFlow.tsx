@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { trackEvent } from '@/lib/analytics';
 import { SHORT_QUIZ_QUESTIONS, Q6_TO_RESULT, ShortQuizOption } from '@/config/shortQuizConfig';
 
-type FlowPhase = 'questions' | 'transition' | 'form' | 'confirmation';
+type FlowPhase = 'questions' | 'transition' | 'form';
 
 const TOTAL_QUESTIONS = SHORT_QUIZ_QUESTIONS.length;
 const AUTO_ADVANCE_MS = 320;
@@ -125,24 +125,25 @@ function TransitionScreen({ onContinue }: { onContinue: () => void }) {
   return (
     <div className="flex flex-col min-h-screen bg-[var(--qa-bg)] items-center justify-center px-6 md:px-8" dir="rtl">
       <div className="max-w-[560px] w-full text-right">
-        <div className="mb-6 inline-block text-[32px]">✓</div>
         <h2 className="text-[26px] md:text-[30px] font-bold leading-snug mb-5 text-[var(--qa-text-primary)]">
-          מצאתי את נקודת העומס המרכזית שלך
+          מצאתי מה הכי דורש אותך בעסק כרגע
         </h2>
-        <p className="text-[16px] md:text-[17px] text-[var(--qa-text-secondary)] leading-relaxed mb-3">
-          יש כאן דפוס מאוד ברור.
+        <p className="text-[16px] md:text-[17px] text-[var(--qa-text-secondary)] leading-relaxed mb-5">
+          לפי התשובות שלך, כבר אפשר לראות איפה העסק עדיין תלוי יותר מדי בזה שאת תזכרי, תעני, תחפשי, תבדקי או תזכירי.
         </p>
-        <p className="text-[16px] md:text-[17px] text-[var(--qa-text-secondary)] leading-relaxed mb-8">
-          תוך רגע אני מסדרת לך דוח קצר ומדויק: מה נופל בין הכיסאות, למה זה מרגיש כל כך כבד, ומה כדאי לסדר קודם כדי להוריד עומס כבר עכשיו.
+        <p className="text-[15px] text-[var(--qa-text-secondary)] leading-relaxed mb-2">
+          אני יכולה לשלוח לך מפת סדר קצרה עם:
         </p>
-        <p className="text-[13px] text-[var(--qa-text-muted)] mb-8">
-          בלי הרצאה ובלי תיאוריה מיותרת — רק סדר פרקטי שמתאים לעסק שירות כמוך.
-        </p>
+        <ul className="text-[15px] text-[var(--qa-text-secondary)] leading-relaxed mb-8 flex flex-col gap-1 pr-2">
+          <li>— הנקודה המרכזית שמכבידה עלייך</li>
+          <li>— איך זה כנראה נראה ביום־יום</li>
+          <li>— מה כדאי לסדר קודם</li>
+        </ul>
         <button
           onClick={onContinue}
           className="w-full py-4 px-6 rounded-[12px] bg-[var(--qa-accent)] text-white text-[17px] font-semibold hover:opacity-90 active:scale-[0.99] transition-all duration-150"
         >
-          תני לי את הדוח הקצר שלי
+          שלחי לי את מפת הסדר
         </button>
       </div>
     </div>
@@ -177,23 +178,29 @@ function LeadForm({ onSubmit, submitting, error }: LeadFormProps) {
     return '';
   }, [name, touched.name]);
 
+  const emailHint = useMemo(() => {
+    if (!touched.email || !email.trim()) return '';
+    if (!/.+@.+\..+/.test(email.trim())) return 'נא להזין כתובת מייל תקינה.';
+    return '';
+  }, [email, touched.email]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setTouched({ name: true, phone: true });
+    setTouched({ name: true, phone: true, email: true });
     if (!name.trim() || phoneDigitsOnly(phone).length < 7) return;
+    if (!email.trim() || !/.+@.+\..+/.test(email.trim())) return;
     if (!consent) return;
-    const trimmedEmail = email.trim() || null;
-    await onSubmit(name.trim(), phone.trim(), trimmedEmail);
+    await onSubmit(name.trim(), phone.trim(), email.trim());
   };
 
   return (
     <div className="flex flex-col min-h-screen bg-[var(--qa-bg)] items-center justify-center px-6 md:px-8" dir="rtl">
       <div className="max-w-[480px] w-full text-right">
         <h2 className="text-[24px] md:text-[28px] font-bold mb-2 text-[var(--qa-text-primary)]">
-          לאן לשלוח לך את הדוח הקצר?
+          לאן לשלוח לך את מפת הסדר?
         </h2>
         <p className="text-[14px] text-[var(--qa-text-muted)] mb-8 leading-relaxed">
-          זה אישי וקצר, לא ספאם. אני שולחת לך סיכום ברור + צעד ראשון שמתאים למה שענית.
+          אשמח לשלוח לך סיכום קצר לפי התשובות שלך + צעד ראשון שכדאי לבדוק.
         </p>
 
         <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
@@ -231,19 +238,21 @@ function LeadForm({ onSubmit, submitting, error }: LeadFormProps) {
             {phoneHint && <p className="mt-1 text-[12px] text-red-500">{phoneHint}</p>}
           </div>
 
-          {/* Email (optional) */}
+          {/* Email */}
           <div>
             <label className="block text-[14px] font-medium text-[var(--qa-text-secondary)] mb-1.5">
-              מייל <span className="text-[var(--qa-text-muted)] font-normal">(אופציונלי, אם תרצי גם עותק)</span>
+              מייל
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@example.com"
+              onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+              placeholder="your@email.com"
               className="w-full px-4 py-3 rounded-[10px] border border-[var(--qa-border)] bg-[var(--qa-surface)] text-[var(--qa-text-primary)] text-[15px] placeholder:text-[var(--qa-text-muted)] focus:outline-none focus:border-[var(--qa-accent)] transition-colors"
               dir="ltr"
             />
+            {emailHint && <p className="mt-1 text-[12px] text-red-500">{emailHint}</p>}
           </div>
 
           {/* Consent */}
@@ -255,7 +264,7 @@ function LeadForm({ onSubmit, submitting, error }: LeadFormProps) {
               className="mt-1 shrink-0 accent-[var(--qa-accent)]"
             />
             <span className="text-[13px] text-[var(--qa-text-muted)] leading-relaxed group-hover:text-[var(--qa-text-secondary)] transition-colors">
-              בלחיצה את מאשרת שאפשר לשלוח לך את הדוח והודעת וואטסאפ אחת אישית להמשך.
+              אני אשלח לך את התוצאה והודעת וואטסאפ אחת להמשך. בלי ספאם.
             </span>
           </label>
 
@@ -268,37 +277,9 @@ function LeadForm({ onSubmit, submitting, error }: LeadFormProps) {
             disabled={submitting || !consent}
             className="w-full py-4 px-6 rounded-[12px] bg-[var(--qa-accent)] text-white text-[17px] font-semibold hover:opacity-90 active:scale-[0.99] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitting ? 'שומרת...' : 'שלחי לי את הדוח הקצר שלי'}
+            {submitting ? 'שומרת...' : 'לקבלת מפת הסדר'}
           </button>
         </form>
-      </div>
-    </div>
-  );
-}
-
-// ─── Confirmation screen ──────────────────────────────────────────────────────
-
-function ConfirmationScreen({ reportToken }: { reportToken: string }) {
-  const router = useRouter();
-  return (
-    <div className="flex flex-col min-h-screen bg-[var(--qa-bg)] items-center justify-center px-6 md:px-8" dir="rtl">
-      <div className="max-w-[520px] w-full text-right">
-        <div className="mb-5 text-[40px]">🎯</div>
-        <h2 className="text-[26px] md:text-[30px] font-bold mb-4 text-[var(--qa-text-primary)]">
-          הדוח בדרך
-        </h2>
-        <p className="text-[16px] text-[var(--qa-text-secondary)] leading-relaxed mb-3">
-          קיבלתי את הפרטים שלך. אני אשלח לך הודעת וואטסאפ אישית קצרה עם הדוח וצעד ראשון מותאם.
-        </p>
-        <p className="text-[14px] text-[var(--qa-text-muted)] leading-relaxed mb-8">
-          בינתיים, הדוח שלך מוכן לצפייה עכשיו.
-        </p>
-        <button
-          onClick={() => router.push(`/quiz/result/${reportToken}`)}
-          className="w-full py-4 px-6 rounded-[12px] bg-[var(--qa-accent)] text-white text-[17px] font-semibold hover:opacity-90 active:scale-[0.99] transition-all duration-150"
-        >
-          צפייה בדוח הקצר שלי
-        </button>
       </div>
     </div>
   );
@@ -307,11 +288,11 @@ function ConfirmationScreen({ reportToken }: { reportToken: string }) {
 // ─── Main flow orchestrator ───────────────────────────────────────────────────
 
 export default function ShortQuizFlow() {
+  const router = useRouter();
   const [phase, setPhase] = useState<FlowPhase>('questions');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<string[]>([]);
   const [resultId, setResultId] = useState<string>('GENERAL');
-  const [reportToken, setReportToken] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -369,8 +350,7 @@ export default function ShortQuizFlow() {
         return;
       }
 
-      setReportToken(token as string);
-      setPhase('confirmation');
+      router.push(`/quiz/result/${token as string}?new=1&type=short`);
     } catch (err) {
       console.error(err);
       setFormError('אירעה שגיאה בלתי צפויה. נסי שוב.');
@@ -402,5 +382,5 @@ export default function ShortQuizFlow() {
     );
   }
 
-  return <ConfirmationScreen reportToken={reportToken} />;
+  return null;
 }
