@@ -338,7 +338,7 @@ export default function HomePage() {
       </section>
 
       {/* ═══════════ SOCIAL PROOF BAR ═══════════ */}
-      <div className="relative px-5 md:px-8 -mt-6 z-20" dir="rtl">
+      <div className="relative px-5 md:px-8 mt-4 md:-mt-6 z-20" dir="rtl">
         <div className="max-w-4xl mx-auto">
           <div className="relative overflow-hidden rounded-3xl border border-teal-300/[0.16] bg-[#0f1729]/85 px-5 py-5 md:px-8 md:py-6 shadow-[0_24px_80px_-42px_rgba(20,184,166,0.75)] backdrop-blur-xl">
             <div className="absolute inset-y-0 right-0 w-1 bg-gradient-to-b from-teal-300 via-emerald-400 to-transparent" aria-hidden />
