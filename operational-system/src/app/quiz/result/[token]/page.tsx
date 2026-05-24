@@ -24,7 +24,7 @@ async function ResultRouter({ token }: { token: string }) {
       .maybeSingle();
 
     const snapshot = data?.result_snapshot as Record<string, unknown> | null;
-    if (snapshot?.quiz_type === 'short') {
+    if (snapshot?.quiz_type === 'short' || snapshot?.quiz_type === 'roi_calculator') {
       return <ShortQuizResult token={token} />;
     }
   } catch {

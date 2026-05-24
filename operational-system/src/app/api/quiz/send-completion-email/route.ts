@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
   const { data: lead, error: leadError } = await supabase
     .from('leads')
-    .select('id, name, email, result_pattern, report_token, completed_at')
+    .select('id, name, email, result_pattern, report_token, completed_at, roi_data')
     .eq('report_token', reportToken)
     .maybeSingle();
 
@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
     name: lead.name ?? '',
     pattern: lead.result_pattern ?? '',
     reportUrl,
+    roiData: lead.roi_data ?? null,
   });
 
   const { data: dbTemplate } = await supabase

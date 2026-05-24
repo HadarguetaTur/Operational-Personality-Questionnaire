@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
         payment_received:
           'שלום {{name}}, התשלום התקבל בהצלחה. בקרוב תקבלי טופס למילוי.',
         meeting_reminder:
-          'שלום {{name}}, רק להזכיר — הפגישה שלנו מחר. מחכה!',
+          'שלום {{name}}, רק להזכיר: הפגישה שלנו מחר. מחכה!',
       };
       finalMessage = defaultTemplates[templateName] || '';
     }

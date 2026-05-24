@@ -119,7 +119,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ variant = 'landi
               <div className="text-center mb-12 md:mb-14">
                 <p className="text-teal-400 text-sm font-medium tracking-wider mb-3">יצירת קשר</p>
                 <h2 id="contact-heading" className="text-3xl md:text-4xl font-extrabold text-white mb-4 tracking-tight">
-                  רוצה לדבר לפני האבחון?
+                  רוצה לדבר לפני שמתחילים?
                 </h2>
                 <p className="text-white/55 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
                   השאירו פרטים ואחזור אליכם בהקדם, שלחו הודעה ישירה בוואטסאפ או קבעו פגישה ביומן.

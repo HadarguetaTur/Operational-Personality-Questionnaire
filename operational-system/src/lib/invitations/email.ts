@@ -41,7 +41,7 @@ function buildInviteHtml(p: InvitationEmailParams): string {
         <tr><td style="padding:8px 32px 24px 32px;text-align:right;">
           <p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 16px 0;">
             ${p.inviterName ? `${escapeHtml(p.inviterName)} הזמינ/ה אותך` : 'הוזמנת'} לקבל גישת מנהל למערכת התפעול.
-            כדי לסיים את ההרשמה — לחצ/י על הכפתור ובחר/י סיסמה אישית.
+            כדי לסיים את ההרשמה, לחצ/י על הכפתור ובחר/י סיסמה אישית.
           </p>
           <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;">
             <tr><td style="background:linear-gradient(135deg,#14b8a6,#10b981);border-radius:8px;">
@@ -56,7 +56,7 @@ function buildInviteHtml(p: InvitationEmailParams): string {
           </p>
           <p style="font-size:13px;color:#64748b;margin:0;border-top:1px solid #e2e8f0;padding-top:16px;">
             הקישור תקף עד <strong style="color:#334155;">${formatHebrewDate(p.expiresAt)}</strong>.
-            אם לא ביקשת זימון זה — אפשר להתעלם מהמייל.
+            אם לא ביקשת זימון זה, אפשר להתעלם מהמייל.
           </p>
         </td></tr>
       </table>
@@ -94,7 +94,7 @@ function buildResetHtml(p: PasswordResetEmailParams): string {
           </p>
           <p style="font-size:13px;color:#64748b;margin:0;border-top:1px solid #e2e8f0;padding-top:16px;">
             הקישור תקף עד <strong style="color:#334155;">${formatHebrewDate(p.expiresAt)}</strong>.
-            אם לא ביקשת לאפס סיסמה — אפשר להתעלם מהמייל.
+            אם לא ביקשת לאפס סיסמה, אפשר להתעלם מהמייל.
           </p>
         </td></tr>
       </table>

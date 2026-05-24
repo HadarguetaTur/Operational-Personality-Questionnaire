@@ -126,7 +126,7 @@ export async function runFollowupNotifications(leadId: string): Promise<{
 </html>`;
 
       const htmlTemplate = template?.html_content || defaultHtml;
-      const subjectTemplate = template?.subject || 'הכל מוכן — נקבע פגישה? 📅';
+      const subjectTemplate = template?.subject || 'הכל מוכן, נקבע פגישה? 📅';
 
       const variables: Record<string, string> = {
         name: lead.name || '',

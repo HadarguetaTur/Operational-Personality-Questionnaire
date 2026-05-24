@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       .insert({
         lead_id: leadId,
         template_id: null,
-        subject: `הדוח שלך מוכן — ${name ?? ''}`,
+        subject: `הדוח שלך מוכן, ${name ?? ''}`,
         recipient_email: email,
         status: 'pending',
         error: null,
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
 </html>`;
 
         const htmlTemplate = template?.html_content || defaultHtml;
-        const subjectTemplate = template?.subject || 'הדוח התפעולי שלך מוכן — {{name}}';
+        const subjectTemplate = template?.subject || 'הדוח התפעולי שלך מוכן, {{name}}';
 
         const variables: Record<string, string> = {
           name: name || '',

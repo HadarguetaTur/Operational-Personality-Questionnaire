@@ -4,15 +4,120 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { trackEvent } from '@/lib/analytics';
-import { SHORT_QUIZ_QUESTIONS, Q6_TO_RESULT, ShortQuizOption } from '@/config/shortQuizConfig';
+import {
+  SHORT_QUIZ_QUESTIONS,
+  TOTAL_QUESTIONS,
+  PHASE_NAMES,
+  buildAnswerMap,
+  ShortQuizOption,
+} from '@/config/shortQuizConfig';
+import { calcROI, formatILS } from '@/lib/calculator/roiCalculator';
+import type { ROIResult } from '@/lib/calculator/types';
+import type { ROIInputs } from '@/lib/calculator/types';
+import { ROI_QUIZ_RESULTS, DISCLAIMER_TEXT } from '@/config/shortQuizResults';
 
-type FlowPhase = 'questions' | 'transition' | 'form';
+type FlowPhase = 'questions' | 'result_preview' | 'form';
 
-const TOTAL_QUESTIONS = SHORT_QUIZ_QUESTIONS.length;
 const AUTO_ADVANCE_MS = 320;
 
 function phoneDigitsOnly(v: string) {
   return v.replace(/\D/g, '');
+}
+
+// ─── Build ROI inputs from answer map ────────────────────────────────────────
+
+function buildROIInputs(answers: string[]): ROIInputs {
+  const map = buildAnswerMap(answers);
+
+  const q1 = map['Q1'];
+  const q2 = map['Q2'];
+  const q3 = map['Q3'];
+  const q4 = map['Q4'];
+  const q5 = map['Q5'];
+  const q6 = map['Q6'];
+  const q7 = map['Q7'];
+  const q8 = map['Q8'];
+  const q9 = map['Q9'];
+  const q10 = map['Q10'];
+
+  return {
+    monthly_inquiries: {
+      low: q1?.low ?? 7,
+      mid: q1?.mid ?? 7,
+      high: q1?.high ?? 7,
+    },
+    avg_customer_value: {
+      low: q2?.low ?? 1000,
+      mid: q2?.mid ?? 1000,
+      high: q2?.high ?? 1000,
+    },
+    close_rate: q3?.rate ?? 0.07,
+    close_rate_is_default: q3?.isDefault ?? false,
+    at_risk_rate: q4?.rate ?? 0.45,
+    at_risk_is_default: q4?.isDefault ?? false,
+    dispersion_score: q5?.dispersionScore ?? 2,
+    weekly_manual_hours: {
+      low: q6?.low ?? 2,
+      high: q6?.high ?? 3,
+    },
+    weekly_collection_hours: {
+      low: q7?.low ?? 0.5,
+      high: q7?.high ?? 1.5,
+    },
+    hourly_value: {
+      low: q8?.low ?? 100,
+      mid: q8?.mid ?? 150,
+      high: q8?.high ?? 200,
+    },
+    response_speed: q9?.responseSpeed ?? 'MODERATE',
+    primary_pain: q10?.resultType ?? 'CENTRALIZED',
+  };
+}
+
+// ─── Progress bar ─────────────────────────────────────────────────────────────
+
+function PhaseProgressBar({ currentIndex }: { currentIndex: number }) {
+  const currentQ = SHORT_QUIZ_QUESTIONS[currentIndex];
+  const currentPhase = currentQ?.phase ?? 1;
+  const phases: (1 | 2 | 3 | 4)[] = [1, 2, 3, 4];
+
+  return (
+    <div className="sticky top-0 z-50 bg-[var(--qa-bg)]">
+      {/* Phase labels */}
+      <div className="flex justify-between px-4 pt-2 pb-1 max-w-[640px] mx-auto">
+        {phases.map((p) => (
+          <span
+            key={p}
+            className={`text-[11px] font-medium transition-colors ${
+              p === currentPhase
+                ? 'text-[var(--qa-accent)]'
+                : p < currentPhase
+                ? 'text-[var(--qa-text-muted)]'
+                : 'text-[var(--qa-border)]'
+            }`}
+          >
+            {PHASE_NAMES[p]}
+          </span>
+        ))}
+      </div>
+      {/* Progress segments */}
+      <div className="flex gap-1 px-4 pb-3 max-w-[640px] mx-auto">
+        {phases.map((p) => (
+          <div key={p} className="flex-1 h-1 rounded-full bg-[var(--qa-border-light)] overflow-hidden">
+            <div
+              className="h-full rounded-full bg-[var(--qa-accent)] transition-all duration-500"
+              style={{ width: p < currentPhase ? '100%' : p === currentPhase ? '60%' : '0%' }}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="px-6 pb-2 text-right max-w-[640px] mx-auto">
+        <span className="text-[12px] text-[var(--qa-text-muted)]">
+          שאלה {currentIndex + 1} מתוך {TOTAL_QUESTIONS}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 // ─── Question screen ──────────────────────────────────────────────────────────
@@ -41,27 +146,16 @@ function QuestionScreen({ questionIndex, onAnswer }: QuestionScreenProps) {
     [selectedId, onAnswer],
   );
 
-  const progress = Math.round(((questionIndex) / TOTAL_QUESTIONS) * 100);
-
   return (
     <div className="flex flex-col min-h-screen bg-[var(--qa-bg)] text-[var(--qa-text-primary)]" dir="rtl">
-      {/* Progress */}
-      <div className="sticky top-0 z-50 bg-[var(--qa-bg)]">
-        <div className="w-full h-1.5 bg-[var(--qa-border-light)] overflow-hidden">
-          <div
-            className="qa-progress-fill h-full rounded-full transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        <div className="px-6 md:px-8 py-3 text-right">
-          <span className="text-[13px] text-[var(--qa-text-muted)]">
-            שאלה {questionIndex + 1} מתוך {TOTAL_QUESTIONS}
-          </span>
-        </div>
-      </div>
+      <PhaseProgressBar currentIndex={questionIndex} />
 
-      {/* Question */}
       <div className="flex-1 flex flex-col justify-center px-6 md:px-8 pb-12 max-w-[640px] w-full mx-auto">
+        {question.microCopy && (
+          <p className="text-[12px] text-[var(--qa-text-muted)] mb-3 text-right">
+            {question.microCopy}
+          </p>
+        )}
         <h2
           ref={headingRef}
           tabIndex={-1}
@@ -119,32 +213,114 @@ function QuestionScreen({ questionIndex, onAnswer }: QuestionScreenProps) {
   );
 }
 
-// ─── Transition screen ────────────────────────────────────────────────────────
+// ─── ROI Result Preview ───────────────────────────────────────────────────────
 
-function TransitionScreen({ onContinue }: { onContinue: () => void }) {
+function AccuracyDots({ level }: { level: string }) {
+  const filled = level === 'גבוהה' ? 4 : level === 'בינונית' ? 2 : 1;
   return (
-    <div className="flex flex-col min-h-screen bg-[var(--qa-bg)] items-center justify-center px-6 md:px-8" dir="rtl">
-      <div className="max-w-[560px] w-full text-right">
-        <h2 className="text-[26px] md:text-[30px] font-bold leading-snug mb-5 text-[var(--qa-text-primary)]">
-          מצאתי מה הכי דורש אותך בעסק כרגע
-        </h2>
-        <p className="text-[16px] md:text-[17px] text-[var(--qa-text-secondary)] leading-relaxed mb-5">
-          לפי התשובות שלך, כבר אפשר לראות איפה העסק עדיין תלוי יותר מדי בזה שאת תזכרי, תעני, תחפשי, תבדקי או תזכירי.
+    <span className="inline-flex gap-1 mr-1 align-middle">
+      {[1, 2, 3, 4].map((i) => (
+        <span
+          key={i}
+          className={`inline-block w-2.5 h-2.5 rounded-full ${
+            i <= filled ? 'bg-[var(--qa-accent)]' : 'bg-[var(--qa-border)]'
+          }`}
+        />
+      ))}
+    </span>
+  );
+}
+
+function ResultPreviewScreen({
+  roi,
+  onContinue,
+}: {
+  roi: ROIResult;
+  onContinue: () => void;
+}) {
+  const resultContent = ROI_QUIZ_RESULTS[roi.result_type];
+  const { components: c, show_cap_message, accuracy_level, confidence_notes } = roi;
+
+  return (
+    <div
+      className="flex flex-col min-h-screen bg-[var(--qa-bg)] text-[var(--qa-text-primary)] py-10 px-6 md:px-8"
+      dir="rtl"
+    >
+      <div className="max-w-[600px] mx-auto w-full text-right">
+        {/* Header */}
+        <div className="mb-6">
+          <p className="text-[13px] font-medium text-[var(--qa-text-muted)] uppercase tracking-wide mb-2">
+            {resultContent.headline}
+          </p>
+          <span className="inline-block text-[13px] font-semibold px-3 py-1 rounded-full border border-[var(--qa-accent)] bg-[var(--qa-accent-soft)] text-[var(--qa-accent)] mb-4">
+            📍 {resultContent.tagline}
+          </span>
+          <p className="text-[15px] text-[var(--qa-text-secondary)] leading-relaxed">
+            {resultContent.explanation}
+          </p>
+        </div>
+
+        {/* Main number or cap message */}
+        {show_cap_message ? (
+          <div className="mb-6 p-5 rounded-[14px] border border-orange-300/40 bg-orange-50/10">
+            <p className="text-[15px] text-[var(--qa-text-secondary)] leading-relaxed">
+              ⚠️ זוהתה עלות שנתית גבוהה. כדאי לבצע בדיקה פרטנית לפני הצגת סכום מדויק.
+            </p>
+          </div>
+        ) : (
+          <div className="mb-6 p-5 rounded-[14px] border border-[var(--qa-accent)] border-opacity-30 bg-[var(--qa-accent-soft)]">
+            <p className="text-[13px] text-[var(--qa-text-muted)] mb-1">עלות שנתית מוערכת</p>
+            <p className="text-[28px] md:text-[32px] font-bold text-[var(--qa-text-primary)]">
+              {formatILS(c.total_low)} – {formatILS(c.total_high)}
+            </p>
+            <p className="text-[12px] text-[var(--qa-text-muted)] mt-1">
+              טווח המבוסס על גבולות הטווחים שסיפקת
+            </p>
+          </div>
+        )}
+
+        {/* Efficiency potential */}
+        {!show_cap_message && (
+          <div className="mb-6 p-4 rounded-[12px] bg-[var(--qa-surface)] border border-[var(--qa-border)]">
+            <p className="text-[13px] text-[var(--qa-text-muted)] mb-1">פוטנציאל התייעלות ראשוני</p>
+            <p className="text-[18px] font-semibold text-[var(--qa-text-primary)]">
+              {formatILS(c.efficiency_low)} – {formatILS(c.efficiency_high)} בשנה
+            </p>
+            <p className="text-[12px] text-[var(--qa-text-muted)] mt-1">
+              זהו טווח הערכה בלבד, בכפוף לבדיקה של התהליך בפועל.
+            </p>
+          </div>
+        )}
+
+        {/* Accuracy */}
+        <div className="mb-6 flex items-start gap-2 text-[13px] text-[var(--qa-text-muted)]">
+          <span className="shrink-0 mt-0.5">רמת דיוק:</span>
+          <span>
+            <AccuracyDots level={accuracy_level} />
+            <span className="font-medium text-[var(--qa-text-secondary)]">{accuracy_level}</span>
+            {confidence_notes && (
+              <span className="block mt-0.5 text-[12px]">{confidence_notes}</span>
+            )}
+          </span>
+        </div>
+
+        {/* Disclaimer */}
+        <p className="mb-8 text-[12px] text-[var(--qa-text-muted)] leading-relaxed border-t border-[var(--qa-border-light)] pt-4">
+          ⚠️ {DISCLAIMER_TEXT}
         </p>
-        <p className="text-[15px] text-[var(--qa-text-secondary)] leading-relaxed mb-2">
-          אני יכולה לשלוח לך מפת סדר קצרה עם:
-        </p>
-        <ul className="text-[15px] text-[var(--qa-text-secondary)] leading-relaxed mb-8 flex flex-col gap-1 pr-2">
-          <li>— הנקודה המרכזית שמכבידה עלייך</li>
-          <li>— איך זה כנראה נראה ביום־יום</li>
-          <li>— מה כדאי לסדר קודם</li>
-        </ul>
-        <button
-          onClick={onContinue}
-          className="w-full py-4 px-6 rounded-[12px] bg-[var(--qa-accent)] text-white text-[17px] font-semibold hover:opacity-90 active:scale-[0.99] transition-all duration-150"
-        >
-          שלחי לי את מפת הסדר
-        </button>
+
+        {/* CTA */}
+        <div className="text-center">
+          <p className="text-[15px] text-[var(--qa-text-secondary)] mb-4 leading-relaxed">
+            רוצה 3 פעולות ראשונות לסיטואציה שלך?
+          </p>
+          <button
+            onClick={onContinue}
+            className="w-full py-4 px-6 rounded-[12px] bg-[var(--qa-accent)] text-white text-[17px] font-semibold hover:opacity-90 active:scale-[0.99] transition-all duration-150"
+          >
+            קבלי את מפת התיקון ←
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -197,14 +373,13 @@ function LeadForm({ onSubmit, submitting, error }: LeadFormProps) {
     <div className="flex flex-col min-h-screen bg-[var(--qa-bg)] items-center justify-center px-6 md:px-8" dir="rtl">
       <div className="max-w-[480px] w-full text-right">
         <h2 className="text-[24px] md:text-[28px] font-bold mb-2 text-[var(--qa-text-primary)]">
-          לאן לשלוח לך את מפת הסדר?
+          לאן לשלוח לך את מפת התיקון?
         </h2>
         <p className="text-[14px] text-[var(--qa-text-muted)] mb-8 leading-relaxed">
-          אשמח לשלוח לך סיכום קצר לפי התשובות שלך + צעד ראשון שכדאי לבדוק.
+          השאירי שם + וואטסאפ ומקבלת 3 פעולות ראשונות לפי הסיטואציה שלך.
         </p>
 
         <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
-          {/* Name */}
           <div>
             <label className="block text-[14px] font-medium text-[var(--qa-text-secondary)] mb-1.5">
               שם פרטי
@@ -221,7 +396,6 @@ function LeadForm({ onSubmit, submitting, error }: LeadFormProps) {
             {nameHint && <p className="mt-1 text-[12px] text-red-500">{nameHint}</p>}
           </div>
 
-          {/* WhatsApp */}
           <div>
             <label className="block text-[14px] font-medium text-[var(--qa-text-secondary)] mb-1.5">
               וואטסאפ
@@ -238,7 +412,6 @@ function LeadForm({ onSubmit, submitting, error }: LeadFormProps) {
             {phoneHint && <p className="mt-1 text-[12px] text-red-500">{phoneHint}</p>}
           </div>
 
-          {/* Email */}
           <div>
             <label className="block text-[14px] font-medium text-[var(--qa-text-secondary)] mb-1.5">
               מייל
@@ -255,7 +428,6 @@ function LeadForm({ onSubmit, submitting, error }: LeadFormProps) {
             {emailHint && <p className="mt-1 text-[12px] text-red-500">{emailHint}</p>}
           </div>
 
-          {/* Consent */}
           <label className="flex items-start gap-3 cursor-pointer group">
             <input
               type="checkbox"
@@ -264,20 +436,18 @@ function LeadForm({ onSubmit, submitting, error }: LeadFormProps) {
               className="mt-1 shrink-0 accent-[var(--qa-accent)]"
             />
             <span className="text-[13px] text-[var(--qa-text-muted)] leading-relaxed group-hover:text-[var(--qa-text-secondary)] transition-colors">
-              אני אשלח לך את התוצאה והודעת וואטסאפ אחת להמשך. בלי ספאם.
+              אני אשלח לך את מפת התיקון והודעת וואטסאפ אחת להמשך. בלי ספאם.
             </span>
           </label>
 
-          {error && (
-            <p className="text-[13px] text-red-500 text-right">{error}</p>
-          )}
+          {error && <p className="text-[13px] text-red-500 text-right">{error}</p>}
 
           <button
             type="submit"
             disabled={submitting || !consent}
             className="w-full py-4 px-6 rounded-[12px] bg-[var(--qa-accent)] text-white text-[17px] font-semibold hover:opacity-90 active:scale-[0.99] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitting ? 'שומרת...' : 'לקבלת מפת הסדר'}
+            {submitting ? 'שומרת...' : 'קבלי את מפת התיקון ←'}
           </button>
         </form>
       </div>
@@ -285,14 +455,14 @@ function LeadForm({ onSubmit, submitting, error }: LeadFormProps) {
   );
 }
 
-// ─── Main flow orchestrator ───────────────────────────────────────────────────
+// ─── Main flow ────────────────────────────────────────────────────────────────
 
 export default function ShortQuizFlow() {
   const router = useRouter();
   const [phase, setPhase] = useState<FlowPhase>('questions');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<string[]>([]);
-  const [resultId, setResultId] = useState<string>('GENERAL');
+  const [roiResult, setRoiResult] = useState<ROIResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -306,10 +476,11 @@ export default function ShortQuizFlow() {
       setAnswers(newAnswers);
 
       if (currentIndex === TOTAL_QUESTIONS - 1) {
-        // Last question → determine result from Q6 answer
-        const result = Q6_TO_RESULT[optionId] ?? 'GENERAL';
-        setResultId(result);
-        setPhase('transition');
+        // Last question answered — calculate ROI and show preview
+        const inputs = buildROIInputs(newAnswers);
+        const result = calcROI(inputs);
+        setRoiResult(result);
+        setPhase('result_preview');
       } else {
         setCurrentIndex((i) => i + 1);
       }
@@ -322,25 +493,39 @@ export default function ShortQuizFlow() {
     setFormError('');
 
     const supabase = createClient();
-    if (!supabase) {
-      setFormError('שגיאה בחיבור — נסי שוב.');
+    if (!supabase || !roiResult) {
+      setFormError('שגיאה בחיבור. נסי שוב.');
       setSubmitting(false);
       return;
     }
 
     try {
       const answersJson = SHORT_QUIZ_QUESTIONS.reduce<Record<string, string>>(
-        (acc, q, idx) => { acc[q.id] = answers[idx] ?? ''; return acc; },
+        (acc, q, idx) => {
+          acc[q.id] = answers[idx] ?? '';
+          return acc;
+        },
         {},
       );
+
+      const roiData = {
+        result_type: roiResult.result_type,
+        accuracy_level: roiResult.accuracy_level,
+        confidence_notes: roiResult.confidence_notes,
+        show_cap_message: roiResult.show_cap_message,
+        lead_score: roiResult.lead_score,
+        components: roiResult.components,
+        inputs: answersJson,
+      };
 
       const { data: token, error } = await supabase.rpc('create_short_quiz_lead', {
         p_name: name,
         p_phone: phone,
         p_email: email,
-        p_short_result_id: resultId,
+        p_short_result_id: roiResult.result_type,
         p_answers_json: answersJson,
         p_marketing_consent: true,
+        p_roi_data: roiData,
       });
 
       if (error || !token) {
@@ -368,8 +553,13 @@ export default function ShortQuizFlow() {
     );
   }
 
-  if (phase === 'transition') {
-    return <TransitionScreen onContinue={() => setPhase('form')} />;
+  if (phase === 'result_preview' && roiResult) {
+    return (
+      <ResultPreviewScreen
+        roi={roiResult}
+        onContinue={() => setPhase('form')}
+      />
+    );
   }
 
   if (phase === 'form') {

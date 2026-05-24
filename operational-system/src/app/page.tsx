@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { AnimatedCounter } from '@/components/AnimatedCounter';
 import { ContactSection } from '@/components/landing/ContactSection';
 import { FAQAccordion } from '@/components/landing/FAQAccordion';
 import { WhyMeSection } from '@/components/landing/WhyMeSection';
@@ -39,68 +40,84 @@ function FadeIn({ children, className = '', delay = 0 }: { children: React.React
   );
 }
 
-const SERVICES = [
+const CALCULATOR_AREAS = [
   {
     icon: (
       <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
       </svg>
     ),
-    title: 'איפה הזמן נוזל',
-    desc: 'לא כל משימה שגוזלת זמן היא הבעיה. לפעמים הבעיה היא שאין בהירות מי אחראית, ואז הכל חוזר אלייך.',
+    title: 'פניות ופולואפים',
+    desc: 'כמה פניות נכנסות, מה קורה כשמתעניינת לא סוגרת מיד, וכמה שווי נמצא בסיכון כשאין תהליך המשך מסודר.',
   },
   {
     icon: (
       <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
-    title: 'איפה אין תהליך',
-    desc: 'יש דברים שקורים כי את זוכרת אותם. אם יש תהליך, הם קורים גם כשלא. האבחון מזהה איפה העסק עדיין נשען על הזיכרון והאנרגיה שלך.',
+    title: 'זמן ניהולי ידני',
+    desc: 'כמה שעות בשבוע הולכות על הודעות, תיאומים, תזכורות ופולואפים.',
   },
   {
     icon: (
       <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12a7.5 7.5 0 0015 0m-15 0a7.5 7.5 0 1115 0m-15 0H3m16.5 0H21m-1.5 0H12m-8.457 3.077l1.41-.513m14.095-5.13l1.41-.513M5.106 17.785l1.15-.964m11.49-9.642l1.149-.964M7.501 19.795l.75-1.3m7.5-12.99l.75-1.3m-6.063 16.658l.26-1.477m2.605-14.772l.26-1.477m0 17.726l-.26-1.477M10.698 4.614l-.26-1.477M16.5 19.794l-.75-1.299M7.5 4.205L12 12m6.894 5.785l-1.149-.964M6.256 7.178l-1.15-.964m12.04 12.571l-1.41-.513M4.954 9.435l-1.41-.514M12.002 12l-3.75 6.495" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
       </svg>
     ),
-    title: 'איפה נכון להתחיל',
-    desc: 'לא כל בעיה שווה לטפל בה עכשיו. אחרי האבחון יש לך תמונה ברורה של מה לשנות קודם, כדי שכל שלב אחריו יהיה קל יותר.',
+    title: 'גבייה ותזכורות תשלום',
+    desc: 'כמה זמן יוצא על חשבוניות, תזכורות ומעקב אחרי תשלומים.',
+  },
+  {
+    icon: (
+      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
+      </svg>
+    ),
+    title: 'פיזור ניהולי',
+    desc: 'איפה הפניות והמשימות מנוהלות היום: וואטסאפ, ראש, טבלאות, מערכות לא מחוברות — או מערכת אחת מסודרת.',
   },
 ];
 
 const IDENTIFICATION_ITEMS = [
-  'כשאת עונה לפגישה, את גם מנהלת את הלוח שנה, מאשרת תשלום, מזכירה ללקוחה ומוצאת את הקובץ שנשלח לפני שלושה שבועות.',
-  'יש לך מערכת לניהול לקוחות, אבל את עדיין מנהלת הכול מהראש.',
-  'כשאת חולה, בחופשה, או פשוט עייפה, העסק עוצר.',
-  'את יודעת שצריך לעשות "משהו" עם התהליכים, אבל לא ברור מאיפה מתחילים.',
-  'העסק שלך מרגיש מלא, אבל לא ברור למה הוא עדיין כל כך עמוס.',
+  'הפולואפ קורה רק אם את זוכרת.',
+  'הוואטסאפ הוא עדיין מערכת הניהול האמיתית שלך.',
+  'תיאומים, תזכורות וחשבוניות לוקחים לך שעות בשבוע.',
+  'כשאת לא זמינה, דברים פשוט מחכים.',
+  'את יודעת שצריך סדר, אבל לא יודעת מאיפה להתחיל.',
 ];
 
 const PROCESS_STEPS = [
   {
     num: '01',
-    title: '6 שאלות על מה שמכביד',
-    desc: 'מסך נקי, שאלה אחת בכל פעם. כל שאלה נוגעת בנקודה אמיתית שאת מרגישה ביום-יום. לוקח פחות מ-3 דקות.',
+    title: '10 שאלות, פחות מ-4 דקות',
+    desc: 'מסך נקי, שאלה אחת בכל פעם. שאלות כמותיות — פניות, זמן, שווי שעה — שמאפשרות חישוב אמיתי.',
   },
   {
     num: '02',
-    title: 'דוח קצר ומותאם',
-    desc: 'מיד אחרי — דוח שמזהה איפה העסק נשען עלייך הכי חזק, מה זה עולה לך, ומה כדאי לסדר קודם.',
+    title: 'הערכה ראשונית עם פירוט',
+    desc: 'מיד אחרי — עלות שנתית מוערכת, מחולקת לשלושה רכיבים, עם ההנחה שמאחורי כל מספר.',
   },
   {
     num: '03',
-    title: 'שיחת מיפוי קצרה (אם רוצה)',
-    desc: 'אם תרצי, נעשה שיחה של 20-30 דקות ונבין מה יוריד ממך את העומס הכי הרבה, עם הכי מעט שינויים.',
+    title: 'צעד ראשון מוגדר + שיחה',
+    desc: 'אם תרצי, נדבר על מה לסדר ראשון — ספציפי לסיטואציה שלך, בלי לחץ ובלי מחויבות.',
   },
+];
+
+const DELIVERABLES = [
+  'הערכת עלות שנתית לפי תחומים, עם ההנחה שמאחורי כל מספר.',
+  'פוטנציאל התייעלות ראשוני לפי התחום שהכי עמוס.',
+  'תחום אחד שכדאי לסדר ראשון, עם הסבר למה.',
+  'צעד ספציפי ומוגדר — לא עצות כלליות.',
 ];
 
 const TESTIMONIALS = [
   {
-    headline: 'בנתה אוטומציה לקמפיין ובדקה עד שהכל עבד בדיוק',
-    text: 'הדר עשתה באופן מאוד מקצועי את האוטומציה לקמפיין שלנו. הרגשנו שאכפת לה, שהיא רוצה שהכל יעבוד כמו שצריך. היא לא חסכה, בדקה הלוך חזור, עד שהכל היה בדיוק כמו שצריך. ממליצה בחום.',
-    name: 'איילה עיצובים',
-    role: '',
+    headline: 'הפכה טיפול בלידים לתהליך מסודר שחוסך זמן',
+    text: 'פניתי להדר כי לא היו לי מספיק לידים, והטיפול בכל לקוח לקח המון זמן. ביחד בנינו תהליך עבודה חדש. הדר האירה דברים שלא שמתי אליהם לב, ובנתה לי אוטומציות שהקלו עליי את תהליך העבודה.',
+    name: 'לאה סוליטר',
+    role: 'אדריכלות ועיצוב פנים',
   },
   {
     headline: 'חיברה קמפיין פייסבוק, דיוור ווואטסאפ לתהליך אחד שעובד',
@@ -115,10 +132,10 @@ const TESTIMONIALS = [
     role: 'משרד הרווחה · עובדת סוציאלית מומחית בכירה · מפקחת אומנה ארצית',
   },
   {
-    headline: 'הפכה טיפול בלידים לתהליך מסודר שחוסך זמן',
-    text: 'פניתי להדר כי לא היו לי מספיק לידים, והטיפול בכל לקוח לקח המון זמן. ביחד בנינו תהליך עבודה חדש. הדר האירה דברים שלא שמתי אליהם לב, ובנתה לי אוטומציות שהקלו עליי את תהליך העבודה.',
-    name: 'לאה סוליטר',
-    role: 'אדריכלות ועיצוב פנים',
+    headline: 'בנתה אוטומציה לקמפיין ובדקה עד שהכל עבד בדיוק',
+    text: 'הדר עשתה באופן מאוד מקצועי את האוטומציה לקמפיין שלנו. הרגשנו שאכפת לה, שהיא רוצה שהכל יעבוד כמו שצריך. היא לא חסכה, בדקה הלוך חזור, עד שהכל היה בדיוק כמו שצריך. ממליצה בחום.',
+    name: 'איילה עיצובים',
+    role: '',
   },
   {
     headline: 'הפכה את עולמנו לאוטומטי ופחות סיזיפי',
@@ -128,21 +145,14 @@ const TESTIMONIALS = [
   },
 ];
 
-const HERO_VIDEO_URL =
-  'https://res.cloudinary.com/wecare-img/video/upload/v1778065967/WhatsApp_Video_2026-05-06_at_14.10.10_yin6bv.mp4';
-const HERO_VIDEO_POSTER_URL =
-  'https://res.cloudinary.com/wecare-img/video/upload/so_1/v1778065967/WhatsApp_Video_2026-05-06_at_14.10.10_yin6bv.jpg';
 const WHATSAPP_URL = 'https://wa.me/972504343547';
-const CAL_BOOKING_URL = 'https://cal.com/הדר-גואטה-0oei5m/פגישת-הטמעה';
 
 export default function HomePage() {
-  // Track page view on mount (best-effort, fire-and-forget)
   useEffect(() => {
     trackEvent('page_view');
   }, []);
 
   const goToQuiz = useCallback(async (ctaId: string) => {
-    // keepalive: POST survives full-page navigation to /quiz
     await trackEvent('cta_click', { ctaId, keepalive: true });
     window.location.href = getQuizUrl();
   }, []);
@@ -152,7 +162,6 @@ export default function HomePage() {
       {/* ═══════════ NAVBAR ═══════════ */}
       <header className="fixed top-0 right-0 left-0 z-50 h-16 flex items-center px-5 md:px-8 border-b border-white/[0.06] bg-[#0c1220]/80 backdrop-blur-md">
         <div className="max-w-6xl mx-auto w-full flex items-center justify-between">
-          {/* Logo / Brand */}
           <a href="/" className="flex items-center gap-2.5 group" aria-label="דף הבית">
             <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center shrink-0">
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -164,10 +173,9 @@ export default function HomePage() {
             </span>
           </a>
 
-          {/* Nav links — desktop */}
           <nav className="hidden md:flex items-center gap-6 text-sm text-white/50" aria-label="ניווט ראשי">
             <button
-              onClick={() => document.getElementById('process')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
               className="hover:text-white/80 transition-colors"
             >
               איך זה עובד?
@@ -198,25 +206,24 @@ export default function HomePage() {
             </button>
           </nav>
 
-          {/* CTA */}
           <button
             onClick={() => goToQuiz('navbar_cta')}
             className="min-h-[38px] px-5 rounded-lg bg-teal-500/15 border border-teal-500/30 text-teal-300 text-sm font-medium transition-all duration-200 hover:bg-teal-500/25 hover:border-teal-400/50 active:scale-[0.97]"
           >
-            התחילי אבחון חינם
+            בואי נראה את המספרים
           </button>
         </div>
       </header>
-      {/* Spacer so content doesn't hide under fixed navbar */}
       <div className="h-16" aria-hidden />
 
       {/*
-        סקריפט סרטון לשימוש בהקלטה
-        בעיה: אם את בעלת עסק שמרגישה שהכל עובד רק כשאת בסביבה, זה לא בראש שלך. הלקוחות מגיעים, המשימות קורות, הצוות מתפקד חלקית, אבל בסוף כל דבר חשוב חוזר אלייך.
-        העמקת הבעיה: המחיר הוא לא רק עומס. המחיר הוא החלטות שנדחות, עובדים שמחכים, לקוחות שמקבלים תשובה מאוחר, וימים שלמים שנעלמים על דברים שכבר היית אמורה לא לגעת בהם.
-        פתרון: האבחון מזהה את הדפוס הניהולי שמחזיק את העסק במקום. הוא מראה איפה צריך להפוך החלטות, משימות וידע למנגנון שעובד גם כשאת לא פנויה.
-        הוכחה חברתית: בעלות עסק שעברו את האבחון גילו שהבעיה לא הייתה חוסר משמעת או חוסר זמן. הבעיה הייתה שהעסק נבנה סביבן, ולא סביב תהליך ברור.
+        סקריפט סרטון — מחשבון "איפה הכסף?"
+        בעיה: הלקוחות כותבים, את עונה. צריך לתאם, להזכיר, לגבות, לשלוח הצעות ולחזור למתעניינות. הכול קורה, אבל יותר מדי ממנו עדיין עובר דרכך.
+        העמקת הבעיה: יש לזה מחיר. פשוט לא תמיד רואים אותו עד סוף החודש.
+        פתרון: המחשבון "איפה הכסף?" בודק כמה זמן וכסף הולכים על הניהול הידני, ואיפה הכי נכון להתחיל לעשות סדר.
+        הוכחה חברתית: בעלות עסק שעשו את המחשבון קיבלו עלות שנתית מוערכת, פירוט לפי שלושה תחומים, והמלצה ספציפית לצעד ראשון.
       */}
+
       {/* ═══════════ HERO ═══════════ */}
       <section className="relative min-h-[92vh] flex items-center justify-center px-5 md:px-8">
         {/* BG effects */}
@@ -241,51 +248,40 @@ export default function HomePage() {
           </FadeIn>
 
           <FadeIn delay={120}>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.15] tracking-tight mb-6 max-w-[22ch] mx-auto">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.15] tracking-tight mb-6 max-w-[36ch] mx-auto">
               <span className="text-transparent bg-clip-text bg-gradient-to-l from-teal-300 via-teal-400 to-emerald-400">
-                אם כל לקוח, משימה ותזכורת עוברים דרכך, העסק מנוהל סביבך. וזו בדיוק הבעיה.
+                את עובדת. העסק זז. אז איפה הכסף?
               </span>
             </h1>
           </FadeIn>
 
           <FadeIn delay={240}>
-            <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto leading-relaxed mb-6">
-              זה לא אומר שאת הבעיה. זה אומר שהעסק גדל בלי מבנה שמחזיק אותו.
+            <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto leading-relaxed mb-4">
+              הלקוחות כותבים, את עונה.<br />
+              צריך לתאם, להזכיר, לגבות, לשלוח הצעות ולחזור למתעניינות.<br />
+              הכול קורה, אבל יותר מדי ממנו עדיין עובר דרכך.
             </p>
-            <p className="text-base md:text-lg text-white/60 max-w-xl mx-auto leading-relaxed mb-8">
-              שאלון קצר יזהה מה מחזיר הכול אלייך, ומאיפה הכי הגיוני להתחיל.
+            <p className="text-base text-white/50 max-w-xl mx-auto leading-relaxed mb-4">
+              יש לזה מחיר. פשוט לא תמיד רואים אותו עד סוף החודש.
+            </p>
+            <p className="text-base md:text-lg text-white/65 max-w-xl mx-auto leading-relaxed mb-8">
+              המחשבון &ldquo;איפה הכסף?&rdquo; בודק כמה זמן וכסף הולכים על הניהול הידני הזה, ואיפה הכי נכון להתחיל לעשות סדר.
             </p>
           </FadeIn>
 
           <FadeIn delay={320}>
-            <div className="mx-auto mb-10 w-full max-w-2xl overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-[0_24px_80px_-32px_rgba(20,184,166,0.55)] backdrop-blur-sm">
-              <video
-                className="block w-full"
-                src={HERO_VIDEO_URL}
-                poster={HERO_VIDEO_POSTER_URL}
-                autoPlay
-                muted
-                loop
-                playsInline
-                controls
-                preload="auto"
-                aria-label="סרטון הסבר על האבחון התפעולי"
-              />
-            </div>
+            <AnimatedCounter />
           </FadeIn>
 
           <FadeIn delay={360}>
-            <div className="flex flex-col items-center gap-5">
-              {/* Primary CTA — dominant gradient pill with shine + arrow */}
+            <div className="flex flex-col items-center gap-4">
               <button
                 onClick={() => goToQuiz('hero_primary')}
                 className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-2.5 min-h-[60px] px-12 rounded-2xl bg-gradient-to-l from-teal-500 via-teal-500 to-emerald-500 text-white text-lg font-bold tracking-tight shadow-[0_10px_40px_-12px_rgba(20,184,166,0.55)] transition-all duration-300 hover:shadow-[0_18px_60px_-12px_rgba(20,184,166,0.7)] hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c1220] overflow-hidden"
               >
-                {/* shine sweep */}
                 <span aria-hidden className="absolute inset-y-0 -right-1/3 w-1/3 bg-gradient-to-l from-transparent via-white/30 to-transparent skew-x-[-18deg] translate-x-0 group-hover:translate-x-[420%] transition-transform duration-[1100ms] ease-out" />
-                {/* outer glow on hover */}
                 <span aria-hidden className="absolute inset-0 rounded-2xl bg-gradient-to-l from-teal-400 to-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-2xl -z-10" />
-                <span className="relative z-10">התחילי בדיקה חינם — 6 שאלות בלבד</span>
+                <span className="relative z-10">בואי נראה את המספרים שלך</span>
                 <svg
                   className="relative z-10 w-5 h-5 transition-transform duration-300 group-hover:-translate-x-1"
                   fill="none"
@@ -298,48 +294,14 @@ export default function HomePage() {
                 </svg>
               </button>
 
-              <p className="text-sm text-white/35">6 שאלות. חינם לחלוטין. בלי התחייבות.</p>
+              <p className="text-sm text-white/35">10 שאלות קצרות. הערכה ראשונית ושמרנית. לא צריך נתונים מדויקים.</p>
 
-              {/* Secondary actions row — refined pills with iconography */}
-              <div className="flex flex-wrap items-center justify-center gap-2.5">
-                <a
-                  href={WHATSAPP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="שליחת הודעת וואטסאפ להדר אוטומציות"
-                  className="group inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-xl border border-emerald-400/30 bg-emerald-500/[0.08] text-emerald-200 text-sm font-semibold transition-all duration-200 hover:bg-emerald-500/[0.16] hover:border-emerald-300/60 hover:text-white hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c1220]"
-                >
-                  <svg className="w-4 h-4 text-emerald-300 group-hover:text-emerald-200 transition-colors" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.247-.694.247-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                  </svg>
-                  <span>יש שאלה? שלחי הודעה</span>
-                </a>
-
-                <a
-                  href={CAL_BOOKING_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="קביעת פגישת הטמעה עם הדר אוטומציות"
-                  className="group inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-xl border border-white/12 bg-white/[0.025] text-white/75 text-sm font-semibold transition-all duration-200 hover:bg-white/[0.06] hover:border-teal-400/40 hover:text-white hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c1220]"
-                >
-                  <svg className="w-4 h-4 text-white/55 group-hover:text-teal-300 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                  </svg>
-                  <span>לקביעת פגישה</span>
-                </a>
-
-                <button
-                  onClick={() => {
-                    document.getElementById('process')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="group inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-xl border border-white/12 bg-white/[0.025] text-white/75 text-sm font-semibold transition-all duration-200 hover:bg-white/[0.06] hover:border-white/25 hover:text-white hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c1220]"
-                >
-                  <span>איך זה עובד?</span>
-                  <svg className="w-4 h-4 text-white/45 group-hover:text-white/80 transition-all duration-300 group-hover:translate-y-[2px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                  </svg>
-                </button>
-              </div>
+              <button
+                onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+                className="text-sm text-white/40 hover:text-teal-300/80 transition-colors underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300/50 focus-visible:ring-offset-[#0c1220]"
+              >
+                מה המחשבון בודק?
+              </button>
             </div>
           </FadeIn>
 
@@ -350,14 +312,14 @@ export default function HomePage() {
                   <circle cx="12" cy="13" r="8" strokeLinecap="round" strokeLinejoin="round" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4l2.5 1.5M9 2h6M12 5V2" />
                 </svg>
-                6 שאלות
+                10 שאלות
               </span>
               <span aria-hidden className="w-1 h-1 rounded-full bg-white/15" />
               <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.025] backdrop-blur-sm px-3.5 py-1.5 text-xs font-medium text-white/55">
                 <svg className="w-3.5 h-3.5 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                 </svg>
-                דוח קצר מותאם
+                הערכה ראשונית
               </span>
               <span aria-hidden className="w-1 h-1 rounded-full bg-white/15" />
               <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.025] backdrop-blur-sm px-3.5 py-1.5 text-xs font-medium text-white/55">
@@ -370,7 +332,6 @@ export default function HomePage() {
           </FadeIn>
         </div>
 
-        {/* Scroll indicator */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/20 animate-bounce">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
@@ -391,7 +352,7 @@ export default function HomePage() {
                   ניסיון מהשטח, לא תיאוריה
                 </p>
                 <p className="text-sm md:text-base font-semibold text-white/82 leading-relaxed">
-                  בניתי תהליכים, נהלי עבודה ואוטומציות לעסקים ולארגונים — מהאבחון ועד מערכת שעובדת בפועל.
+                  בניתי תהליכים, נהלי עבודה ואוטומציות לעסקים ולארגונים — מהמיפוי הראשוני ועד מערכת שעובדת בפועל.
                 </p>
               </div>
 
@@ -411,7 +372,7 @@ export default function HomePage() {
       <section className="py-20 md:py-28 px-5 md:px-8">
         <div className="max-w-3xl mx-auto">
           <FadeIn>
-            <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-10">זה את, אם...</p>
+            <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-10">זה מדבר אלייך אם...</p>
           </FadeIn>
           <div className="space-y-3">
             {IDENTIFICATION_ITEMS.map((item, i) => (
@@ -429,77 +390,48 @@ export default function HomePage() {
                 onClick={() => goToQuiz('identification_cta')}
                 className="group inline-flex items-center gap-2.5 min-h-[52px] px-9 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 font-semibold transition-all duration-200 hover:bg-teal-500/25 hover:border-teal-400/50 active:scale-[0.98]"
               >
-                מה בדיוק מחזיר הכול אלייך?
+                בואי נראה את המספרים שלך
                 <svg className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
                 </svg>
               </button>
-              <p className="text-white/35 text-sm mt-3">שאלון, לא טופס. 5 דקות. אין צורך להשאיר פרטים לפני שתתחילי.</p>
+              <p className="text-white/35 text-sm mt-3">מחשבון, לא טופס. פחות מ-4 דקות. לא צריך להשאיר פרטים לפני שמתחילים.</p>
             </div>
           </FadeIn>
         </div>
       </section>
 
-      {/* ═══════════ WHY THIS HAPPENS ═══════════ */}
+      {/* ═══════════ COST ═══════════ */}
       <section className="py-20 md:py-24 px-5 md:px-8 bg-[#111827]">
         <div className="max-w-2xl mx-auto text-center">
           <FadeIn>
+            <p className="text-teal-400 text-sm font-medium tracking-wider mb-4">מה המחיר של ניהול ידני?</p>
             <h2 className="text-2xl md:text-3xl font-bold mb-8 leading-tight">
-              בשלב מסוים, כל עסק מגיע לנקודה הזו.
+              כל תהליך ידני עולה זמן. זמן עולה כסף.
             </h2>
             <div className="space-y-4 text-white/60 text-base md:text-lg leading-relaxed">
-              <p>כשמתחילים, הכול עובד כי הכול קטן.</p>
-              <p>ברגע שהעסק גדל, מה שעבד אז לא בהכרח מחזיק עכשיו.</p>
-              <p className="text-white/80 font-medium">זה לא אומר שמשהו השתבש. זה אומר שהעסק הגיע למקום שדורש מבנה אחר.</p>
+              <p>הפולואפ שלא נשלח בזמן, הגבייה שנדחת, התיאומים שחוזרים אלייך.</p>
+              <p>כל אחד מהם נראה קטן. ביחד הם מצטברים לשעות בשבוע.</p>
+              <p className="text-white/80 font-medium">הבעיה היא לא שמשהו לא עובד. הבעיה היא שלא רואים כמה הניהול הידני הזה עולה עד שמחשבים אותו.</p>
             </div>
           </FadeIn>
         </div>
       </section>
 
-      {/* ═══════════ SERVICES ═══════════ */}
-      <section className="py-24 md:py-32 px-5 md:px-8 bg-gradient-to-b from-[#0c1220] to-[#111827]">
-        <div className="max-w-6xl mx-auto">
-          <FadeIn>
-            <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-3">מה השאלון מזהה</p>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-5">
-              שאלון קצר. תמונה ברורה.
-            </h2>
-            <p className="text-white/55 text-center text-base md:text-lg max-w-2xl mx-auto leading-relaxed mb-16">
-              נזהה מה מחזיר הכול אלייך, איפה הזמן נוזל, ומאיפה הכי הגיוני להתחיל.
-            </p>
-          </FadeIn>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {SERVICES.map((s, i) => (
-              <FadeIn key={i} delay={i * 120}>
-                <div className="group relative p-8 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.05] hover:border-white/10 transition-all duration-300">
-                  <div className="w-14 h-14 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 mb-5 group-hover:scale-110 transition-transform duration-300">
-                    {s.icon}
-                  </div>
-                  <h3 className="text-xl font-bold mb-3">{s.title}</h3>
-                  <p className="text-white/55 leading-relaxed">{s.desc}</p>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════ PROCESS ═══════════ */}
-      <section id="process" className="py-24 md:py-32 px-5 md:px-8 bg-[#111827]">
+      {/* ═══════════ HOW IT WORKS ═══════════ */}
+      <section id="how-it-works" className="py-24 md:py-32 px-5 md:px-8 bg-[#0c1220]">
         <div className="max-w-4xl mx-auto">
           <FadeIn>
-            <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-3">איך זה עובד</p>
+            <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-3">המחשבון &ldquo;איפה הכסף?&rdquo;</p>
             <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-4">
-              מה קורה מרגע שלוחצים?
+              לא עצות כלליות. מספרים לפי הסיטואציה שלך.
             </h2>
             <p className="text-white/50 text-center text-base md:text-lg max-w-xl mx-auto leading-relaxed mb-16">
-              פשוט ולא מחייב. שלושה שלבים, מהלחיצה הראשונה ועד שיש לך תמונה ברורה.
+              10 שאלות קצרות. הערכה ראשונית ושמרנית שמראה איפה הכסף הולך ואיפה כדאי להתחיל.
             </p>
           </FadeIn>
 
           <div className="relative">
-            {/* Timeline line */}
             <div className="absolute top-0 bottom-0 right-[23px] md:right-[27px] w-px bg-gradient-to-b from-teal-500/40 via-teal-500/20 to-transparent" aria-hidden />
 
             <div className="space-y-10">
@@ -523,16 +455,108 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ═══════════ CALCULATOR AREAS ═══════════ */}
+      <section id="calculator-areas" className="py-24 md:py-32 px-5 md:px-8 bg-gradient-to-b from-[#111827] to-[#0c1220]">
+        <div className="max-w-6xl mx-auto">
+          <FadeIn>
+            <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-3">מה המחשבון בודק</p>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-5">
+              10 שאלות קצרות. 4 תחומים. הערכה ראשונית אחת.
+            </h2>
+            <p className="text-white/55 text-center text-base md:text-lg max-w-2xl mx-auto leading-relaxed mb-16">
+              לא שאלון שיווקי. כלי שמחשב עלות ניהול ידני לפי התשובות שלך, ומחזיר הערכה לפי תחומים.
+            </p>
+          </FadeIn>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {CALCULATOR_AREAS.map((s, i) => (
+              <FadeIn key={i} delay={i * 120}>
+                <div className="group relative p-8 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.05] hover:border-white/10 transition-all duration-300">
+                  <div className="w-14 h-14 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 mb-5 group-hover:scale-110 transition-transform duration-300">
+                    {s.icon}
+                  </div>
+                  <h3 className="text-xl font-bold mb-3">{s.title}</h3>
+                  <p className="text-white/55 leading-relaxed">{s.desc}</p>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+
+          <FadeIn delay={480}>
+            <div className="text-center mt-12">
+              <button
+                onClick={() => goToQuiz('calculator_areas_cta')}
+                className="group inline-flex items-center gap-2.5 min-h-[52px] px-9 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 font-semibold transition-all duration-200 hover:bg-teal-500/25 hover:border-teal-400/50 active:scale-[0.98]"
+              >
+                בואי נבדוק איפה זה קורה אצלך
+                <svg className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                </svg>
+              </button>
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* ═══════════ DELIVERABLES ═══════════ */}
+      <section className="py-20 md:py-24 px-5 md:px-8 bg-[#111827]">
+        <div className="max-w-3xl mx-auto">
+          <FadeIn>
+            <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-3">מה מקבלים בסוף</p>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-12 leading-tight">
+              ארבעה פריטים. לא סיכום. לא עצות.
+            </h2>
+          </FadeIn>
+          <div className="space-y-3">
+            {DELIVERABLES.map((item, i) => (
+              <FadeIn key={i} delay={i * 80}>
+                <div className="flex items-start gap-4 p-5 rounded-xl border border-teal-500/[0.12] bg-teal-500/[0.04]">
+                  <svg className="w-5 h-5 text-teal-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <p className="text-white/80 text-base leading-relaxed">{item}</p>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+          <FadeIn delay={360}>
+            <div className="text-center mt-10">
+              <button
+                onClick={() => goToQuiz('deliverables_cta')}
+                className="group inline-flex items-center gap-2.5 min-h-[52px] px-9 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 font-semibold transition-all duration-200 hover:bg-teal-500/25 hover:border-teal-400/50 active:scale-[0.98]"
+              >
+                בואי נבדוק איפה הכסף
+                <svg className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                </svg>
+              </button>
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* ═══════════ TRANSPARENCY ═══════════ */}
+      <section className="py-12 md:py-16 px-5 md:px-8 bg-[#0c1220]">
+        <div className="max-w-2xl mx-auto text-center">
+          <FadeIn>
+            <p className="text-teal-400 text-sm font-medium tracking-wider mb-4">איך מחושבת ההערכה?</p>
+            <p className="text-white/55 text-base md:text-lg leading-relaxed">
+              המחשבון מבוסס על התשובות שלך ועל הנחות שמרניות. זו הערכה ראשונית, לא דוח חשבונאי. המספרים מראים סדר גודל — לא הבטחה.
+            </p>
+          </FadeIn>
+        </div>
+      </section>
+
       {/* ═══════════ TESTIMONIALS ═══════════ */}
       <section id="testimonials" className="py-24 md:py-32 px-5 md:px-8 bg-gradient-to-b from-[#111827] to-[#0f1729]">
         <div className="max-w-6xl mx-auto">
           <FadeIn>
             <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-3">עדויות</p>
             <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-4">
-              לקוחות שמספרות מה באמת השתנה אצלן
+              כשמסדרים תהליך, הכסף חוזר להיות נראה
             </h2>
             <p className="text-white/55 text-center text-base md:text-lg max-w-3xl mx-auto mb-16 leading-relaxed">
-              לא הבטחות. לידים שנכנסו, מערכות שחוברו, קמפיינים שעבדו, נהלים שקוצרו ותהליכים שנבדקו עד הסוף.
+              לידים שנכנסו, מערכות שחוברו, נהלים שקוצרו, תהליכים שעובדים. לא הבטחות — תוצאות שקרו.
             </p>
           </FadeIn>
 
@@ -576,22 +600,38 @@ export default function HomePage() {
 
         <div className="relative z-10 max-w-2xl mx-auto">
           <FadeIn>
+            <p className="text-teal-400 text-sm font-medium tracking-wider mb-4">לפני שבונים מערכת, כדאי לראות מה הניהול הידני עולה</p>
             <h2 className="text-3xl md:text-5xl font-extrabold mb-6 leading-tight">
-              כדי לגדול, העסק צריך לעבוד גם{' '}
+              את עובדת. העסק זז.{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-l from-teal-300 to-emerald-400">
-                בלעדייך.
+                אז איפה הכסף?
               </span>
             </h2>
-            <p className="text-lg text-white/55 mb-10 max-w-lg mx-auto leading-relaxed">
-              זה אבחון קצר וחינמי. בסופו תדעי מה גוזל ממך זמן, איפה את נתקעת, ומה נכון לשנות קודם.
+            <p className="text-base text-white/55 mb-10 max-w-lg mx-auto leading-relaxed">
+              אם יותר מדי דברים עדיין עוברים דרכך, יש לזה מחיר שלא תמיד רואים עד סוף החודש.<br />
+              המחשבון יעזור לך לראות את המספרים ולקבל נקודת התחלה ברורה.
             </p>
             <button
               onClick={() => goToQuiz('footer_cta')}
               className="group relative min-h-[60px] px-12 rounded-xl bg-gradient-to-l from-teal-500 to-emerald-500 text-white text-lg font-bold transition-all duration-300 hover:shadow-[0_0_60px_-12px_rgba(20,184,166,0.6)] hover:scale-[1.03] active:scale-[0.98]"
             >
-              גלי מה תוקע את העסק שלך
+              בואי נראה את המספרים שלך
             </button>
-            <p className="text-sm text-white/30 mt-5">זה לא דורש רישום. התוצאה מגיעה למייל.</p>
+            <p className="text-sm text-white/30 mt-5">הערכה ראשונית ושמרנית. לא דוח חשבונאי. לא הבטחה לחיסכון.</p>
+            <div className="mt-8 pt-8 border-t border-white/[0.06]">
+              <p className="text-white/30 text-sm mb-3">יש שאלה לפני שמתחילים?</p>
+              <a
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-emerald-300/70 hover:text-emerald-300 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.247-.694.247-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                </svg>
+                שליחת הודעה בוואטסאפ
+              </a>
+            </div>
           </FadeIn>
         </div>
       </section>
@@ -599,9 +639,7 @@ export default function HomePage() {
       {/* ═══════════ FOOTER ═══════════ */}
       <footer className="border-t border-white/[0.06] py-10 px-5 md:px-8">
         <div className="max-w-6xl mx-auto flex flex-col gap-6">
-          {/* Top row */}
           <div className="flex flex-col md:flex-row items-start justify-between gap-6">
-            {/* Brand + contact block */}
             <div className="flex flex-col gap-1.5 text-sm text-white/45">
               <div className="flex items-center gap-2.5 mb-1">
                 <span className="w-6 h-6 rounded-md bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center shrink-0">
@@ -637,7 +675,6 @@ export default function HomePage() {
               <a href="/admin/login" className="hover:text-white/55 transition-colors">כניסת מנהל</a>
             </nav>
           </div>
-          {/* Bottom row */}
           <p className="text-xs text-white/20 text-center md:text-right">
             &copy; {new Date().getFullYear()} הדר אוטומציות, תורג&apos;מן גואטה הדר מזל. כל הזכויות שמורות.
           </p>
