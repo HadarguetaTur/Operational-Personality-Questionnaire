@@ -162,14 +162,9 @@ export default function HomePage() {
       {/* ═══════════ NAVBAR ═══════════ */}
       <header className="fixed top-0 right-0 left-0 z-50 h-16 flex items-center px-5 md:px-8 border-b border-white/[0.06] bg-[#0c1220]/80 backdrop-blur-md">
         <div className="max-w-6xl mx-auto w-full flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2.5 group" aria-label="דף הבית">
-            <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center shrink-0">
-              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3" />
-              </svg>
-            </span>
-            <span className="text-sm font-semibold text-white/80 group-hover:text-white transition-colors">
-              Architecture of Scale
+          <a href="/" className="flex items-center group" aria-label="דף הבית">
+            <span className="text-[11px] font-bold tracking-[0.14em] text-white/80 group-hover:text-white transition-colors uppercase">
+              HADAR TURGEMAN
             </span>
           </a>
 
@@ -243,7 +238,7 @@ export default function HomePage() {
           <FadeIn>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-teal-300 mb-8 backdrop-blur-sm">
               <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
-              Architecture of Scale
+              איפה הכסף?
             </div>
           </FadeIn>
 
@@ -261,16 +256,19 @@ export default function HomePage() {
               צריך לתאם, להזכיר, לגבות, לשלוח הצעות ולחזור למתעניינות.<br />
               הכול קורה, אבל יותר מדי ממנו עדיין עובר דרכך.
             </p>
-            <p className="text-base text-white/50 max-w-xl mx-auto leading-relaxed mb-4">
+            <p className="text-base text-white/50 max-w-xl mx-auto leading-relaxed mb-8">
               יש לזה מחיר. פשוט לא תמיד רואים אותו עד סוף החודש.
-            </p>
-            <p className="text-base md:text-lg text-white/65 max-w-xl mx-auto leading-relaxed mb-8">
-              המחשבון &ldquo;איפה הכסף?&rdquo; בודק כמה זמן וכסף הולכים על הניהול הידני הזה, ואיפה הכי נכון להתחיל לעשות סדר.
             </p>
           </FadeIn>
 
           <FadeIn delay={320}>
             <AnimatedCounter />
+          </FadeIn>
+
+          <FadeIn delay={340}>
+            <p className="text-base md:text-lg text-white/65 max-w-xl mx-auto leading-relaxed text-center mb-2">
+              המחשבון &ldquo;איפה הכסף?&rdquo; בודק כמה זמן וכסף הולכים על הניהול הידני הזה, ואיפה הכי נכון להתחיל לעשות סדר.
+            </p>
           </FadeIn>
 
           <FadeIn delay={360}>
@@ -642,12 +640,9 @@ export default function HomePage() {
           <div className="flex flex-col md:flex-row items-start justify-between gap-6">
             <div className="flex flex-col gap-1.5 text-sm text-white/45">
               <div className="flex items-center gap-2.5 mb-1">
-                <span className="w-6 h-6 rounded-md bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center shrink-0">
-                  <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3" />
-                  </svg>
+                <span className="text-[11px] font-bold tracking-[0.14em] text-white/70 uppercase">
+                  HADAR TURGEMAN
                 </span>
-                <span className="font-semibold text-white/70">הדר אוטומציות, תורג&apos;מן גואטה הדר מזל</span>
               </div>
               <span>
                 מייל:{' '}

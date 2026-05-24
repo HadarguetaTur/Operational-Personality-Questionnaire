@@ -7,11 +7,11 @@ const ogTitle = 'אבחון ניהולי – Architecture of Scale';
 const ogDescription =
   'מיפוי דפוס הניהול שלך ב-5 דקות. דוח מותאם אישית עם תמונת מצב, חוזקות וסיכוני צמיחה.';
 const ogImage =
-  'https://res.cloudinary.com/wecare-img/image/upload/w_1200,h_630,c_fill,q_auto,f_jpg/v1778154341/%D7%90%D7%AA%D7%A8_tbpsjd.jpg';
+  'https://res.cloudinary.com/wecare-img/image/upload/v1779653243/ChatGPT_Image_May_24_2026_10_54_20_PM_q9pb1p.png';
 
 export const metadata: Metadata = {
   metadataBase: getSiteUrl(),
-  title: 'מערכת תפעולית - ארכיטקטורת סקייל',
+  title: 'Hadar Turgeman',
   description: 'מערכת ניהול משפכים, דיוור מותאם אישית ואבחון ניהולי',
   openGraph: {
     type: 'website',
