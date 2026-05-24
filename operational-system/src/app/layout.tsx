@@ -3,11 +3,11 @@ import Script from 'next/script';
 import './globals.css';
 import { getSiteUrl } from '@/lib/site';
 
-const ogTitle = 'אבחון ניהולי – Architecture of Scale';
+const ogTitle = 'איפה הכסף? – הדר תורג׳מן';
 const ogDescription =
-  'מיפוי דפוס הניהול שלך ב-5 דקות. דוח מותאם אישית עם תמונת מצב, חוזקות וסיכוני צמיחה.';
+  'המחשבון שבודק כמה זמן וכסף הולכים על הניהול הידני של העסק שלך — ואיפה הכי נכון להתחיל לעשות סדר.';
 const ogImage =
-  'https://res.cloudinary.com/wecare-img/image/upload/v1779653243/ChatGPT_Image_May_24_2026_10_54_20_PM_q9pb1p.png';
+  'https://res.cloudinary.com/wecare-img/image/upload/w_1200,h_630,c_fill,q_auto,f_jpg/v1779653243/ChatGPT_Image_May_24_2026_10_54_20_PM_q9pb1p.png';
 
 export const metadata: Metadata = {
   metadataBase: getSiteUrl(),
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     title: ogTitle,
     description: ogDescription,
     locale: 'he_IL',
-    siteName: 'Architecture of Scale',
+    siteName: 'הדר תורג׳מן',
     url: '/',
     images: [
       {
