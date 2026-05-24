@@ -235,13 +235,6 @@ export default function HomePage() {
         </div>
 
         <div className="relative z-10 max-w-4xl mx-auto text-center">
-          <FadeIn>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-teal-300 mb-8 backdrop-blur-sm">
-              <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
-              איפה הכסף?
-            </div>
-          </FadeIn>
-
           <FadeIn delay={120}>
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.15] tracking-tight mb-6 max-w-[36ch] mx-auto">
               <span className="text-transparent bg-clip-text bg-gradient-to-l from-teal-300 via-teal-400 to-emerald-400">
