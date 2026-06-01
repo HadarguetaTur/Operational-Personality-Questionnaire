@@ -18,6 +18,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { createClient } from '@/lib/supabase/client';
 
 interface GuideStats {
   id: string;
@@ -102,34 +103,39 @@ export default function GuidesPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const ALLOWED = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/png', 'image/jpeg', 'image/webp'];
+    if (!ALLOWED.includes(file.type)) {
+      toast.error('סוג קובץ לא נתמך. מותרים: PDF, DOCX, PNG, JPG');
+      return;
+    }
+
     setUploading(true);
     setUploadedFileName('');
     setFileUrl('');
 
     try {
-      const form = new FormData();
-      form.append('file', file);
+      const supabase = createClient();
+      const timestamp = Date.now();
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100);
+      const storagePath = `${timestamp}-${safeName}`;
 
-      const res = await fetch('/api/admin/guides/upload', {
-        method: 'POST',
-        body: form,
-      });
+      const { error } = await supabase.storage
+        .from('guides')
+        .upload(storagePath, file, { contentType: file.type, upsert: false });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        toast.error(data.error ?? 'העלאה נכשלה');
+      if (error) {
+        toast.error(error.message ?? 'העלאה נכשלה');
         return;
       }
 
-      setFileUrl(data.url);
+      const { data: urlData } = supabase.storage.from('guides').getPublicUrl(storagePath);
+      setFileUrl(urlData.publicUrl);
       setUploadedFileName(file.name);
       toast.success('הקובץ הועלה בהצלחה');
     } catch {
       toast.error('שגיאה בהעלאת הקובץ');
     } finally {
       setUploading(false);
-      // Reset input so same file can be re-selected
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
