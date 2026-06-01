@@ -44,8 +44,19 @@ const securityHeaders = [
   },
 ];
 
+const WA_UTM = (campaign) =>
+  `/?utm_source=whatsapp&utm_medium=social&utm_campaign=${campaign}`;
+
 const nextConfig = {
   reactStrictMode: true,
+  async redirects() {
+    return [
+      { source: '/wa/gush-etzion',      destination: WA_UTM('gush-etzion'),      permanent: false },
+      { source: '/wa/drushim-tekoa',    destination: WA_UTM('drushim-tekoa'),    permanent: false },
+      { source: '/wa/mati-laasaskim',   destination: WA_UTM('mati-laasaskim'),   permanent: false },
+      { source: '/wa/lemesira-kfar-eldad', destination: WA_UTM('lemesira-kfar-eldad'), permanent: false },
+    ];
+  },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },
