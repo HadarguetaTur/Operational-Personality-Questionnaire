@@ -373,10 +373,10 @@ function LeadForm({ onSubmit, submitting, error }: LeadFormProps) {
     <div className="flex flex-col min-h-screen bg-[var(--qa-bg)] items-center justify-center px-6 md:px-8" dir="rtl">
       <div className="max-w-[480px] w-full text-right">
         <h2 className="text-[24px] md:text-[28px] font-bold mb-2 text-[var(--qa-text-primary)]">
-          לאן לשלוח לך את מפת התיקון?
+          מפת התיקון שלך מוכנה
         </h2>
         <p className="text-[14px] text-[var(--qa-text-muted)] mb-8 leading-relaxed">
-          השאירי שם + וואטסאפ ומקבלת 3 פעולות ראשונות לפי הסיטואציה שלך.
+          השאירי שם + וואטסאפ — מקבלת 3 פעולות קונקרטיות לפי הסיטואציה שלך, עכשיו.
         </p>
 
         <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">

@@ -69,7 +69,7 @@ function StatCard({ stat, active }: { stat: Stat; active: boolean }) {
   const count = useCountUp(stat.target, stat.duration, active);
 
   return (
-    <div className="group flex flex-col items-center text-center p-7 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.05] hover:border-white/10 transition-all duration-300">
+    <div className="group flex flex-col items-center text-center p-4 sm:p-6 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.05] hover:border-white/10 transition-all duration-300">
       <div className="mb-3">
         <span className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-l from-teal-300 via-teal-400 to-emerald-400 tabular-nums">
           {count}
@@ -85,13 +85,13 @@ function StatCard({ stat, active }: { stat: Stat; active: boolean }) {
 }
 
 export function AnimatedCounter() {
-  const { ref, inView } = useInView({ threshold: 0.2, triggerOnce: true });
+  const { ref, inView } = useInView({ threshold: 0.05, triggerOnce: true });
 
   return (
     <div
       ref={ref}
       dir="rtl"
-      className="mx-auto mb-10 w-full max-w-2xl shadow-[0_24px_80px_-32px_rgba(20,184,166,0.55)]"
+      className="mx-auto mt-8 w-full max-w-2xl shadow-[0_24px_80px_-32px_rgba(20,184,166,0.55)]"
     >
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {STATS.map((stat, i) => (

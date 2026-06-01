@@ -40,6 +40,12 @@ function FadeIn({ children, className = '', delay = 0 }: { children: React.React
   );
 }
 
+const ArrowRight = ({ className = 'w-4 h-4' }: { className?: string }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+  </svg>
+);
+
 const CALCULATOR_AREAS = [
   {
     icon: (
@@ -159,13 +165,19 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#0c1220] text-white overflow-hidden" dir="rtl">
+
       {/* ═══════════ NAVBAR ═══════════ */}
       <header className="fixed top-0 right-0 left-0 z-50 h-16 flex items-center px-5 md:px-8 border-b border-white/[0.06] bg-[#0c1220]/80 backdrop-blur-md">
         <div className="max-w-6xl mx-auto w-full flex items-center justify-between">
           <a href="/" className="flex items-center group" aria-label="דף הבית">
-            <span className="text-[11px] font-bold tracking-[0.14em] text-white/80 group-hover:text-white transition-colors uppercase">
-              HADAR TURGEMAN
-            </span>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[11px] font-bold tracking-[0.14em] text-white/80 group-hover:text-white transition-colors uppercase leading-none">
+                HADAR TURGEMAN
+              </span>
+              <span className="text-[9px] text-teal-400/70 tracking-wide leading-none">
+                אוטומציות לעסקים קטנים
+              </span>
+            </div>
           </a>
 
           <nav className="hidden md:flex items-center gap-6 text-sm text-white/50" aria-label="ניווט ראשי">
@@ -203,21 +215,13 @@ export default function HomePage() {
 
           <button
             onClick={() => goToQuiz('navbar_cta')}
-            className="min-h-[38px] px-5 rounded-lg bg-teal-500/15 border border-teal-500/30 text-teal-300 text-sm font-medium transition-all duration-200 hover:bg-teal-500/25 hover:border-teal-400/50 active:scale-[0.97]"
+            className="min-h-[38px] px-5 rounded-lg bg-teal-500 text-white text-sm font-semibold transition-all duration-200 hover:bg-teal-400 active:scale-[0.97]"
           >
             בואי נראה את המספרים
           </button>
         </div>
       </header>
       <div className="h-16" aria-hidden />
-
-      {/*
-        סקריפט סרטון — מחשבון "איפה הכסף?"
-        בעיה: הלקוחות כותבים, את עונה. צריך לתאם, להזכיר, לגבות, לשלוח הצעות ולחזור למתעניינות. הכול קורה, אבל יותר מדי ממנו עדיין עובר דרכך.
-        העמקת הבעיה: יש לזה מחיר. פשוט לא תמיד רואים אותו עד סוף החודש.
-        פתרון: המחשבון "איפה הכסף?" בודק כמה זמן וכסף הולכים על הניהול הידני, ואיפה הכי נכון להתחיל לעשות סדר.
-        הוכחה חברתית: בעלות עסק שעשו את המחשבון קיבלו עלות שנתית מוערכת, פירוט לפי שלושה תחומים, והמלצה ספציפית לצעד ראשון.
-      */}
 
       {/* ═══════════ HERO ═══════════ */}
       <section className="relative min-h-[92vh] flex items-center justify-center px-5 md:px-8">
@@ -243,83 +247,30 @@ export default function HomePage() {
             </h1>
           </FadeIn>
 
-          <FadeIn delay={240}>
-            <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto leading-relaxed mb-4">
-              הלקוחות כותבים, את עונה.<br />
-              צריך לתאם, להזכיר, לגבות, לשלוח הצעות ולחזור למתעניינות.<br />
-              הכול קורה, אבל יותר מדי ממנו עדיין עובר דרכך.
-            </p>
-            <p className="text-base text-white/50 max-w-xl mx-auto leading-relaxed mb-8">
-              יש לזה מחיר. פשוט לא תמיד רואים אותו עד סוף החודש.
+          <FadeIn delay={200}>
+            <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto leading-relaxed mb-10">
+              הכול קורה, אבל יותר מדי ממנו עדיין עובר דרכך. יש לזה מחיר.
             </p>
           </FadeIn>
 
-          <FadeIn delay={320}>
-            <AnimatedCounter />
-          </FadeIn>
-
-          <FadeIn delay={340}>
-            <p className="text-base md:text-lg text-white/65 max-w-xl mx-auto leading-relaxed text-center mb-2">
-              המחשבון &ldquo;איפה הכסף?&rdquo; בודק כמה זמן וכסף הולכים על הניהול הידני הזה, ואיפה הכי נכון להתחיל לעשות סדר.
-            </p>
-          </FadeIn>
-
-          <FadeIn delay={360}>
+          <FadeIn delay={300}>
             <div className="flex flex-col items-center gap-4">
               <button
                 onClick={() => goToQuiz('hero_primary')}
-                className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-2.5 min-h-[60px] px-12 rounded-2xl bg-gradient-to-l from-teal-500 via-teal-500 to-emerald-500 text-white text-lg font-bold tracking-tight shadow-[0_10px_40px_-12px_rgba(20,184,166,0.55)] transition-all duration-300 hover:shadow-[0_18px_60px_-12px_rgba(20,184,166,0.7)] hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c1220] overflow-hidden"
+                className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-2.5 min-h-[60px] px-10 rounded-2xl bg-gradient-to-l from-teal-500 via-teal-500 to-emerald-500 text-white text-lg font-bold tracking-tight shadow-[0_10px_40px_-12px_rgba(20,184,166,0.55)] transition-all duration-300 hover:shadow-[0_18px_60px_-12px_rgba(20,184,166,0.7)] hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c1220] overflow-hidden"
               >
                 <span aria-hidden className="absolute inset-y-0 -right-1/3 w-1/3 bg-gradient-to-l from-transparent via-white/30 to-transparent skew-x-[-18deg] translate-x-0 group-hover:translate-x-[420%] transition-transform duration-[1100ms] ease-out" />
                 <span aria-hidden className="absolute inset-0 rounded-2xl bg-gradient-to-l from-teal-400 to-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-2xl -z-10" />
-                <span className="relative z-10">בואי נראה את המספרים שלך</span>
-                <svg
-                  className="relative z-10 w-5 h-5 transition-transform duration-300 group-hover:-translate-x-1"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2.5}
-                  aria-hidden
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-                </svg>
+                <span className="relative z-10">בואי נראה כמה זה עולה לך (4 דקות)</span>
+                <ArrowRight className="relative z-10 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
               </button>
 
-              <p className="text-sm text-white/35">10 שאלות קצרות. הערכה ראשונית ושמרנית. לא צריך נתונים מדויקים.</p>
-
-              <button
-                onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-                className="text-sm text-white/40 hover:text-teal-300/80 transition-colors underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300/50 focus-visible:ring-offset-[#0c1220]"
-              >
-                מה המחשבון בודק?
-              </button>
+              <p className="text-sm text-white/35">10 שאלות · 4 דקות · חינם · בלי להשאיר אימייל לפני שרואים תוצאה</p>
             </div>
           </FadeIn>
 
-          <FadeIn delay={480}>
-            <div className="flex flex-wrap items-center justify-center gap-2 mt-10">
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.025] backdrop-blur-sm px-3.5 py-1.5 text-xs font-medium text-white/55">
-                <svg className="w-3.5 h-3.5 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-                  <circle cx="12" cy="13" r="8" strokeLinecap="round" strokeLinejoin="round" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4l2.5 1.5M9 2h6M12 5V2" />
-                </svg>
-                10 שאלות
-              </span>
-              <span aria-hidden className="w-1 h-1 rounded-full bg-white/15" />
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.025] backdrop-blur-sm px-3.5 py-1.5 text-xs font-medium text-white/55">
-                <svg className="w-3.5 h-3.5 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                </svg>
-                הערכה ראשונית
-              </span>
-              <span aria-hidden className="w-1 h-1 rounded-full bg-white/15" />
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.025] backdrop-blur-sm px-3.5 py-1.5 text-xs font-medium text-white/55">
-                <svg className="w-3.5 h-3.5 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
-                </svg>
-                חינם לחלוטין
-              </span>
-            </div>
+          <FadeIn delay={400}>
+            <AnimatedCounter />
           </FadeIn>
         </div>
 
@@ -330,31 +281,38 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ═══════════ SOCIAL PROOF BAR ═══════════ */}
-      <div className="relative px-5 md:px-8 mt-4 md:-mt-6 z-20" dir="rtl">
+      {/* ═══════════ SOCIAL PROOF STRIP ═══════════ */}
+      <div className="relative px-5 md:px-8 mt-10 md:mt-12 z-20" dir="rtl">
         <div className="max-w-4xl mx-auto">
-          <div className="relative overflow-hidden rounded-3xl border border-teal-300/[0.16] bg-[#0f1729]/85 px-5 py-5 md:px-8 md:py-6 shadow-[0_24px_80px_-42px_rgba(20,184,166,0.75)] backdrop-blur-xl">
-            <div className="absolute inset-y-0 right-0 w-1 bg-gradient-to-b from-teal-300 via-emerald-400 to-transparent" aria-hidden />
-            <div className="absolute -top-16 left-10 h-28 w-28 rounded-full bg-teal-400/10 blur-3xl" aria-hidden />
-
-            <div className="relative flex flex-col md:flex-row items-center justify-between gap-4 md:gap-8 text-center md:text-right">
-              <div>
-                <p className="text-[11px] font-bold tracking-[0.2em] text-teal-200/70 mb-2">
-                  ניסיון מהשטח, לא תיאוריה
-                </p>
-                <p className="text-sm md:text-base font-semibold text-white/82 leading-relaxed">
-                  בניתי תהליכים, נהלי עבודה ואוטומציות לעסקים ולארגונים — מהמיפוי הראשוני ועד מערכת שעובדת בפועל.
-                </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {[
+              {
+                headline: 'קיצרה זמני טיפול בתביעות ויצרה שיתוף פעולה בין משרדים',
+                name: 'רחל איגר לוין',
+                role: 'משרד הרווחה',
+              },
+              {
+                headline: 'חיברה קמפיין פייסבוק, דיוור ווואטסאפ לתהליך אחד שעובד',
+                name: 'נעמי',
+                role: 'מכון וולפסון',
+              },
+              {
+                headline: 'הפכה טיפול בלידים לתהליך מסודר שחוסך זמן',
+                name: 'לאה סוליטר',
+                role: 'אדריכלות ועיצוב פנים',
+              },
+            ].map((t, i) => (
+              <div
+                key={i}
+                className="relative overflow-hidden rounded-2xl border border-teal-300/[0.12] bg-[#0f1729]/80 px-5 py-4 backdrop-blur-xl shadow-[0_8px_32px_-12px_rgba(20,184,166,0.25)]"
+              >
+                <svg className="w-4 h-4 text-teal-400/50 mb-2" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+                </svg>
+                <p className="text-white/85 text-sm font-medium leading-relaxed mb-3">{t.headline}</p>
+                <p className="text-teal-400/70 text-xs">— {t.name} · {t.role}</p>
               </div>
-
-              <div className="flex flex-wrap items-center justify-center md:justify-end gap-x-3 gap-y-2 text-[12px] md:text-[13px] text-white/48 shrink-0">
-                <span>מכון וולפסון</span>
-                <span className="h-1 w-1 rounded-full bg-teal-300/45" aria-hidden />
-                <span>משרד הרווחה</span>
-                <span className="h-1 w-1 rounded-full bg-teal-300/45" aria-hidden />
-                <span>עצמאיות בעיצוב ושיווק</span>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
@@ -363,7 +321,7 @@ export default function HomePage() {
       <section className="py-20 md:py-28 px-5 md:px-8">
         <div className="max-w-3xl mx-auto">
           <FadeIn>
-            <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-10">זה מדבר אלייך אם...</p>
+            <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-10">אולי זה מוכר לך?</p>
           </FadeIn>
           <div className="space-y-3">
             {IDENTIFICATION_ITEMS.map((item, i) => (
@@ -382,9 +340,7 @@ export default function HomePage() {
                 className="group inline-flex items-center gap-2.5 min-h-[52px] px-9 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 font-semibold transition-all duration-200 hover:bg-teal-500/25 hover:border-teal-400/50 active:scale-[0.98]"
               >
                 בואי נראה את המספרים שלך
-                <svg className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-                </svg>
+                <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
               </button>
               <p className="text-white/35 text-sm mt-3">מחשבון, לא טופס. פחות מ-4 דקות. לא צריך להשאיר פרטים לפני שמתחילים.</p>
             </div>
@@ -392,20 +348,43 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ═══════════ COST ═══════════ */}
-      <section className="py-20 md:py-24 px-5 md:px-8 bg-[#111827]">
-        <div className="max-w-2xl mx-auto text-center">
+      {/* ═══════════ TESTIMONIALS ═══════════ */}
+      <section id="testimonials" className="py-24 md:py-32 px-5 md:px-8 bg-gradient-to-b from-[#111827] to-[#0f1729]">
+        <div className="max-w-6xl mx-auto">
           <FadeIn>
-            <p className="text-teal-400 text-sm font-medium tracking-wider mb-4">מה המחיר של ניהול ידני?</p>
-            <h2 className="text-2xl md:text-3xl font-bold mb-8 leading-tight">
-              כל תהליך ידני עולה זמן. זמן עולה כסף.
+            <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-3">עדויות</p>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-4">
+              מה קורה כשמסדרים את זה
             </h2>
-            <div className="space-y-4 text-white/60 text-base md:text-lg leading-relaxed">
-              <p>הפולואפ שלא נשלח בזמן, הגבייה שנדחת, התיאומים שחוזרים אלייך.</p>
-              <p>כל אחד מהם נראה קטן. ביחד הם מצטברים לשעות בשבוע.</p>
-              <p className="text-white/80 font-medium">הבעיה היא לא שמשהו לא עובד. הבעיה היא שלא רואים כמה הניהול הידני הזה עולה עד שמחשבים אותו.</p>
-            </div>
+            <p className="text-white/55 text-center text-base md:text-lg max-w-3xl mx-auto mb-16 leading-relaxed">
+              לידים שנכנסו, מערכות שחוברו, נהלים שקוצרו, תהליכים שעובדים. לא הבטחות — תוצאות שקרו.
+            </p>
           </FadeIn>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {TESTIMONIALS.map((t, i) => {
+              const isLastOdd = i === TESTIMONIALS.length - 1 && TESTIMONIALS.length % 2 !== 0;
+              return (
+                <FadeIn key={i} delay={i * 120} className={isLastOdd ? 'md:col-span-2' : ''}>
+                  <div className={`p-7 rounded-2xl border border-white/[0.06] bg-white/[0.02] h-full flex flex-col${isLastOdd ? ' max-w-xl mx-auto w-full' : ''}`}>
+                    <div className="flex gap-1 mb-3">
+                      {[...Array(5)].map((_, j) => (
+                        <svg key={j} className="w-4 h-4 text-teal-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
+                    </div>
+                    <p className="text-sm font-semibold text-teal-300 mb-3 leading-snug">{t.headline}</p>
+                    <p className="text-white/75 leading-relaxed flex-1 mb-5">&ldquo;{t.text}&rdquo;</p>
+                    <div className="border-t border-white/[0.06] pt-4">
+                      <p className="font-semibold text-sm">{t.name}</p>
+                      {t.role.trim() !== '' ? <p className="text-white/40 text-xs mt-1">{t.role}</p> : null}
+                    </div>
+                  </div>
+                </FadeIn>
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -480,9 +459,7 @@ export default function HomePage() {
                 className="group inline-flex items-center gap-2.5 min-h-[52px] px-9 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 font-semibold transition-all duration-200 hover:bg-teal-500/25 hover:border-teal-400/50 active:scale-[0.98]"
               >
                 בואי נבדוק איפה זה קורה אצלך
-                <svg className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-                </svg>
+                <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
               </button>
             </div>
           </FadeIn>
@@ -490,7 +467,7 @@ export default function HomePage() {
       </section>
 
       {/* ═══════════ DELIVERABLES ═══════════ */}
-      <section className="py-20 md:py-24 px-5 md:px-8 bg-[#111827]">
+      <section className="py-20 md:py-24 px-5 md:px-8 bg-[#0c1220]">
         <div className="max-w-3xl mx-auto">
           <FadeIn>
             <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-3">מה מקבלים בסוף</p>
@@ -517,69 +494,15 @@ export default function HomePage() {
                 className="group inline-flex items-center gap-2.5 min-h-[52px] px-9 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 font-semibold transition-all duration-200 hover:bg-teal-500/25 hover:border-teal-400/50 active:scale-[0.98]"
               >
                 בואי נבדוק איפה הכסף
-                <svg className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-                </svg>
+                <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
               </button>
             </div>
           </FadeIn>
         </div>
       </section>
 
-      {/* ═══════════ TRANSPARENCY ═══════════ */}
-      <section className="py-12 md:py-16 px-5 md:px-8 bg-[#0c1220]">
-        <div className="max-w-2xl mx-auto text-center">
-          <FadeIn>
-            <p className="text-teal-400 text-sm font-medium tracking-wider mb-4">איך מחושבת ההערכה?</p>
-            <p className="text-white/55 text-base md:text-lg leading-relaxed">
-              המחשבון מבוסס על התשובות שלך ועל הנחות שמרניות. זו הערכה ראשונית, לא דוח חשבונאי. המספרים מראים סדר גודל — לא הבטחה.
-            </p>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* ═══════════ TESTIMONIALS ═══════════ */}
-      <section id="testimonials" className="py-24 md:py-32 px-5 md:px-8 bg-gradient-to-b from-[#111827] to-[#0f1729]">
-        <div className="max-w-6xl mx-auto">
-          <FadeIn>
-            <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-3">עדויות</p>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-4">
-              כשמסדרים תהליך, הכסף חוזר להיות נראה
-            </h2>
-            <p className="text-white/55 text-center text-base md:text-lg max-w-3xl mx-auto mb-16 leading-relaxed">
-              לידים שנכנסו, מערכות שחוברו, נהלים שקוצרו, תהליכים שעובדים. לא הבטחות — תוצאות שקרו.
-            </p>
-          </FadeIn>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {TESTIMONIALS.map((t, i) => {
-              const isLastOdd = i === TESTIMONIALS.length - 1 && TESTIMONIALS.length % 2 !== 0;
-              return (
-              <FadeIn key={i} delay={i * 120} className={isLastOdd ? 'md:col-span-2' : ''}>
-                <div className={`p-7 rounded-2xl border border-white/[0.06] bg-white/[0.02] h-full flex flex-col${isLastOdd ? ' max-w-xl mx-auto w-full' : ''}`}>
-                  <div className="flex gap-1 mb-3">
-                    {[...Array(5)].map((_, j) => (
-                      <svg key={j} className="w-4 h-4 text-teal-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                    ))}
-                  </div>
-                  <p className="text-sm font-semibold text-teal-300 mb-3 leading-snug">{t.headline}</p>
-                  <p className="text-white/75 leading-relaxed flex-1 mb-5">&ldquo;{t.text}&rdquo;</p>
-                  <div className="border-t border-white/[0.06] pt-4">
-                    <p className="font-semibold text-sm">{t.name}</p>
-                    {t.role.trim() !== '' ? <p className="text-white/40 text-xs mt-1">{t.role}</p> : null}
-                  </div>
-                </div>
-              </FadeIn>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
       <WhyMeSection {...HOME_ABOUT_SECTION} photoSrc={PROFILE_PHOTO_CIRCLE_URL} sectionId="about" variant="home" />
-      <FAQAccordion faq={SHARED_FAQ} intro={HOME_FAQ_INTRO} sectionId="faq" variant="home" />
+      <FAQAccordion faq={SHARED_FAQ.slice(0, 4)} intro={HOME_FAQ_INTRO} sectionId="faq" variant="home" />
 
       <ContactSection variant="home" />
 
@@ -632,9 +555,12 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto flex flex-col gap-6">
           <div className="flex flex-col md:flex-row items-start justify-between gap-6">
             <div className="flex flex-col gap-1.5 text-sm text-white/45">
-              <div className="flex items-center gap-2.5 mb-1">
+              <div className="flex flex-col gap-0.5 mb-1">
                 <span className="text-[11px] font-bold tracking-[0.14em] text-white/70 uppercase">
                   HADAR TURGEMAN
+                </span>
+                <span className="text-[9px] text-teal-400/60 tracking-wide">
+                  אוטומציות לעסקים קטנים
                 </span>
               </div>
               <span>
