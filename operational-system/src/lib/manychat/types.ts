@@ -37,36 +37,27 @@ export interface SimpleAckResponse {
 }
 
 /**
- * ManyChat Dynamic Block response format.
- * Returned when USE_MANYCHAT_DYNAMIC_BLOCK = true.
+ * ManyChat Dynamic Block response format (v2).
+ * Returned inline in the External Request response body.
+ * ManyChat routes the messages to the subscriber's channel (WhatsApp/Messenger)
+ * automatically — bypasses the 24h Send API window restriction.
  *
- * REQUIRES MANUAL VALIDATION:
- * The exact format must be confirmed against ManyChat's External Request docs
- * before enabling. WhatsApp channel may differ from Messenger.
- * @see https://manychat.com/help/en/articles — search "External Request Dynamic Block"
+ * Spec: https://manychat.com/help — "External Request Dynamic Block"
  */
 export interface ManyChatDynamicBlockResponse {
   version: 'v2';
   content: {
-    type: 'text';
-    text: string;
-    buttons?: Array<{
-      type: 'url';
-      caption: string;
-      url: string;
-    }>;
+    messages: Array<
+      | { type: 'text'; text: string }
+      | { type: 'image'; url: string }
+    >;
+    actions?: Array<
+      | { action: 'set_field_value'; field_name: string; value: string }
+      | { action: 'add_tag'; tag_name: string }
+      | { action: 'remove_tag'; tag_name: string }
+    >;
+    quick_replies?: Array<{ type: 'node'; caption: string; target: string }>;
   };
-  actions?: Array<
-    | {
-        action: 'set_field_value';
-        field_name: string;
-        value: string;
-      }
-    | {
-        action: 'add_tag';
-        tag_name: string;
-      }
-  >;
 }
 
 /**

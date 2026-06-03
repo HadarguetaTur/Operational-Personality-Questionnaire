@@ -1,50 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
-import { waitUntil } from '@vercel/functions';
 import { verifyWebhookSecret } from '@/lib/manychat/verifyWebhookSecret';
 import { saveManyChatEvent, updateManyChatEventStatus } from '@/lib/events/saveManyChatEvent';
-import { sendManyChatText } from '@/lib/manychat/sendApi';
 import type {
   ManyChatWebhookPayload,
   SimpleAckResponse,
   ManyChatDynamicBlockResponse,
 } from '@/lib/manychat/types';
 
-/**
- * When false (Phase 0 default): return a simple JSON ACK.
- * When true: return a ManyChat Dynamic Block response that can set custom fields.
- *
- * REQUIRES MANUAL VALIDATION before setting to true —
- * the Dynamic Block format must be confirmed against ManyChat docs.
- * Switching also requires updating the ManyChat flow's "Map Response" config.
- */
-const USE_MANYCHAT_DYNAMIC_BLOCK = false;
+function ackResponse(leadUuid: string, eventType: string): NextResponse {
+  const body: SimpleAckResponse = {
+    ok: true,
+    event_type: eventType,
+    lead_uuid: leadUuid,
+    received_at: new Date().toISOString(),
+  };
+  return NextResponse.json(body);
+}
 
-function buildResponse(leadUuid: string, eventType: string): NextResponse {
-  if (!USE_MANYCHAT_DYNAMIC_BLOCK) {
-    const body: SimpleAckResponse = {
-      ok: true,
-      event_type: eventType,
-      lead_uuid: leadUuid,
-      received_at: new Date().toISOString(),
-    };
-    return NextResponse.json(body);
-  }
-
-  // REQUIRES MANUAL VALIDATION — not active in Phase 0.
+function dynamicBlockResponse(leadUuid: string, text: string): NextResponse {
+  // ManyChat Dynamic Block — returned inline in the External Request response.
+  // ManyChat sends the messages to the subscriber through their channel (WhatsApp)
+  // without any 24h Send API restriction, because it runs inside the flow context.
   const block: ManyChatDynamicBlockResponse = {
     version: 'v2',
     content: {
-      type: 'text',
-      text: `ACK: ${eventType}`,
+      messages: [{ type: 'text', text }],
+      actions: [{ action: 'set_field_value', field_name: 'lead_uuid', value: leadUuid }],
     },
-    actions: [
-      {
-        action: 'set_field_value',
-        field_name: 'lead_uuid',
-        value: leadUuid,
-      },
-    ],
   };
   return NextResponse.json(block);
 }
@@ -78,10 +61,6 @@ export async function POST(request: NextRequest) {
 
   // ── 4. Extract fields ─────────────────────────────────────────
   const eventType = payload.event_type.trim();
-  const subscriberId =
-    typeof payload.subscriber_id === 'string' && payload.subscriber_id.trim()
-      ? payload.subscriber_id.trim()
-      : undefined;
 
   // ── 5. Resolve lead_uuid — generate if absent or not a valid UUID ────────
   // When the ManyChat custom field is empty, ManyChat sends the literal template
@@ -91,66 +70,45 @@ export async function POST(request: NextRequest) {
   const rawUuid = typeof payload.lead_uuid === 'string' ? payload.lead_uuid.trim() : '';
   const leadUuid: string = UUID_REGEX.test(rawUuid) ? rawUuid : randomUUID();
 
-  const uuidSource = payload.lead_uuid ? 'received' : 'generated';
-  console.log('[ManyChat Webhook] Received:', { eventType, subscriberId, leadUuid, uuidSource });
+  const uuidSource = UUID_REGEX.test(rawUuid) ? 'received' : 'generated';
+  console.log('[ManyChat Webhook] Received:', { eventType, leadUuid, uuidSource });
 
   // ── 6. Persist raw event to Supabase ─────────────────────────
-  // TODO Phase 1: add idempotency key to prevent duplicate processing on retries.
   const { id: eventId, error: saveError } = await saveManyChatEvent({
     lead_uuid: leadUuid,
-    subscriber_id: subscriberId,
+    subscriber_id:
+      typeof payload.subscriber_id === 'string' && payload.subscriber_id.trim()
+        ? payload.subscriber_id.trim()
+        : undefined,
     event_type: eventType,
     payload,
   });
 
   if (saveError) {
-    // ACK anyway — do not return 5xx here, which would trigger ManyChat retries
-    // and flood the DB with duplicate events once connectivity is restored.
+    // ACK anyway — do not return 5xx, which would trigger ManyChat retry storms.
     console.error('[ManyChat Webhook] Supabase insert failed, ACKing anyway:', saveError);
   }
 
   // ── 7. Event-type routing ─────────────────────────────────────
   switch (eventType) {
     case 'test_connection':
-      // Simple roundtrip: proves ManyChat can reach Vercel. No side effects.
-      console.log('[ManyChat Webhook] test_connection — returning ACK, lead_uuid:', leadUuid);
-      break;
+      // Simple roundtrip: proves ManyChat → Vercel direction works.
+      console.log('[ManyChat Webhook] test_connection — lead_uuid:', leadUuid);
+      if (eventId) await updateManyChatEventStatus(eventId, 'done');
+      return ackResponse(leadUuid, eventType);
 
     case 'test_send_message':
-      // Fire-and-forget: send a WA message back via ManyChat Send API.
-      // waitUntil() keeps the Vercel function alive after the response is sent.
-      if (subscriberId && eventId) {
-        waitUntil(
-          sendManyChatText(
-            subscriberId,
-            `בדיקת חיבור: השרת קיבל את ההודעה ושלח תשובה דרך ManyChat ✓`,
-          )
-            .then(async (result) => {
-              if (!result.success) {
-                console.error('[ManyChat Webhook] sendManyChatText failed:', result.error);
-                await updateManyChatEventStatus(eventId, 'error', result.error);
-              } else {
-                console.log('[ManyChat Webhook] sendManyChatText succeeded for subscriber:', subscriberId);
-                await updateManyChatEventStatus(eventId, 'done');
-              }
-            })
-            .catch(async (err: unknown) => {
-              const msg = err instanceof Error ? err.message : String(err);
-              console.error('[ManyChat Webhook] sendManyChatText threw unexpectedly:', msg);
-              await updateManyChatEventStatus(eventId, 'error', msg);
-            }),
-        );
-      } else {
-        console.warn('[ManyChat Webhook] test_send_message: no subscriber_id in payload — skipping send');
-      }
-      break;
+      // Returns a Dynamic Block response — ManyChat delivers the message to the
+      // subscriber through their channel (WhatsApp) inside the flow context.
+      // This bypasses the 24h Send API restriction that applies to push messages.
+      console.log('[ManyChat Webhook] test_send_message — returning Dynamic Block');
+      if (eventId) await updateManyChatEventStatus(eventId, 'done');
+      return dynamicBlockResponse(leadUuid, 'בדיקת חיבור: השרת קיבל את ההודעה ושלח תשובה דרך ManyChat ✓');
 
     default:
       // Unknown event types are saved (step 6) and ACKed without side effects.
-      // In Phase 1, a processor will pick these up from manychat_events.
+      // Phase 1 processor will pick these up from manychat_events.
       console.log('[ManyChat Webhook] Unknown event_type, saved and ACKed:', eventType);
+      return ackResponse(leadUuid, eventType);
   }
-
-  // ── 8. Respond ────────────────────────────────────────────────
-  return buildResponse(leadUuid, eventType);
 }
