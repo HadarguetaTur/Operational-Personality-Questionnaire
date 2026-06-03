@@ -1,7 +1,7 @@
 import { getSystemPrompt } from './prompts/salesAgentSystemPrompt';
 import type { ConversationMessage } from '@/lib/db/conversationMessages';
 
-export type AgentAction = 'continue' | 'book_meeting' | 'mark_irrelevant' | 'request_followup';
+export type AgentAction = 'continue' | 'book_meeting' | 'mark_irrelevant' | 'request_followup' | 'mark_spam';
 
 export interface ExtractedFacts {
   pain_category?: string;
@@ -46,7 +46,7 @@ function parseAgentOutput(raw: string): AgentOutput | null {
     ) {
       return null;
     }
-    const validActions: AgentAction[] = ['continue', 'book_meeting', 'mark_irrelevant', 'request_followup'];
+    const validActions: AgentAction[] = ['continue', 'book_meeting', 'mark_irrelevant', 'request_followup', 'mark_spam'];
     if (!validActions.includes(parsed.action)) return null;
 
     return {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { verifyWebhookSecret } from '@/lib/manychat/verifyWebhookSecret';
 import { saveManyChatEvent, updateManyChatEventStatus } from '@/lib/events/saveManyChatEvent';
-import { saveMessage, getConversationHistory, updateLeadConversationState } from '@/lib/db/conversationMessages';
+import { saveMessage, getConversationHistory, updateLeadConversationState, countUserMessagesForLead } from '@/lib/db/conversationMessages';
 import { runSalesAgent } from '@/lib/ai/salesAgent';
 import type {
   ManyChatWebhookPayload,
@@ -128,13 +128,37 @@ export async function POST(request: NextRequest) {
       // 1. Save incoming user message
       await saveMessage(leadUuid, subscriberId, 'user', userMessage);
 
-      // 2. Load conversation history (includes the message we just saved)
+      // 2. Hard cap: after 10 user messages, escalate to human — skip AI entirely
+      const userMsgCount = await countUserMessagesForLead(leadUuid);
+      if (userMsgCount >= 10) {
+        const escalationReply = 'שיחה זו הועברה לנציג. הדר תחזור אליך בהקדם 🙏';
+        await saveMessage(leadUuid, subscriberId, 'assistant', escalationReply, {
+          action: 'escalate_to_human',
+          state: 'escalated',
+        });
+        await updateLeadConversationState(leadUuid, 'escalated');
+        if (eventId) await updateManyChatEventStatus(eventId, 'done');
+        return dynamicBlockResponse(leadUuid, [{ type: 'text', text: escalationReply }]);
+      }
+
+      // 3. Load conversation history (includes the message we just saved)
       const history = await getConversationHistory(leadUuid);
 
-      // 3. Run AI sales agent
+      // 4b. Run AI sales agent
       const agentOutput = await runSalesAgent({ history, newMessage: userMessage });
 
-      // 4. Save agent reply (with token usage if available)
+      // 4. Short-circuit on spam: save once and close conversation
+      if (agentOutput.action === 'mark_spam') {
+        await saveMessage(leadUuid, subscriberId, 'assistant', agentOutput.reply, {
+          action: 'mark_spam',
+          state: 'spam',
+        });
+        await updateLeadConversationState(leadUuid, 'spam');
+        if (eventId) await updateManyChatEventStatus(eventId, 'done');
+        return dynamicBlockResponse(leadUuid, [{ type: 'text', text: agentOutput.reply }]);
+      }
+
+      // 5. Save agent reply (with token usage if available)
       await saveMessage(leadUuid, subscriberId, 'assistant', agentOutput.reply, {
         action: agentOutput.action,
         state: agentOutput.state,
@@ -146,7 +170,7 @@ export async function POST(request: NextRequest) {
         }),
       });
 
-      // 5. Update conversation state on the lead row (best-effort)
+      // 6. Update conversation state on the lead row (best-effort)
       await updateLeadConversationState(
         leadUuid,
         agentOutput.state,
@@ -155,7 +179,7 @@ export async function POST(request: NextRequest) {
           : undefined,
       );
 
-      // 6. Build Dynamic Block messages
+      // 7. Build Dynamic Block messages
       const blockMessages: Array<{ type: 'text'; text: string }> = [
         { type: 'text', text: agentOutput.reply },
       ];

@@ -68,6 +68,8 @@ const STATE_LABELS: Record<string, string> = {
   booking: 'הזמנה',
   closed: 'סגור',
   irrelevant: 'לא רלוונטי',
+  escalated: 'הועבר לנציג',
+  spam: 'ספאם',
 };
 
 type BadgeVariant = 'secondary' | 'warning' | 'destructive' | 'success' | 'outline';
@@ -81,6 +83,8 @@ const STATE_VARIANT: Record<string, BadgeVariant> = {
   booking: 'success',
   closed: 'success',
   irrelevant: 'outline',
+  escalated: 'destructive',
+  spam: 'outline',
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -88,6 +92,8 @@ const ACTION_LABELS: Record<string, string> = {
   book_meeting: 'קביעת פגישה',
   mark_irrelevant: 'לא רלוונטי',
   request_followup: 'פולואפ',
+  mark_spam: 'ספאם',
+  escalate_to_human: 'הועבר לנציג',
 };
 
 function formatDate(iso: string): string {

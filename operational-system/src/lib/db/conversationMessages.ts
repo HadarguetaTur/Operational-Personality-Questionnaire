@@ -52,6 +52,21 @@ export async function getConversationHistory(
   return (data ?? []) as ConversationMessage[];
 }
 
+export async function countUserMessagesForLead(leadUuid: string): Promise<number> {
+  const supabase = createServiceRoleClient();
+  const { count, error } = await supabase
+    .from('conversation_messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('lead_uuid', leadUuid)
+    .eq('role', 'user');
+
+  if (error) {
+    console.error('[conversationMessages] countUserMessagesForLead failed:', error.message);
+    return 0;
+  }
+  return count ?? 0;
+}
+
 export async function updateLeadConversationState(
   leadUuid: string,
   state: string,
