@@ -38,8 +38,7 @@ export async function sendManyChatText(
     data: {
       version: 'v2',
       content: {
-        type: 'text',
-        text,
+        messages: [{ type: 'text', text }],
       },
     },
   };

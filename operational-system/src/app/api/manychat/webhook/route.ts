@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { waitUntil } from '@vercel/functions';
 import { verifyWebhookSecret } from '@/lib/manychat/verifyWebhookSecret';
-import { saveManyChatEvent } from '@/lib/events/saveManyChatEvent';
+import { saveManyChatEvent, updateManyChatEventStatus } from '@/lib/events/saveManyChatEvent';
 import { sendManyChatText } from '@/lib/manychat/sendApi';
 import type {
   ManyChatWebhookPayload,
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
 
   // ── 6. Persist raw event to Supabase ─────────────────────────
   // TODO Phase 1: add idempotency key to prevent duplicate processing on retries.
-  const { error: saveError } = await saveManyChatEvent({
+  const { id: eventId, error: saveError } = await saveManyChatEvent({
     lead_uuid: leadUuid,
     subscriber_id: subscriberId,
     event_type: eventType,
@@ -119,21 +119,25 @@ export async function POST(request: NextRequest) {
     case 'test_send_message':
       // Fire-and-forget: send a WA message back via ManyChat Send API.
       // waitUntil() keeps the Vercel function alive after the response is sent.
-      if (subscriberId) {
+      if (subscriberId && eventId) {
         waitUntil(
           sendManyChatText(
             subscriberId,
-            `בדיקת חיבור: השרת קיבל את ההודעה ושלח תשובה דרך ManyChat ✓ (lead_uuid: ${leadUuid})`,
+            `בדיקת חיבור: השרת קיבל את ההודעה ושלח תשובה דרך ManyChat ✓`,
           )
-            .then((result) => {
+            .then(async (result) => {
               if (!result.success) {
                 console.error('[ManyChat Webhook] sendManyChatText failed:', result.error);
+                await updateManyChatEventStatus(eventId, 'error', result.error);
               } else {
                 console.log('[ManyChat Webhook] sendManyChatText succeeded for subscriber:', subscriberId);
+                await updateManyChatEventStatus(eventId, 'done');
               }
             })
-            .catch((err: unknown) => {
-              console.error('[ManyChat Webhook] sendManyChatText threw unexpectedly:', err);
+            .catch(async (err: unknown) => {
+              const msg = err instanceof Error ? err.message : String(err);
+              console.error('[ManyChat Webhook] sendManyChatText threw unexpectedly:', msg);
+              await updateManyChatEventStatus(eventId, 'error', msg);
             }),
         );
       } else {

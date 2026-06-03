@@ -46,3 +46,22 @@ export async function saveManyChatEvent(
   console.log('[saveManyChatEvent] Saved event id:', data.id);
   return { id: data.id, error: null };
 }
+
+export async function updateManyChatEventStatus(
+  id: string,
+  status: 'done' | 'error',
+  processError?: string,
+): Promise<void> {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from('manychat_events')
+    .update({
+      process_status: status,
+      ...(processError ? { process_error: processError } : {}),
+    })
+    .eq('id', id);
+
+  if (error) {
+    console.error('[updateManyChatEventStatus] Update failed:', error.message);
+  }
+}
