@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { verifyWebhookSecret } from '@/lib/manychat/verifyWebhookSecret';
 import { saveManyChatEvent, updateManyChatEventStatus } from '@/lib/events/saveManyChatEvent';
-import { saveMessage, getConversationHistory, updateLeadConversationState, countUserMessagesForLead } from '@/lib/db/conversationMessages';
+import { saveMessage, getConversationHistory, updateLeadConversationState, countUserMessagesForLead, getLeadConversationState } from '@/lib/db/conversationMessages';
 import { runSalesAgent } from '@/lib/ai/salesAgent';
 import type {
   ManyChatWebhookPayload,
@@ -141,11 +141,14 @@ export async function POST(request: NextRequest) {
         return dynamicBlockResponse(leadUuid, [{ type: 'text', text: escalationReply }]);
       }
 
-      // 3. Load conversation history (includes the message we just saved)
-      const history = await getConversationHistory(leadUuid);
+      // 3. Load conversation history + current state
+      const [history, currentState] = await Promise.all([
+        getConversationHistory(leadUuid),
+        getLeadConversationState(leadUuid),
+      ]);
 
-      // 4b. Run AI sales agent
-      const agentOutput = await runSalesAgent({ history, newMessage: userMessage });
+      // 4b. Run the stage-specific agent
+      const agentOutput = await runSalesAgent({ history, newMessage: userMessage, currentState });
 
       // 4. Short-circuit on spam: save once and close conversation
       if (agentOutput.action === 'mark_spam') {

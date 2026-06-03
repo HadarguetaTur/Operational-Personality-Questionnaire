@@ -1,4 +1,4 @@
-import { getSystemPrompt } from './prompts/salesAgentSystemPrompt';
+import { getPromptForState, getFallbackForState } from './prompts/stagePrompts';
 import type { ConversationMessage } from '@/lib/db/conversationMessages';
 
 export type AgentAction = 'continue' | 'book_meeting' | 'mark_irrelevant' | 'request_followup' | 'mark_spam';
@@ -29,30 +29,20 @@ const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const MODEL = 'openai/gpt-4.1-mini';
 const MAX_RETRIES = 2;
 
-const FALLBACK_OUTPUT: AgentOutput = {
-  reply: 'קיבלתי את ההודעה שלך. אחזור אליך בהקדם.',
-  action: 'continue',
-  state: 'discovery',
-  extracted_facts: {},
-};
-
 function parseAgentOutput(raw: string): AgentOutput | null {
   try {
     const parsed = JSON.parse(raw);
-    if (
-      typeof parsed.reply !== 'string' ||
-      typeof parsed.action !== 'string' ||
-      typeof parsed.state !== 'string'
-    ) {
-      return null;
-    }
+    if (typeof parsed.reply !== 'string' || typeof parsed.action !== 'string') return null;
+
     const validActions: AgentAction[] = ['continue', 'book_meeting', 'mark_irrelevant', 'request_followup', 'mark_spam'];
     if (!validActions.includes(parsed.action)) return null;
+
+    const state = typeof parsed.state === 'string' ? parsed.state : 'discovery';
 
     return {
       reply: parsed.reply,
       action: parsed.action as AgentAction,
-      state: parsed.state,
+      state,
       extracted_facts: parsed.extracted_facts ?? {},
     };
   } catch {
@@ -63,15 +53,25 @@ function parseAgentOutput(raw: string): AgentOutput | null {
 export async function runSalesAgent(input: {
   history: ConversationMessage[];
   newMessage: string;
-  leadContext?: Record<string, unknown>;
+  currentState?: string;
 }): Promise<AgentOutput> {
   const apiKey = process.env.OPENROUTER_API_KEY?.trim();
+  const currentState = input.currentState ?? 'initial';
+
+  const stageFallback = getFallbackForState(currentState);
+  const FALLBACK_OUTPUT: AgentOutput = {
+    reply: stageFallback.reply,
+    action: 'continue',
+    state: stageFallback.state,
+    extracted_facts: {},
+  };
+
   if (!apiKey) {
-    console.error('[salesAgent] OPENROUTER_API_KEY not configured');
+    console.error(`[salesAgent:${currentState}] OPENROUTER_API_KEY not configured`);
     return FALLBACK_OUTPUT;
   }
 
-  const systemPrompt = await getSystemPrompt();
+  const systemPrompt = getPromptForState(currentState);
 
   const messages = [
     { role: 'system', content: systemPrompt },
@@ -100,7 +100,7 @@ export async function runSalesAgent(input: {
 
       if (!res.ok) {
         const errText = await res.text();
-        console.error(`[salesAgent] OpenRouter error ${res.status}:`, errText);
+        console.error(`[salesAgent:${currentState}] OpenRouter error ${res.status}:`, errText);
         if (attempt === MAX_RETRIES) return FALLBACK_OUTPUT;
         continue;
       }
@@ -110,7 +110,7 @@ export async function runSalesAgent(input: {
       const parsed = parseAgentOutput(rawContent);
 
       if (!parsed) {
-        console.warn('[salesAgent] Parse failed on attempt', attempt + 1, '— raw:', rawContent.slice(0, 200));
+        console.warn(`[salesAgent:${currentState}] Parse failed on attempt ${attempt + 1}:`, rawContent.slice(0, 200));
         if (attempt === MAX_RETRIES) return FALLBACK_OUTPUT;
         continue;
       }
@@ -129,10 +129,10 @@ export async function runSalesAgent(input: {
         };
       }
 
-      console.log('[salesAgent] action:', parsed.action, '| state:', parsed.state, '| tokens:', usage?.total_tokens);
+      console.log(`[salesAgent:${currentState}] action: ${parsed.action} | next: ${parsed.state} | tokens: ${usage?.total_tokens}`);
       return { ...parsed, usage };
     } catch (err) {
-      console.error('[salesAgent] Fetch error on attempt', attempt + 1, err);
+      console.error(`[salesAgent:${currentState}] Fetch error on attempt ${attempt + 1}:`, err);
       if (attempt === MAX_RETRIES) return FALLBACK_OUTPUT;
     }
   }

@@ -52,6 +52,21 @@ export async function getConversationHistory(
   return (data ?? []) as ConversationMessage[];
 }
 
+export async function getLeadConversationState(leadUuid: string): Promise<string> {
+  const supabase = createServiceRoleClient();
+  const { data } = await supabase
+    .from('conversation_messages')
+    .select('metadata')
+    .eq('lead_uuid', leadUuid)
+    .eq('role', 'assistant')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  const state = (data?.metadata as Record<string, unknown> | null)?.state;
+  return typeof state === 'string' ? state : 'initial';
+}
+
 export async function countUserMessagesForLead(leadUuid: string): Promise<number> {
   const supabase = createServiceRoleClient();
   const { count, error } = await supabase
