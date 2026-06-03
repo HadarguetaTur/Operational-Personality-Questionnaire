@@ -17,6 +17,7 @@ import {
   TrendingUp,
   ShieldCheck,
   BookOpen,
+  Activity,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -25,6 +26,7 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 const navItems = [
   { href: '/admin', label: 'דאשבורד', icon: LayoutDashboard },
   { href: '/admin/analytics', label: 'אנליטיקה', icon: TrendingUp },
+  { href: '/admin/bot', label: 'Bot Events', icon: Activity },
   { href: '/admin/guides', label: 'מדריכים', icon: BookOpen },
   { href: '/admin/funnels', label: 'משפכים', icon: GitBranch },
   { href: '/admin/leads', label: 'לידים', icon: Users },
