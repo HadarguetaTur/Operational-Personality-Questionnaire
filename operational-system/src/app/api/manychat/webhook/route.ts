@@ -83,11 +83,13 @@ export async function POST(request: NextRequest) {
       ? payload.subscriber_id.trim()
       : undefined;
 
-  // ── 5. Resolve lead_uuid — generate if absent ─────────────────
-  const leadUuid: string =
-    typeof payload.lead_uuid === 'string' && payload.lead_uuid.trim()
-      ? payload.lead_uuid.trim()
-      : randomUUID();
+  // ── 5. Resolve lead_uuid — generate if absent or not a valid UUID ────────
+  // When the ManyChat custom field is empty, ManyChat sends the literal template
+  // string e.g. "{{cuf_14652832}}" instead of a real UUID. Validate the format
+  // so those tokens are treated the same as a missing field.
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const rawUuid = typeof payload.lead_uuid === 'string' ? payload.lead_uuid.trim() : '';
+  const leadUuid: string = UUID_REGEX.test(rawUuid) ? rawUuid : randomUUID();
 
   const uuidSource = payload.lead_uuid ? 'received' : 'generated';
   console.log('[ManyChat Webhook] Received:', { eventType, subscriberId, leadUuid, uuidSource });
