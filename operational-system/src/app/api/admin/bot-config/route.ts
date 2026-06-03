@@ -18,7 +18,13 @@ export async function GET() {
       .eq('key', SETTINGS_KEY)
       .single();
 
+    // PGRST116 = no rows found (key doesn't exist yet) → return defaults
+    // 42P01 = table doesn't exist yet → return defaults gracefully
     if (error && error.code !== 'PGRST116') {
+      if (error.code === '42P01' || error.message?.includes('schema cache')) {
+        console.warn('[bot-config GET] system_settings table not found — returning defaults');
+        return NextResponse.json(DEFAULT_SECTIONS);
+      }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
