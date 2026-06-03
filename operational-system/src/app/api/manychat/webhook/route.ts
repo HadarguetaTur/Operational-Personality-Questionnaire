@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { verifyWebhookSecret } from '@/lib/manychat/verifyWebhookSecret';
 import { saveManyChatEvent, updateManyChatEventStatus } from '@/lib/events/saveManyChatEvent';
+import { saveMessage, getConversationHistory, updateLeadConversationState } from '@/lib/db/conversationMessages';
+import { runSalesAgent } from '@/lib/ai/salesAgent';
 import type {
   ManyChatWebhookPayload,
   SimpleAckResponse,
@@ -18,14 +20,17 @@ function ackResponse(leadUuid: string, eventType: string): NextResponse {
   return NextResponse.json(body);
 }
 
-function dynamicBlockResponse(leadUuid: string, text: string): NextResponse {
+function dynamicBlockResponse(
+  leadUuid: string,
+  messages: Array<{ type: 'text'; text: string }>,
+): NextResponse {
   // ManyChat Dynamic Block — returned inline in the External Request response.
   // ManyChat sends the messages to the subscriber through their channel (WhatsApp)
   // without any 24h Send API restriction, because it runs inside the flow context.
   const block: ManyChatDynamicBlockResponse = {
     version: 'v2',
     content: {
-      messages: [{ type: 'text', text }],
+      messages,
       actions: [{ action: 'set_field_value', field_name: 'lead_uuid', value: leadUuid }],
     },
   };
@@ -103,11 +108,71 @@ export async function POST(request: NextRequest) {
       // This bypasses the 24h Send API restriction that applies to push messages.
       console.log('[ManyChat Webhook] test_send_message — returning Dynamic Block');
       if (eventId) await updateManyChatEventStatus(eventId, 'done');
-      return dynamicBlockResponse(leadUuid, 'בדיקת חיבור: השרת קיבל את ההודעה ושלח תשובה דרך ManyChat ✓');
+      return dynamicBlockResponse(leadUuid, [
+        { type: 'text', text: 'בדיקת חיבור: השרת קיבל את ההודעה ושלח תשובה דרך ManyChat ✓' },
+      ]);
+
+    case 'lead_message': {
+      const userMessage = typeof payload.message === 'string' ? payload.message.trim() : '';
+      const subscriberId =
+        typeof payload.subscriber_id === 'string' && payload.subscriber_id.trim()
+          ? payload.subscriber_id.trim()
+          : undefined;
+
+      if (!userMessage) {
+        console.warn('[ManyChat Webhook] lead_message with empty message field');
+        if (eventId) await updateManyChatEventStatus(eventId, 'error', 'empty message');
+        return ackResponse(leadUuid, eventType);
+      }
+
+      // 1. Save incoming user message
+      await saveMessage(leadUuid, subscriberId, 'user', userMessage);
+
+      // 2. Load conversation history (includes the message we just saved)
+      const history = await getConversationHistory(leadUuid);
+
+      // 3. Run AI sales agent
+      const agentOutput = await runSalesAgent({ history, newMessage: userMessage });
+
+      // 4. Save agent reply (with token usage if available)
+      await saveMessage(leadUuid, subscriberId, 'assistant', agentOutput.reply, {
+        action: agentOutput.action,
+        state: agentOutput.state,
+        ...(agentOutput.usage && {
+          prompt_tokens: agentOutput.usage.prompt_tokens,
+          completion_tokens: agentOutput.usage.completion_tokens,
+          total_tokens: agentOutput.usage.total_tokens,
+          cost_usd: agentOutput.usage.cost_usd,
+        }),
+      });
+
+      // 5. Update conversation state on the lead row (best-effort)
+      await updateLeadConversationState(
+        leadUuid,
+        agentOutput.state,
+        Object.keys(agentOutput.extracted_facts).length > 0
+          ? (agentOutput.extracted_facts as Record<string, unknown>)
+          : undefined,
+      );
+
+      // 6. Build Dynamic Block messages
+      const blockMessages: Array<{ type: 'text'; text: string }> = [
+        { type: 'text', text: agentOutput.reply },
+      ];
+
+      if (agentOutput.action === 'book_meeting') {
+        const bookingUrl = process.env.CALCOM_BOOKING_URL;
+        if (bookingUrl) {
+          blockMessages.push({ type: 'text', text: `לקביעת פגישת האפיון עם הדר: ${bookingUrl}` });
+        }
+      }
+
+      if (eventId) await updateManyChatEventStatus(eventId, 'done');
+      return dynamicBlockResponse(leadUuid, blockMessages);
+    }
 
     default:
       // Unknown event types are saved (step 6) and ACKed without side effects.
-      // Phase 1 processor will pick these up from manychat_events.
       console.log('[ManyChat Webhook] Unknown event_type, saved and ACKed:', eventType);
       return ackResponse(leadUuid, eventType);
   }
