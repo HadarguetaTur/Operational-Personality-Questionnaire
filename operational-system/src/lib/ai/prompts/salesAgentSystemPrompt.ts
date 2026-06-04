@@ -68,7 +68,11 @@ export async function getSystemPrompt(): Promise<string> {
         ? (data.value as BotPromptSections)
         : DEFAULT_SECTIONS;
 
+    const source = data?.value && typeof data.value === 'object' ? 'db' : 'defaults';
     const text = assembleSections(sections);
+    // #region agent log
+    console.error(`[DEBUG-06149a:getSystemPrompt] source=${source} | identitySnippet=${sections.identity.slice(0,80).replace(/\n/g,' ')}`);
+    // #endregion
     promptCache = { text, at: Date.now() };
     return text;
   } catch (err) {

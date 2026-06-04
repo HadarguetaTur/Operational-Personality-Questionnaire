@@ -131,7 +131,9 @@ async function buildSystemPrompt(
   const directive = getStageDirective(currentState);
   const context = buildContextSection(conversationContext);
   const persona = buildPersonaSection(extractedFacts);
-
+  // #region agent log
+  console.error(`[DEBUG-06149a:buildSystemPrompt] state=${currentState} | baseLen=${base.length} | baseSnippet=${base.slice(0,120).replace(/\n/g,' ')}`);
+  // #endregion
   return [OVERRIDE_RULE, base, `\n## שלב נוכחי\n${directive}`, context, persona, FORMAT_SECTION]
     .filter(Boolean)
     .join('\n');
@@ -251,6 +253,9 @@ export async function runSalesAgent(input: {
       normalizeState(parsed, currentState);
 
       const validation = validateReply(parsed.reply, previousBotReply);
+      // #region agent log
+      console.error(`[DEBUG-06149a:validator] state=${currentState} | valid=${validation.valid} | reason=${validation.reason??'ok'} | prevReplyLen=${previousBotReply?.length??0} | replySnippet=${parsed.reply.slice(0,80).replace(/\n/g,' ')}`);
+      // #endregion
       if (!validation.valid && attempt < MAX_RETRIES) {
         console.warn(`[salesAgent:${currentState}] Reply validation failed:`, validation.reason);
         continue;
