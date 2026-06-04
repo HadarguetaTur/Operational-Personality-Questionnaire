@@ -162,9 +162,24 @@ const OBJECTION_PROMPT = `${OVERRIDE_RULE}
 לא לוותר אחרי התנגדות אחת. לדבר בנקבה, בעברית, בגוף שני.
 ${FORMAT}`;
 
-const BOOKING_PROMPT = `אתה עוזרת הדר תורג'מן. הפרסון הסכימה לפגישה.
-ענה בחום: "מעולה! שולחת לך את הקישור לקביעת זמן 🗓️"
+const BOOKING_PROMPT = `אתה עוזרת הדר תורג'מן. הפרסון הסכימה לגישת אפיון.
+ענה בחום: "מעולה! שולחת לך את הקישור לקביעת גישת האפיון 🗓️"
 action: book_meeting, state: closed.
+${FORMAT}`;
+
+const CLOSED_PROMPT = `הפגישה נקבעה. תשובה קצרה בלבד: "שמחה שנקבעה. אחזור אלייך אחרי 🙏"
+action: continue, state: closed.
+${FORMAT}`;
+
+const IRRELEVANT_PROMPT = `הלידה לא מתאימה. תשובה: "תודה שפנית — בהצלחה עם העסק! 🙏"
+action: mark_irrelevant, state: irrelevant.
+${FORMAT}`;
+
+const SPAM_PROMPT = `ספאם. reply: "" action: mark_spam, state: spam.
+${FORMAT}`;
+
+const ESCALATED_PROMPT = `הועבר לאדם. תשובה: "הדר תחזור אלייך בקרוב 🙏"
+action: continue, state: escalated.
 ${FORMAT}`;
 
 // ─── State-to-prompt map ───────────────────────────────────────────────────────
@@ -176,10 +191,32 @@ const STAGE_PROMPTS: Record<string, string> = {
   pitching: PITCHING_PROMPT,
   objection: OBJECTION_PROMPT,
   booking: BOOKING_PROMPT,
+  closed: CLOSED_PROMPT,
+  irrelevant: IRRELEVANT_PROMPT,
+  spam: SPAM_PROMPT,
+  escalated: ESCALATED_PROMPT,
+};
+
+/** Short stage directive appended to unified system prompt */
+const STAGE_DIRECTIVES: Record<string, string> = {
+  initial: 'שלב: פתיחה. סווג intent. מקסימום שאלה אחת.',
+  discovery: 'שלב: גילוי. מקסימום 2 שאלות סה"כ. לא להמציא כאב.',
+  qualifying: 'שלב: העמקה. שאלה אחת. לשקף לפני שמתקדמים.',
+  pitching: 'שלב: הצעה. שקפי כאב + הצע גישת אפיון. עדות אחת אם מתאים.',
+  objection: 'שלב: התנגדות. טפלי ב"אבל" + הצעה שוב. מקס 2 לולאות.',
+  booking: 'שלב: קביעה. book_meeting מיד.',
+  closed: 'שלב: סגור. תשובה מינימלית.',
+  irrelevant: 'שלב: לא רלוונטי. mark_irrelevant.',
+  spam: 'שלב: ספאם. mark_spam.',
+  escalated: 'שלב: הועבר לאדם. תשובה קצרה בלבד.',
 };
 
 export function getPromptForState(state: string): string {
   return STAGE_PROMPTS[state] ?? DISCOVERY_PROMPT;
+}
+
+export function getStageDirective(state: string): string {
+  return STAGE_DIRECTIVES[state] ?? STAGE_DIRECTIVES.discovery;
 }
 
 // ─── State-specific fallback outputs ──────────────────────────────────────────
@@ -190,12 +227,16 @@ export interface StageFallback {
 }
 
 const STAGE_FALLBACKS: Record<string, StageFallback> = {
-  initial:    { reply: 'שמחה שפנית! ספרי לי — מה הביא אותך לפנות דווקא עכשיו?', state: 'discovery' },
+  initial:    { reply: 'היי :) במה אפשר לעזור?', state: 'discovery' },
   discovery:  { reply: 'ספרי לי יותר — מה לא עובד בתהליך הזה?', state: 'discovery' },
   qualifying: { reply: 'למה דווקא עכשיו החלטת לחפש פתרון?', state: 'qualifying' },
-  pitching:   { reply: 'הדר עוסקת בדיוק בזה — בואי נקבע 30 דקות. מה את חושבת?', state: 'pitching' },
-  objection:  { reply: 'ספרי לי — מה גורם לך להסס?', state: 'objection' },
-  booking:    { reply: 'מעולה! שולחת לך את הקישור לקביעת זמן 🗓️', state: 'closed' },
+  pitching:   { reply: 'נשמע שיש כאן משהו שאפשר לשפר — בואי נקבע גישת אפיון קצרה. מה את חושבת?', state: 'pitching' },
+  objection:  { reply: 'ספרי לי — מה מרגיש לא ברור?', state: 'objection' },
+  booking:    { reply: 'מעולה! שולחת לך את הקישור לקביעת גישת האפיון 🗓️', state: 'closed' },
+  closed:     { reply: 'שמחה שנקבעה. אחזור אלייך אחרי 🙏', state: 'closed' },
+  irrelevant: { reply: 'תודה שפנית — בהצלחה עם העסק! 🙏', state: 'irrelevant' },
+  escalated:  { reply: 'הדר תחזור אלייך בקרוב 🙏', state: 'escalated' },
+  spam:       { reply: '', state: 'spam' },
 };
 
 export function getFallbackForState(state: string): StageFallback {

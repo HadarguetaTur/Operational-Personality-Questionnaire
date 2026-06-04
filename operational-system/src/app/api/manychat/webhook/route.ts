@@ -2,8 +2,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { verifyWebhookSecret } from '@/lib/manychat/verifyWebhookSecret';
 import { saveManyChatEvent, updateManyChatEventStatus } from '@/lib/events/saveManyChatEvent';
-import { saveMessage, getConversationHistory, updateLeadConversationState, countUserMessagesForLead, getLeadConversationState } from '@/lib/db/conversationMessages';
+import {
+  saveMessage,
+  getConversationHistory,
+  updateLeadConversationState,
+  countUserMessagesForLead,
+  getLeadConversationState,
+  getLeadConversationContext,
+} from '@/lib/db/conversationMessages';
 import { runSalesAgent } from '@/lib/ai/salesAgent';
+import {
+  detectMeetingIntent,
+  MEETING_BOOKING_REPLY,
+} from '@/lib/agents/preCheck/detectMeetingIntent';
+import { detectMetaFrustration } from '@/lib/agents/preCheck/detectMetaFrustration';
+import {
+  detectNotFitAudience,
+  AUDIENCE_DISQUALIFY_REPLY,
+} from '@/lib/agents/preCheck/audienceFilter';
+import { notifySlackHandoff } from '@/lib/notifications/slackHandoff';
+import { runHandoffSummary } from '@/lib/agents/handoffSummaryAgent';
+import { recordFunnelEvent } from '@/lib/events/funnelEvents';
+import { runQuizIntakeAgent } from '@/lib/agents/quizIntakeAgent';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import type {
   ManyChatWebhookPayload,
   SimpleAckResponse,
@@ -24,35 +45,61 @@ function dynamicBlockResponse(
   leadUuid: string,
   messages: Array<{ type: 'text'; text: string }>,
 ): NextResponse {
-  // ManyChat Dynamic Block — returned inline in the External Request response.
-  // ManyChat sends the messages to the subscriber through their channel (WhatsApp)
-  // without any 24h Send API restriction, because it runs inside the flow context.
   const block: ManyChatDynamicBlockResponse = {
     version: 'v2',
     content: {
-      messages,
+      messages: messages.filter((m) => m.text.trim().length > 0),
       actions: [{ action: 'set_field_value', field_name: 'lead_uuid', value: leadUuid }],
     },
   };
   return NextResponse.json(block);
 }
 
+function buildBookingMessages(
+  leadUuid: string,
+  reply: string,
+): Array<{ type: 'text'; text: string }> {
+  const messages: Array<{ type: 'text'; text: string }> = [{ type: 'text', text: reply }];
+  const bookingUrl = process.env.CALCOM_BOOKING_URL?.trim();
+  if (bookingUrl) {
+    messages.push({
+      type: 'text',
+      text: `לקביעת גישת האפיון עם הדר: ${bookingUrl}`,
+    });
+  }
+  return messages;
+}
+
+async function handleHandoff(
+  leadUuid: string,
+  subscriberId: string | undefined,
+  reason: string,
+  history: Awaited<ReturnType<typeof getConversationHistory>>,
+): Promise<string> {
+  const summary = await runHandoffSummary({ leadUuid, history, reason });
+  await notifySlackHandoff({
+    leadUuid,
+    headline: summary.headline,
+    summary: summary.summary,
+    keyFacts: summary.key_facts,
+  });
+  await recordFunnelEvent(leadUuid, 'human_handoff_requested', { reason });
+  return summary.customer_reply;
+}
+
 export async function POST(request: NextRequest) {
-  // ── 1. Guard: webhook secret configured ───────────────────────
   const webhookSecret = process.env.MANYCHAT_WEBHOOK_SECRET?.trim();
   if (!webhookSecret) {
     console.error('[ManyChat Webhook] MANYCHAT_WEBHOOK_SECRET is not configured');
     return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
   }
 
-  // ── 2. Verify X-Webhook-Secret (constant-time) ────────────────
   const receivedSecret = request.headers.get('x-webhook-secret') ?? '';
   if (!verifyWebhookSecret(receivedSecret, webhookSecret)) {
     console.warn('[ManyChat Webhook] Rejected: invalid X-Webhook-Secret');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // ── 3. Parse body ─────────────────────────────────────────────
   let payload: ManyChatWebhookPayload;
   try {
     payload = await request.json();
@@ -64,21 +111,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing required field: event_type' }, { status: 400 });
   }
 
-  // ── 4. Extract fields ─────────────────────────────────────────
-  const eventType = payload.event_type.trim();
-
-  // ── 5. Resolve lead_uuid — generate if absent or not a valid UUID ────────
-  // When the ManyChat custom field is empty, ManyChat sends the literal template
-  // string e.g. "{{cuf_14652832}}" instead of a real UUID. Validate the format
-  // so those tokens are treated the same as a missing field.
   const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const rawUuid = typeof payload.lead_uuid === 'string' ? payload.lead_uuid.trim() : '';
   const leadUuid: string = UUID_REGEX.test(rawUuid) ? rawUuid : randomUUID();
+  const eventType = payload.event_type.trim();
 
-  const uuidSource = UUID_REGEX.test(rawUuid) ? 'received' : 'generated';
-  console.log('[ManyChat Webhook] Received:', { eventType, leadUuid, uuidSource });
-
-  // ── 6. Persist raw event to Supabase ─────────────────────────
   const { id: eventId, error: saveError } = await saveManyChatEvent({
     lead_uuid: leadUuid,
     subscriber_id:
@@ -90,23 +127,19 @@ export async function POST(request: NextRequest) {
   });
 
   if (saveError) {
-    // ACK anyway — do not return 5xx, which would trigger ManyChat retry storms.
     console.error('[ManyChat Webhook] Supabase insert failed, ACKing anyway:', saveError);
   }
 
-  // ── 7. Event-type routing ─────────────────────────────────────
   switch (eventType) {
     case 'test_connection':
-      // Simple roundtrip: proves ManyChat → Vercel direction works.
-      console.log('[ManyChat Webhook] test_connection — lead_uuid:', leadUuid);
       if (eventId) await updateManyChatEventStatus(eventId, 'done');
       return ackResponse(leadUuid, eventType);
 
     case 'test_send_message':
-      // Returns a Dynamic Block response — ManyChat delivers the message to the
-      // subscriber through their channel (WhatsApp) inside the flow context.
-      // This bypasses the 24h Send API restriction that applies to push messages.
-      console.log('[ManyChat Webhook] test_send_message — returning Dynamic Block');
+      if (process.env.NODE_ENV === 'production') {
+        if (eventId) await updateManyChatEventStatus(eventId, 'done');
+        return ackResponse(leadUuid, eventType);
+      }
       if (eventId) await updateManyChatEventStatus(eventId, 'done');
       return dynamicBlockResponse(leadUuid, [
         { type: 'text', text: 'בדיקת חיבור: השרת קיבל את ההודעה ושלח תשובה דרך ManyChat ✓' },
@@ -120,20 +153,18 @@ export async function POST(request: NextRequest) {
           : undefined;
 
       if (!userMessage) {
-        console.warn('[ManyChat Webhook] lead_message with empty message field');
         if (eventId) await updateManyChatEventStatus(eventId, 'error', 'empty message');
         return ackResponse(leadUuid, eventType);
       }
 
-      // 1. Save incoming user message
       await saveMessage(leadUuid, subscriberId, 'user', userMessage);
+      await recordFunnelEvent(leadUuid, 'lead_arrived', { source: 'manychat' });
 
-      // 2. Hard cap: after 10 user messages, escalate to human — skip AI entirely
       const userMsgCount = await countUserMessagesForLead(leadUuid);
       if (userMsgCount >= 10) {
         const escalationReply = 'שיחה זו הועברה לנציג. הדר תחזור אליך בהקדם 🙏';
         await saveMessage(leadUuid, subscriberId, 'assistant', escalationReply, {
-          action: 'escalate_to_human',
+          action: 'human_handoff',
           state: 'escalated',
         });
         await updateLeadConversationState(leadUuid, 'escalated');
@@ -141,16 +172,86 @@ export async function POST(request: NextRequest) {
         return dynamicBlockResponse(leadUuid, [{ type: 'text', text: escalationReply }]);
       }
 
-      // 3. Load conversation history + current state
-      const [history, currentState] = await Promise.all([
+      const [history, currentState, conversationContext] = await Promise.all([
         getConversationHistory(leadUuid),
         getLeadConversationState(leadUuid),
+        getLeadConversationContext(leadUuid),
       ]);
 
-      // 4b. Run the stage-specific agent
-      const agentOutput = await runSalesAgent({ history, newMessage: userMessage, currentState });
+      // Pre-check: audience filter (first message only)
+      if (userMsgCount === 1 && detectNotFitAudience(userMessage)) {
+        await saveMessage(leadUuid, subscriberId, 'assistant', AUDIENCE_DISQUALIFY_REPLY, {
+          action: 'mark_irrelevant',
+          state: 'irrelevant',
+        });
+        await updateLeadConversationState(leadUuid, 'irrelevant');
+        if (eventId) await updateManyChatEventStatus(eventId, 'done');
+        return dynamicBlockResponse(leadUuid, [
+          { type: 'text', text: AUDIENCE_DISQUALIFY_REPLY },
+        ]);
+      }
 
-      // 4. Short-circuit on spam: save once and close conversation
+      // Pre-check: meeting intent
+      if (detectMeetingIntent(userMessage)) {
+        await saveMessage(leadUuid, subscriberId, 'assistant', MEETING_BOOKING_REPLY, {
+          action: 'book_meeting',
+          state: 'booking',
+        });
+        await updateLeadConversationState(leadUuid, 'booking');
+        await recordFunnelEvent(leadUuid, 'meeting_offered', { trigger: 'regex' });
+        if (eventId) await updateManyChatEventStatus(eventId, 'done');
+        return dynamicBlockResponse(
+          leadUuid,
+          buildBookingMessages(leadUuid, MEETING_BOOKING_REPLY),
+        );
+      }
+
+      // Pre-check: meta frustration
+      const frustrationAction = detectMetaFrustration(userMessage, currentState);
+      if (frustrationAction === 'book_meeting') {
+        await saveMessage(leadUuid, subscriberId, 'assistant', MEETING_BOOKING_REPLY, {
+          action: 'book_meeting',
+          state: 'booking',
+        });
+        await updateLeadConversationState(leadUuid, 'booking');
+        await recordFunnelEvent(leadUuid, 'meeting_offered', { trigger: 'frustration' });
+        if (eventId) await updateManyChatEventStatus(eventId, 'done');
+        return dynamicBlockResponse(
+          leadUuid,
+          buildBookingMessages(leadUuid, MEETING_BOOKING_REPLY),
+        );
+      }
+
+      if (frustrationAction === 'human_handoff') {
+        const reply = await handleHandoff(leadUuid, subscriberId, 'meta_frustration', history);
+        await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+          action: 'human_handoff',
+          state: 'escalated',
+        });
+        await updateLeadConversationState(leadUuid, 'escalated');
+        if (eventId) await updateManyChatEventStatus(eventId, 'done');
+        return dynamicBlockResponse(leadUuid, [{ type: 'text', text: reply }]);
+      }
+
+      const objectionLoops = await countObjectionLoops(leadUuid);
+      if (objectionLoops >= 2 && currentState === 'objection') {
+        const followupReply = 'מבינה. אם תרצי בעוד כמה שבועות — אני פה :)';
+        await saveMessage(leadUuid, subscriberId, 'assistant', followupReply, {
+          action: 'request_followup',
+          state: 'irrelevant',
+        });
+        await updateLeadConversationState(leadUuid, 'irrelevant');
+        if (eventId) await updateManyChatEventStatus(eventId, 'done');
+        return dynamicBlockResponse(leadUuid, [{ type: 'text', text: followupReply }]);
+      }
+
+      const agentOutput = await runSalesAgent({
+        history,
+        newMessage: userMessage,
+        currentState,
+        conversationContext,
+      });
+
       if (agentOutput.action === 'mark_spam') {
         await saveMessage(leadUuid, subscriberId, 'assistant', agentOutput.reply, {
           action: 'mark_spam',
@@ -161,7 +262,51 @@ export async function POST(request: NextRequest) {
         return dynamicBlockResponse(leadUuid, [{ type: 'text', text: agentOutput.reply }]);
       }
 
-      // 5. Save agent reply (with token usage if available)
+      if (agentOutput.action === 'mark_irrelevant') {
+        await saveMessage(leadUuid, subscriberId, 'assistant', agentOutput.reply, {
+          action: 'mark_irrelevant',
+          state: 'irrelevant',
+        });
+        await updateLeadConversationState(leadUuid, 'irrelevant');
+        if (eventId) await updateManyChatEventStatus(eventId, 'done');
+        return dynamicBlockResponse(leadUuid, [{ type: 'text', text: agentOutput.reply }]);
+      }
+
+      if (agentOutput.action === 'human_handoff') {
+        const reply = await handleHandoff(
+          leadUuid,
+          subscriberId,
+          'agent_decision',
+          history,
+        );
+        const finalReply = agentOutput.reply.trim() || reply;
+        await saveMessage(leadUuid, subscriberId, 'assistant', finalReply, {
+          action: 'human_handoff',
+          state: 'escalated',
+        });
+        await updateLeadConversationState(leadUuid, 'escalated');
+        if (eventId) await updateManyChatEventStatus(eventId, 'done');
+        return dynamicBlockResponse(leadUuid, [{ type: 'text', text: finalReply }]);
+      }
+
+      if (agentOutput.action === 'request_followup') {
+        const reply = agentOutput.reply.trim() || 'מעולה, אחזור אלייך כשיהיה נכון יותר :)';
+        await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+          action: 'request_followup',
+          state: agentOutput.state,
+        });
+        await updateLeadConversationState(
+          leadUuid,
+          agentOutput.state,
+          Object.keys(agentOutput.extracted_facts).length > 0
+            ? (agentOutput.extracted_facts as Record<string, unknown>)
+            : undefined,
+        );
+        await scheduleFollowup(leadUuid);
+        if (eventId) await updateManyChatEventStatus(eventId, 'done');
+        return dynamicBlockResponse(leadUuid, [{ type: 'text', text: reply }]);
+      }
+
       await saveMessage(leadUuid, subscriberId, 'assistant', agentOutput.reply, {
         action: agentOutput.action,
         state: agentOutput.state,
@@ -173,7 +318,6 @@ export async function POST(request: NextRequest) {
         }),
       });
 
-      // 6. Update conversation state on the lead row (best-effort)
       await updateLeadConversationState(
         leadUuid,
         agentOutput.state,
@@ -182,25 +326,60 @@ export async function POST(request: NextRequest) {
           : undefined,
       );
 
-      // 7. Build Dynamic Block messages
-      const blockMessages: Array<{ type: 'text'; text: string }> = [
-        { type: 'text', text: agentOutput.reply },
-      ];
-
       if (agentOutput.action === 'book_meeting') {
-        const bookingUrl = process.env.CALCOM_BOOKING_URL;
-        if (bookingUrl) {
-          blockMessages.push({ type: 'text', text: `לקביעת פגישת האפיון עם הדר: ${bookingUrl}` });
-        }
+        await recordFunnelEvent(leadUuid, 'meeting_offered', { trigger: 'agent' });
+        if (eventId) await updateManyChatEventStatus(eventId, 'done');
+        return dynamicBlockResponse(
+          leadUuid,
+          buildBookingMessages(leadUuid, agentOutput.reply),
+        );
       }
 
       if (eventId) await updateManyChatEventStatus(eventId, 'done');
-      return dynamicBlockResponse(leadUuid, blockMessages);
+      return dynamicBlockResponse(leadUuid, [{ type: 'text', text: agentOutput.reply }]);
+    }
+
+    case 'questionnaire_completed': {
+      await runQuizIntakeAgent({ leadUuid });
+      await recordFunnelEvent(leadUuid, 'quiz_completed');
+      if (eventId) await updateManyChatEventStatus(eventId, 'done');
+      return ackResponse(leadUuid, eventType);
     }
 
     default:
-      // Unknown event types are saved (step 6) and ACKed without side effects.
-      console.log('[ManyChat Webhook] Unknown event_type, saved and ACKed:', eventType);
       return ackResponse(leadUuid, eventType);
   }
+}
+
+async function scheduleFollowup(leadUuid: string): Promise<void> {
+  const supabase = createServiceRoleClient();
+  const remindAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const { error } = await supabase.from('pending_followups').upsert(
+    {
+      lead_uuid: leadUuid,
+      remind_at: remindAt.toISOString(),
+      reminder_sent: false,
+      closed_at: null,
+    },
+    { onConflict: 'lead_uuid' },
+  );
+  if (error) {
+    console.warn('[webhook] scheduleFollowup failed (non-fatal):', error.message);
+  }
+}
+
+async function countObjectionLoops(leadUuid: string): Promise<number> {
+  const { createServiceRoleClient } = await import('@/lib/supabase/server');
+  const supabase = createServiceRoleClient();
+  const { data } = await supabase
+    .from('conversation_messages')
+    .select('metadata')
+    .eq('lead_uuid', leadUuid)
+    .eq('role', 'assistant')
+    .order('created_at', { ascending: true });
+
+  return (data ?? []).filter((m) => {
+    const state = (m.metadata as Record<string, unknown> | null)?.state;
+    return state === 'objection';
+  }).length;
 }

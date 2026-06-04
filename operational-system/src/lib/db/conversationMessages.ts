@@ -52,6 +52,28 @@ export async function getConversationHistory(
   return (data ?? []) as ConversationMessage[];
 }
 
+export async function getLeadConversationContext(
+  leadUuid: string,
+): Promise<Record<string, unknown>> {
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from('leads')
+    .select('conversation_context')
+    .eq('id', leadUuid)
+    .maybeSingle();
+
+  if (error) {
+    console.warn('[conversationMessages] getLeadConversationContext failed:', error.message);
+    return {};
+  }
+
+  const ctx = data?.conversation_context;
+  if (ctx && typeof ctx === 'object' && !Array.isArray(ctx)) {
+    return ctx as Record<string, unknown>;
+  }
+  return {};
+}
+
 export async function getLeadConversationState(leadUuid: string): Promise<string> {
   const supabase = createServiceRoleClient();
   const { data } = await supabase
@@ -92,10 +114,20 @@ export async function updateLeadConversationState(
   const update: Record<string, unknown> = { conversation_state: state };
 
   if (contextPatch && Object.keys(contextPatch).length > 0) {
-    // Merge patch into existing JSONB context using Postgres jsonb_strip_nulls trick via RPC
-    // For simplicity here we do a full overwrite of the patch keys.
-    // A future migration can use jsonb_set for atomic partial updates.
-    update.conversation_context = contextPatch;
+    const { data: existing } = await supabase
+      .from('leads')
+      .select('conversation_context')
+      .eq('id', leadUuid)
+      .maybeSingle();
+
+    const prev =
+      existing?.conversation_context &&
+      typeof existing.conversation_context === 'object' &&
+      !Array.isArray(existing.conversation_context)
+        ? (existing.conversation_context as Record<string, unknown>)
+        : {};
+
+    update.conversation_context = { ...prev, ...contextPatch };
   }
 
   const { error } = await supabase

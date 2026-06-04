@@ -11,8 +11,8 @@ const LOCKED_FORMAT_SECTION = `
 ענִי תמיד ב-JSON בלבד, ללא טקסט לפני או אחרי, בפורמט הבא:
 {
   "reply": "הטקסט שישלח לליד",
-  "action": "continue | book_meeting | mark_irrelevant | request_followup | mark_spam",
-  "state": "initial | discovery | qualifying | pitching | objection | booking | closed | irrelevant",
+  "action": "continue | book_meeting | mark_irrelevant | request_followup | mark_spam | human_handoff",
+  "state": "initial | discovery | qualifying | pitching | objection | booking | closed | irrelevant | spam | escalated",
   "extracted_facts": {
     "pain_category": "תיאור הכאב המרכזי אם זוהה",
     "business_type": "סוג העסק אם זוהה",
