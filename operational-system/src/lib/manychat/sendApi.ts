@@ -145,7 +145,9 @@ export async function pushManyChatReply(
     console.warn('[ManyChatSendApi] pushManyChatReply: setCustomField(lead_uuid) failed (non-fatal):', uuidResult.error);
   }
 
-  // Step 3: send the message(s) to WhatsApp
+  // Step 3: send the message(s) to WhatsApp.
+  // No message_tag: within the 24h window (user just messaged) WhatsApp does not
+  // require a tag, and ACCOUNT_UPDATE is a Messenger-only tag that WhatsApp rejects.
   const body = {
     subscriber_id: subscriberId,
     data: {
@@ -154,7 +156,6 @@ export async function pushManyChatReply(
         messages: filtered,
       },
     },
-    message_tag: 'ACCOUNT_UPDATE',
   };
 
   let response: Response;
