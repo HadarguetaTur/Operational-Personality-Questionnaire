@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { waitUntil } from '@vercel/functions';
+
+// Allow up to 5 minutes so waitUntil background tasks (LLM + ManyChat push) are not killed.
+// Requires Vercel Pro or higher; on Hobby this is capped at 10s regardless.
+export const maxDuration = 300;
 import { verifyWebhookSecret } from '@/lib/manychat/verifyWebhookSecret';
 import { saveManyChatEvent, updateManyChatEventStatus } from '@/lib/events/saveManyChatEvent';
 import {
