@@ -112,6 +112,83 @@ export async function setManyChatCustomField(
 }
 
 /**
+ * Pushes a completed reply to a ManyChat subscriber via the Send API.
+ *
+ * Performs three operations in sequence:
+ * 1. Sets the `response` custom field (for logs / ManyChat history).
+ * 2. Sets the `lead_uuid` custom field (preserves conversation continuity when
+ *    the UUID was server-generated and cannot be returned via Dynamic Block).
+ * 3. Sends the full messages array via sendContent with message_tag ACCOUNT_UPDATE.
+ *
+ * Called from the async background task after the LLM has produced its reply.
+ */
+export async function pushManyChatReply(
+  subscriberId: string,
+  messages: Array<{ type: 'text'; text: string }>,
+  leadUuid: string,
+): Promise<{ success: boolean; error?: string }> {
+  const token = getApiToken();
+  const filtered = messages.filter((m) => m.text.trim().length > 0);
+  if (filtered.length === 0) {
+    return { success: false, error: 'No non-empty messages to push' };
+  }
+
+  // Step 1: set `response` field to the first message text
+  const fieldResult = await setManyChatCustomField(subscriberId, 'response', filtered[0].text);
+  if (!fieldResult.success) {
+    console.warn('[ManyChatSendApi] pushManyChatReply: setCustomField(response) failed (non-fatal):', fieldResult.error);
+  }
+
+  // Step 2: set `lead_uuid` field so ManyChat remembers the server-generated UUID
+  const uuidResult = await setManyChatCustomField(subscriberId, 'lead_uuid', leadUuid);
+  if (!uuidResult.success) {
+    console.warn('[ManyChatSendApi] pushManyChatReply: setCustomField(lead_uuid) failed (non-fatal):', uuidResult.error);
+  }
+
+  // Step 3: send the message(s) to WhatsApp
+  const body = {
+    subscriber_id: subscriberId,
+    data: {
+      version: 'v2',
+      content: {
+        messages: filtered,
+      },
+    },
+    message_tag: 'ACCOUNT_UPDATE',
+  };
+
+  let response: Response;
+  try {
+    response = await fetch(`${MANYCHAT_API_BASE}/fb/sending/sendContent`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Network error';
+    console.error('[ManyChatSendApi] pushManyChatReply sendContent fetch failed:', msg);
+    return { success: false, error: msg };
+  }
+
+  if (!response.ok) {
+    const responseText = await response.text().catch(() => '(unreadable)');
+    console.error('[ManyChatSendApi] pushManyChatReply sendContent HTTP error:', response.status, responseText);
+    return { success: false, error: `HTTP ${response.status}: ${responseText}` };
+  }
+
+  const json = await response.json().catch(() => null);
+  if (json?.status !== 'success') {
+    console.error('[ManyChatSendApi] pushManyChatReply sendContent non-success response:', json);
+    return { success: false, error: `ManyChat status: ${json?.status ?? 'unknown'}` };
+  }
+
+  return { success: true };
+}
+
+/**
  * Adds a tag to a ManyChat subscriber by tag name.
  * Phase 0: defined for completeness — not yet called by the webhook route.
  *
