@@ -204,22 +204,33 @@ async function processLeadMessage(
   userMessage: string,
   eventId: string | null,
 ): Promise<void> {
-  const push = async (messages: Array<{ type: 'text'; text: string }>) => {
+  // push() sends the reply via ManyChat Send API and returns the result.
+  // finalize() calls push() then writes the outcome to manychat_events.process_error
+  // so it is visible in Supabase Table Editor regardless of Vercel log availability.
+  const push = async (
+    messages: Array<{ type: 'text'; text: string }>,
+  ): Promise<{ success: boolean; error?: string }> => {
     if (!subscriberId) {
       console.warn('[ManyChat Webhook] push: no subscriberId — cannot push reply', { leadUuid });
-      return;
+      return { success: false, error: 'no_subscriber_id' };
     }
-    console.log('[ManyChat Webhook] push: calling pushManyChatReply', {
-      subscriberId,
-      leadUuid,
-      messageCount: messages.length,
-      preview: messages[0]?.text?.slice(0, 80),
-    });
     const result = await pushManyChatReply(subscriberId, messages, leadUuid);
     if (!result.success) {
       console.error('[ManyChat Webhook] push: pushManyChatReply failed:', result.error);
-    } else {
-      console.log('[ManyChat Webhook] push: pushManyChatReply succeeded');
+    }
+    return result;
+  };
+
+  const finalize = async (messages: Array<{ type: 'text'; text: string }>) => {
+    const r = await push(messages);
+    if (eventId) {
+      // Write push result to process_error for observability via Supabase Table Editor.
+      // On success: "push_ok" / On failure: the exact error from ManyChat API.
+      await updateManyChatEventStatus(
+        eventId,
+        r.success ? 'done' : 'error',
+        r.success ? 'push_ok' : `push_failed: ${r.error ?? 'unknown'}`,
+      );
     }
   };
 
@@ -236,8 +247,7 @@ async function processLeadMessage(
         state: 'escalated',
       });
       await updateLeadConversationState(leadUuid, 'escalated');
-      if (eventId) await updateManyChatEventStatus(eventId, 'done');
-      await push([{ type: 'text', text: escalationReply }]);
+      await finalize([{ type: 'text', text: escalationReply }]);
       return;
     }
 
@@ -254,8 +264,7 @@ async function processLeadMessage(
         state: 'irrelevant',
       });
       await updateLeadConversationState(leadUuid, 'irrelevant');
-      if (eventId) await updateManyChatEventStatus(eventId, 'done');
-      await push([{ type: 'text', text: AUDIENCE_DISQUALIFY_REPLY }]);
+      await finalize([{ type: 'text', text: AUDIENCE_DISQUALIFY_REPLY }]);
       return;
     }
 
@@ -267,8 +276,7 @@ async function processLeadMessage(
       });
       await updateLeadConversationState(leadUuid, 'booking');
       await recordFunnelEvent(leadUuid, 'meeting_offered', { trigger: 'regex' });
-      if (eventId) await updateManyChatEventStatus(eventId, 'done');
-      await push(buildBookingMessages(leadUuid, MEETING_BOOKING_REPLY));
+      await finalize(buildBookingMessages(leadUuid, MEETING_BOOKING_REPLY));
       return;
     }
 
@@ -281,8 +289,7 @@ async function processLeadMessage(
       });
       await updateLeadConversationState(leadUuid, 'booking');
       await recordFunnelEvent(leadUuid, 'meeting_offered', { trigger: 'frustration' });
-      if (eventId) await updateManyChatEventStatus(eventId, 'done');
-      await push(buildBookingMessages(leadUuid, MEETING_BOOKING_REPLY));
+      await finalize(buildBookingMessages(leadUuid, MEETING_BOOKING_REPLY));
       return;
     }
 
@@ -293,8 +300,7 @@ async function processLeadMessage(
         state: 'escalated',
       });
       await updateLeadConversationState(leadUuid, 'escalated');
-      if (eventId) await updateManyChatEventStatus(eventId, 'done');
-      await push([{ type: 'text', text: reply }]);
+      await finalize([{ type: 'text', text: reply }]);
       return;
     }
 
@@ -306,8 +312,7 @@ async function processLeadMessage(
         state: 'irrelevant',
       });
       await updateLeadConversationState(leadUuid, 'irrelevant');
-      if (eventId) await updateManyChatEventStatus(eventId, 'done');
-      await push([{ type: 'text', text: followupReply }]);
+      await finalize([{ type: 'text', text: followupReply }]);
       return;
     }
 
@@ -324,8 +329,7 @@ async function processLeadMessage(
         state: 'spam',
       });
       await updateLeadConversationState(leadUuid, 'spam');
-      if (eventId) await updateManyChatEventStatus(eventId, 'done');
-      await push([{ type: 'text', text: agentOutput.reply }]);
+      await finalize([{ type: 'text', text: agentOutput.reply }]);
       return;
     }
 
@@ -335,8 +339,7 @@ async function processLeadMessage(
         state: 'irrelevant',
       });
       await updateLeadConversationState(leadUuid, 'irrelevant');
-      if (eventId) await updateManyChatEventStatus(eventId, 'done');
-      await push([{ type: 'text', text: agentOutput.reply }]);
+      await finalize([{ type: 'text', text: agentOutput.reply }]);
       return;
     }
 
@@ -348,8 +351,7 @@ async function processLeadMessage(
         state: 'escalated',
       });
       await updateLeadConversationState(leadUuid, 'escalated');
-      if (eventId) await updateManyChatEventStatus(eventId, 'done');
-      await push([{ type: 'text', text: finalReply }]);
+      await finalize([{ type: 'text', text: finalReply }]);
       return;
     }
 
@@ -367,8 +369,7 @@ async function processLeadMessage(
           : undefined,
       );
       await scheduleFollowup(leadUuid);
-      if (eventId) await updateManyChatEventStatus(eventId, 'done');
-      await push([{ type: 'text', text: reply }]);
+      await finalize([{ type: 'text', text: reply }]);
       return;
     }
 
@@ -393,13 +394,11 @@ async function processLeadMessage(
 
     if (agentOutput.action === 'book_meeting') {
       await recordFunnelEvent(leadUuid, 'meeting_offered', { trigger: 'agent' });
-      if (eventId) await updateManyChatEventStatus(eventId, 'done');
-      await push(buildBookingMessages(leadUuid, agentOutput.reply));
+      await finalize(buildBookingMessages(leadUuid, agentOutput.reply));
       return;
     }
 
-    if (eventId) await updateManyChatEventStatus(eventId, 'done');
-    await push([{ type: 'text', text: agentOutput.reply }]);
+    await finalize([{ type: 'text', text: agentOutput.reply }]);
   } catch (err) {
     console.error('[ManyChat Webhook] processLeadMessage unhandled error:', err);
     if (eventId) await updateManyChatEventStatus(eventId, 'error', String(err)).catch(() => {});
