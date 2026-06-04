@@ -198,7 +198,7 @@ async function processLeadMessage(
   leadUuid: string,
   subscriberId: string | undefined,
   userMessage: string,
-  eventId: number | undefined,
+  eventId: string | null,
 ): Promise<void> {
   const push = async (messages: Array<{ type: 'text'; text: string }>) => {
     if (!subscriberId) {
