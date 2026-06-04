@@ -45,13 +45,17 @@ function dynamicBlockResponse(
   leadUuid: string,
   messages: Array<{ type: 'text'; text: string }>,
 ): NextResponse {
+  const filtered = messages.filter((m) => m.text.trim().length > 0);
   const block: ManyChatDynamicBlockResponse = {
     version: 'v2',
     content: {
-      messages: messages.filter((m) => m.text.trim().length > 0),
+      messages: filtered,
       actions: [{ action: 'set_field_value', field_name: 'lead_uuid', value: leadUuid }],
     },
   };
+  // #region agent log
+  fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'06149a'},body:JSON.stringify({sessionId:'06149a',location:'webhook/route.ts:dynamicBlockResponse',message:'block sent',data:{messageCount:filtered.length,messages:filtered.map(m=>({len:m.text.length,preview:m.text.slice(0,80)})),fullBlock:JSON.stringify(block).slice(0,400)},timestamp:Date.now(),hypothesisId:'H-B'})}).catch(()=>{});
+  // #endregion
   return NextResponse.json(block);
 }
 
@@ -61,6 +65,9 @@ function buildBookingMessages(
 ): Array<{ type: 'text'; text: string }> {
   const messages: Array<{ type: 'text'; text: string }> = [{ type: 'text', text: reply }];
   const bookingUrl = process.env.CALCOM_BOOKING_URL?.trim();
+  // #region agent log
+  fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'06149a'},body:JSON.stringify({sessionId:'06149a',location:'webhook/route.ts:buildBookingMessages',message:'booking url check',data:{bookingUrl:bookingUrl??'UNDEFINED',envKeys:Object.keys(process.env).filter(k=>k.includes('CAL')||k.includes('BOOKING')),reply},timestamp:Date.now(),hypothesisId:'H-A'})}).catch(()=>{});
+  // #endregion
   if (bookingUrl) {
     messages.push({
       type: 'text',
