@@ -145,6 +145,17 @@ export async function pushManyChatReply(
     console.warn('[ManyChatSendApi] pushManyChatReply: setCustomField(lead_uuid) failed (non-fatal):', uuidResult.error);
   }
 
+  // #region agent log — H-C: fetch subscriber channel info to see which channels are active
+  try {
+    const infoRes = await fetch(`${MANYCHAT_API_BASE}/fb/subscriber/getInfo?subscriber_id=${subscriberId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const infoText = await infoRes.text().catch(() => '(unreadable)');
+    fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ca65b'},body:JSON.stringify({sessionId:'0ca65b',location:'sendApi.ts:getInfo',message:'subscriber channel info',data:{httpStatus:infoRes.status,infoText:infoText.slice(0,600)},timestamp:Date.now(),hypothesisId:'H-C'})}).catch(()=>{});
+    console.log('[ManyChatSendApi] subscriber getInfo:', infoRes.status, infoText.slice(0, 400));
+  } catch(e) { console.warn('[ManyChatSendApi] getInfo failed', e); }
+  // #endregion
+
   // Step 3: send the message(s) to WhatsApp.
   // No message_tag: within the 24h window (user just messaged) WhatsApp does not
   // require a tag, and ACCOUNT_UPDATE is a Messenger-only tag that WhatsApp rejects.
@@ -186,7 +197,15 @@ export async function pushManyChatReply(
 
   if (!response.ok) {
     console.error('[ManyChatSendApi] pushManyChatReply sendContent HTTP error:', response.status, responseText);
-    return { success: false, error: `HTTP ${response.status}: ${responseText}` };
+    // Include channel info in error so it surfaces in manychat_events.process_error via finalize().
+    let channelHint = '';
+    try {
+      const infoRes2 = await fetch(`${MANYCHAT_API_BASE}/fb/subscriber/getInfo?subscriber_id=${subscriberId}`, { headers: { Authorization: `Bearer ${token}` } });
+      const infoJson = await infoRes2.json().catch(() => null);
+      const channels = infoJson?.data?.channels_info ?? infoJson?.data ?? null;
+      channelHint = ` | channels:${JSON.stringify(channels).slice(0, 200)}`;
+    } catch { /* non-fatal */ }
+    return { success: false, error: `HTTP ${response.status}: ${responseText}${channelHint}` };
   }
 
   const json = (() => { try { return JSON.parse(responseText); } catch { return null; } })();
