@@ -158,6 +158,10 @@ export async function pushManyChatReply(
     },
   };
 
+  // #region agent log
+  fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ca65b'},body:JSON.stringify({sessionId:'0ca65b',location:'sendApi.ts:pushManyChatReply-beforeSend',message:'sendContent request body',data:{subscriberId,subscriberIdType:typeof subscriberId,subscriberIdLen:String(subscriberId).length,bodyJson:JSON.stringify(body)},timestamp:Date.now(),hypothesisId:'H-A,H-B'})}).catch(()=>{});
+  // #endregion
+
   let response: Response;
   try {
     response = await fetch(`${MANYCHAT_API_BASE}/fb/sending/sendContent`, {
@@ -174,16 +178,21 @@ export async function pushManyChatReply(
     return { success: false, error: msg };
   }
 
+  const responseText = await response.text().catch(() => '(unreadable)');
+
+  // #region agent log
+  fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ca65b'},body:JSON.stringify({sessionId:'0ca65b',location:'sendApi.ts:pushManyChatReply-afterSend',message:'sendContent response',data:{httpStatus:response.status,responseText:responseText.slice(0,300),subscriberId},timestamp:Date.now(),hypothesisId:'H-B,H-C,H-E'})}).catch(()=>{});
+  // #endregion
+
   if (!response.ok) {
-    const responseText = await response.text().catch(() => '(unreadable)');
     console.error('[ManyChatSendApi] pushManyChatReply sendContent HTTP error:', response.status, responseText);
     return { success: false, error: `HTTP ${response.status}: ${responseText}` };
   }
 
-  const json = await response.json().catch(() => null);
+  const json = (() => { try { return JSON.parse(responseText); } catch { return null; } })();
   if (json?.status !== 'success') {
     console.error('[ManyChatSendApi] pushManyChatReply sendContent non-success response:', json);
-    return { success: false, error: `ManyChat status: ${json?.status ?? 'unknown'}` };
+    return { success: false, error: `HTTP ${response.status}: ${responseText}` };
   }
 
   return { success: true };
