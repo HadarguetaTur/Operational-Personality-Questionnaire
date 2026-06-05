@@ -168,26 +168,28 @@ export async function pushManyChatReply(
   } catch(e) { console.warn('[ManyChatSendApi] getInfo failed', e); }
   // #endregion
 
-  // Step 3: send the message(s) to WhatsApp.
-  // No message_tag: within the 24h window (user just messaged) WhatsApp does not
-  // require a tag, and ACCOUNT_UPDATE is a Messenger-only tag that WhatsApp rejects.
+  // Step 3: send via ManyChat flow trigger.
+  // sendContent API fails with error 3011 (24h window) for native WhatsApp subscribers
+  // because the API-level window check doesn't recognise the active conversation context.
+  // Instead: set the `response` field (done above) and trigger a dedicated ManyChat flow
+  // ("Bot Reply Sender") that contains a single "Send WhatsApp Message: {{response}}" step.
+  // ManyChat flow sends bypass the API-level window restriction.
+  const flowNs = process.env.MANYCHAT_SEND_FLOW_NS?.trim();
+  if (!flowNs) {
+    return { success: false, error: 'MANYCHAT_SEND_FLOW_NS env var not set' };
+  }
   const body = {
     subscriber_id: subscriberId,
-    data: {
-      version: 'v2',
-      content: {
-        messages: filtered,
-      },
-    },
+    flow_ns: flowNs,
   };
 
   // #region agent log
-  fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ca65b'},body:JSON.stringify({sessionId:'0ca65b',location:'sendApi.ts:pushManyChatReply-beforeSend',message:'sendContent request body',data:{subscriberId,subscriberIdType:typeof subscriberId,subscriberIdLen:String(subscriberId).length,bodyJson:JSON.stringify(body)},timestamp:Date.now(),hypothesisId:'H-A,H-B'})}).catch(()=>{});
+  fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ca65b'},body:JSON.stringify({sessionId:'0ca65b',location:'sendApi.ts:pushManyChatReply-beforeSend',message:'sendFlowToSubscriber request body',data:{subscriberId,subscriberIdType:typeof subscriberId,subscriberIdLen:String(subscriberId).length,bodyJson:JSON.stringify(body)},timestamp:Date.now(),hypothesisId:'H-G'})}).catch(()=>{});
   // #endregion
 
   let response: Response;
   try {
-    response = await fetch(`${MANYCHAT_API_BASE}/fb/sending/sendContent`, {
+    response = await fetch(`${MANYCHAT_API_BASE}/fb/sending/sendFlowToSubscriber`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
