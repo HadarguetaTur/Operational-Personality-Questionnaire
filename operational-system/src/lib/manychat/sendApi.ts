@@ -145,14 +145,26 @@ export async function pushManyChatReply(
     console.warn('[ManyChatSendApi] pushManyChatReply: setCustomField(lead_uuid) failed (non-fatal):', uuidResult.error);
   }
 
-  // #region agent log — H-C: fetch subscriber channel info to see which channels are active
+  // #region agent log — H-C: fetch full subscriber info to find WhatsApp channel
+  let subscriberInfoForError = '';
   try {
     const infoRes = await fetch(`${MANYCHAT_API_BASE}/fb/subscriber/getInfo?subscriber_id=${subscriberId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    const infoText = await infoRes.text().catch(() => '(unreadable)');
-    fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ca65b'},body:JSON.stringify({sessionId:'0ca65b',location:'sendApi.ts:getInfo',message:'subscriber channel info',data:{httpStatus:infoRes.status,infoText:infoText.slice(0,600)},timestamp:Date.now(),hypothesisId:'H-C'})}).catch(()=>{});
-    console.log('[ManyChatSendApi] subscriber getInfo:', infoRes.status, infoText.slice(0, 400));
+    const infoJson = await infoRes.json().catch(() => null);
+    // Extract the fields most relevant to diagnosing channel/WhatsApp availability
+    const data = infoJson?.data ?? {};
+    const channelSummary = {
+      id: data.id,
+      page_id: data.page_id,
+      status: data.status,
+      whatsapp_phone: data.whatsapp_phone ?? data.phone ?? null,
+      channels: data.channels_info ?? data.channels ?? null,
+      last_interaction: data.last_interaction ?? null,
+      live_chat_url: data.live_chat_url ?? null,
+    };
+    subscriberInfoForError = JSON.stringify(channelSummary);
+    fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ca65b'},body:JSON.stringify({sessionId:'0ca65b',location:'sendApi.ts:getInfo',message:'subscriber channel summary',data:channelSummary,timestamp:Date.now(),hypothesisId:'H-C,H-F'})}).catch(()=>{});
   } catch(e) { console.warn('[ManyChatSendApi] getInfo failed', e); }
   // #endregion
 
@@ -199,12 +211,7 @@ export async function pushManyChatReply(
     console.error('[ManyChatSendApi] pushManyChatReply sendContent HTTP error:', response.status, responseText);
     // Include channel info in error so it surfaces in manychat_events.process_error via finalize().
     let channelHint = '';
-    try {
-      const infoRes2 = await fetch(`${MANYCHAT_API_BASE}/fb/subscriber/getInfo?subscriber_id=${subscriberId}`, { headers: { Authorization: `Bearer ${token}` } });
-      const infoJson = await infoRes2.json().catch(() => null);
-      const channels = infoJson?.data?.channels_info ?? infoJson?.data ?? null;
-      channelHint = ` | channels:${JSON.stringify(channels).slice(0, 200)}`;
-    } catch { /* non-fatal */ }
+    channelHint = ` | sub_info:${subscriberInfoForError.slice(0, 300)}`;
     return { success: false, error: `HTTP ${response.status}: ${responseText}${channelHint}` };
   }
 
