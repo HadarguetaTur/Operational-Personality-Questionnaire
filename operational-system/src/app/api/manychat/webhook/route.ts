@@ -234,7 +234,7 @@ async function processLeadMessage(
       // eventId is null — saveManyChatEvent failed. Write a dedicated debug record so
       // the push result is always visible in Supabase Table Editor (H-D verification).
       const supa = createServiceRoleClient();
-      await supa.from('manychat_events').insert({
+      const { error: debugErr } = await supa.from('manychat_events').insert({
         lead_uuid: leadUuid,
         subscriber_id: subscriberId ?? null,
         event_type: 'debug_push_result',
@@ -242,7 +242,8 @@ async function processLeadMessage(
         process_status: r.success ? 'done' : 'error',
         process_error: debugNote,
         received_at: new Date().toISOString(),
-      }).catch(err => console.error('[webhook] debug insert failed:', err instanceof Error ? err.message : err));
+      });
+      if (debugErr) console.error('[webhook] debug insert failed:', debugErr.message);
     }
     // #region agent log
     fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ca65b'},body:JSON.stringify({sessionId:'0ca65b',location:'route.ts:finalize',message:'finalize result',data:{pushSuccess:r.success,pushError:r.error??null,subscriberId:subscriberId??'MISSING',eventId:eventId??'NULL',debugNote},timestamp:Date.now(),hypothesisId:'H-A,H-D'})}).catch(()=>{});
