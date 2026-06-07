@@ -151,12 +151,16 @@ export async function runSalesAgent(input: {
   const currentState = input.currentState ?? 'initial';
 
   const stageFallback = getFallbackForState(currentState);
+  // In early stages, never repeat the same message — escalate to pitching fallback instead.
+  const EARLY_STAGES_SET = new Set(['initial', 'discovery', 'qualifying']);
   const FALLBACK_OUTPUT: AgentOutput = {
     reply: stageFallback.reply,
     action: 'continue',
     state: stageFallback.state,
     extracted_facts: {},
   };
+  // Pitching fallback used when discovery fallback would repeat previous reply.
+  const pitchingFallback = getFallbackForState('pitching');
 
   if (!apiKey) {
     console.error(`[salesAgent:${currentState}] OPENROUTER_API_KEY not configured`);
@@ -244,7 +248,12 @@ export async function runSalesAgent(input: {
       if (!validation.valid) {
         console.warn(`[salesAgent:${currentState}] Reply validation failed (attempt ${attempt + 1}):`, validation.reason);
         if (attempt < MAX_RETRIES) continue;
-        // All retries exhausted — return safe stage fallback instead of sending bad reply.
+        // All retries exhausted — choose fallback carefully to avoid repeating previous reply.
+        if (EARLY_STAGES_SET.has(currentState) && previousBotReply) {
+          // In early stages: advance to pitching rather than repeating discovery question.
+          console.warn(`[salesAgent:${currentState}] All retries failed — escalating to pitching fallback`);
+          return { ...pitchingFallback, action: 'continue', extracted_facts: {} };
+        }
         console.warn(`[salesAgent:${currentState}] All retries failed validation — using stage fallback`);
         return FALLBACK_OUTPUT;
       }

@@ -320,10 +320,21 @@ async function processLeadMessage(
       return;
     }
 
+    // Hard state escalation: after 3+ user messages still in early discovery → force pitching.
+    // Prevents the bot from asking the same discovery question indefinitely.
+    const EARLY_DISCOVERY_STATES = new Set(['initial', 'discovery', 'qualifying']);
+    const effectiveState =
+      userMsgCount >= 3 && EARLY_DISCOVERY_STATES.has(currentState ?? 'initial')
+        ? 'pitching'
+        : (currentState ?? 'initial');
+    if (effectiveState !== currentState) {
+      console.log(`[ManyChat Webhook] Forcing state from '${currentState}' → 'pitching' at userMsgCount=${userMsgCount}`);
+    }
+
     // Meeting nudge: if 6+ user messages and meeting not yet offered, push the agent to offer now.
     const MEETING_OFFERED_STATES = new Set(['booking', 'closed', 'escalated', 'irrelevant', 'spam']);
     const needsMeetingNudge =
-      userMsgCount >= 6 && !MEETING_OFFERED_STATES.has(currentState ?? '');
+      userMsgCount >= 6 && !MEETING_OFFERED_STATES.has(effectiveState);
     const enrichedContext: Record<string, unknown> = {
       ...((conversationContext as Record<string, unknown>) ?? {}),
       ...(needsMeetingNudge
@@ -334,7 +345,7 @@ async function processLeadMessage(
     const agentOutput = await runSalesAgent({
       history,
       newMessage: userMessage,
-      currentState,
+      currentState: effectiveState,
       conversationContext: enrichedContext,
     });
 
