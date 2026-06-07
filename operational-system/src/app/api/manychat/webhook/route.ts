@@ -59,9 +59,6 @@ function dynamicBlockResponse(
       actions: [{ action: 'set_field_value', field_name: 'lead_uuid', value: leadUuid }],
     },
   };
-  // #region agent log
-  fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'06149a'},body:JSON.stringify({sessionId:'06149a',location:'webhook/route.ts:dynamicBlockResponse',message:'block sent',data:{messageCount:filtered.length,messages:filtered.map(m=>({len:m.text.length,preview:m.text.slice(0,80)})),fullBlock:JSON.stringify(block).slice(0,400)},timestamp:Date.now(),hypothesisId:'H-B'})}).catch(()=>{});
-  // #endregion
   return NextResponse.json(block);
 }
 
@@ -71,9 +68,6 @@ function buildBookingMessages(
 ): Array<{ type: 'text'; text: string }> {
   const messages: Array<{ type: 'text'; text: string }> = [{ type: 'text', text: reply }];
   const bookingUrl = process.env.CALCOM_BOOKING_URL?.trim();
-  // #region agent log
-  fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'06149a'},body:JSON.stringify({sessionId:'06149a',location:'webhook/route.ts:buildBookingMessages',message:'booking url check',data:{bookingUrl:bookingUrl??'UNDEFINED',envKeys:Object.keys(process.env).filter(k=>k.includes('CAL')||k.includes('BOOKING')),reply},timestamp:Date.now(),hypothesisId:'H-A'})}).catch(()=>{});
-  // #endregion
   if (bookingUrl) {
     messages.push({
       type: 'text',
@@ -143,10 +137,6 @@ export async function POST(request: NextRequest) {
     console.error('[ManyChat Webhook] Supabase insert failed, ACKing anyway:', saveError);
   }
 
-  // #region agent log
-  fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ca65b'},body:JSON.stringify({sessionId:'0ca65b',location:'route.ts:POST-saveEvent',message:'saveManyChatEvent result',data:{eventId:eventId??'NULL',saveError:saveError??null,rawSubscriberId:payload.subscriber_id,rawSubType:typeof payload.subscriber_id,eventType},timestamp:Date.now(),hypothesisId:'H-D'})}).catch(()=>{});
-  // #endregion
-
   switch (eventType) {
     case 'test_connection':
       if (eventId) await updateManyChatEventStatus(eventId, 'done');
@@ -172,10 +162,6 @@ export async function POST(request: NextRequest) {
           : typeof rawSubscriberId === 'number' && rawSubscriberId
             ? String(rawSubscriberId)
             : undefined;
-
-      // #region agent log
-      fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ca65b'},body:JSON.stringify({sessionId:'0ca65b',location:'route.ts:lead_message',message:'subscriber_id extraction',data:{rawSubscriberId:String(rawSubscriberId??'undefined').slice(0,40),rawSubType:typeof rawSubscriberId,coercedSubscriberId:subscriberId??'undefined',eventId:eventId??'NULL'},timestamp:Date.now(),hypothesisId:'H-A,H-D'})}).catch(()=>{});
-      // #endregion
 
       if (!userMessage) {
         if (eventId) await updateManyChatEventStatus(eventId, 'error', 'empty message');
@@ -245,9 +231,6 @@ async function processLeadMessage(
       });
       if (debugErr) console.error('[webhook] debug insert failed:', debugErr.message);
     }
-    // #region agent log
-    fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ca65b'},body:JSON.stringify({sessionId:'0ca65b',location:'route.ts:finalize',message:'finalize result',data:{pushSuccess:r.success,pushError:r.error??null,subscriberId:subscriberId??'MISSING',eventId:eventId??'NULL',debugNote},timestamp:Date.now(),hypothesisId:'H-A,H-D'})}).catch(()=>{});
-    // #endregion
   };
 
   try {

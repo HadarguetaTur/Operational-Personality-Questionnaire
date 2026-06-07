@@ -145,29 +145,6 @@ export async function pushManyChatReply(
     console.warn('[ManyChatSendApi] pushManyChatReply: setCustomField(lead_uuid) failed (non-fatal):', uuidResult.error);
   }
 
-  // #region agent log — H-C: fetch full subscriber info to find WhatsApp channel
-  let subscriberInfoForError = '';
-  try {
-    const infoRes = await fetch(`${MANYCHAT_API_BASE}/fb/subscriber/getInfo?subscriber_id=${subscriberId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const infoJson = await infoRes.json().catch(() => null);
-    // Extract the fields most relevant to diagnosing channel/WhatsApp availability
-    const data = infoJson?.data ?? {};
-    const channelSummary = {
-      id: data.id,
-      page_id: data.page_id,
-      status: data.status,
-      whatsapp_phone: data.whatsapp_phone ?? data.phone ?? null,
-      channels: data.channels_info ?? data.channels ?? null,
-      last_interaction: data.last_interaction ?? null,
-      live_chat_url: data.live_chat_url ?? null,
-    };
-    subscriberInfoForError = JSON.stringify(channelSummary);
-    fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ca65b'},body:JSON.stringify({sessionId:'0ca65b',location:'sendApi.ts:getInfo',message:'subscriber channel summary',data:channelSummary,timestamp:Date.now(),hypothesisId:'H-C,H-F'})}).catch(()=>{});
-  } catch(e) { console.warn('[ManyChatSendApi] getInfo failed', e); }
-  // #endregion
-
   // Step 3: trigger the "Bot Reply Sender" flow via /fb/sending/sendFlow.
   // The flow contains a single WhatsApp Send Message step with {{response}}.
   // Using sendFlow instead of sendContent bypasses the 24h window check.
@@ -179,10 +156,6 @@ export async function pushManyChatReply(
     subscriber_id: subscriberId,
     flow_ns: flowNs,
   };
-
-  // #region agent log
-  fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ca65b'},body:JSON.stringify({sessionId:'0ca65b',location:'sendApi.ts:pushManyChatReply-beforeSend',message:'sendFlow request body',data:{subscriberId,flowNs,bodyJson:JSON.stringify(body)},timestamp:Date.now(),hypothesisId:'H-H'})}).catch(()=>{});
-  // #endregion
 
   let response: Response;
   try {
@@ -196,22 +169,15 @@ export async function pushManyChatReply(
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Network error';
-    console.error('[ManyChatSendApi] pushManyChatReply sendContent fetch failed:', msg);
+    console.error('[ManyChatSendApi] pushManyChatReply sendFlow fetch failed:', msg);
     return { success: false, error: msg };
   }
 
   const responseText = await response.text().catch(() => '(unreadable)');
 
-  // #region agent log
-  fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ca65b'},body:JSON.stringify({sessionId:'0ca65b',location:'sendApi.ts:pushManyChatReply-afterSend',message:'sendContent response',data:{httpStatus:response.status,responseText:responseText.slice(0,300),subscriberId},timestamp:Date.now(),hypothesisId:'H-B,H-C,H-E'})}).catch(()=>{});
-  // #endregion
-
   if (!response.ok) {
-    console.error('[ManyChatSendApi] pushManyChatReply sendContent HTTP error:', response.status, responseText);
-    // Include channel info in error so it surfaces in manychat_events.process_error via finalize().
-    let channelHint = '';
-    channelHint = ` | sub_info:${subscriberInfoForError.slice(0, 300)}`;
-    return { success: false, error: `HTTP ${response.status}: ${responseText}${channelHint}` };
+    console.error('[ManyChatSendApi] pushManyChatReply sendFlow HTTP error:', response.status, responseText);
+    return { success: false, error: `HTTP ${response.status}: ${responseText}` };
   }
 
   const json = (() => { try { return JSON.parse(responseText); } catch { return null; } })();
