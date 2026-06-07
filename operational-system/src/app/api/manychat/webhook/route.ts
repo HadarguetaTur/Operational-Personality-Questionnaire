@@ -163,8 +163,13 @@ export async function POST(request: NextRequest) {
             ? String(rawSubscriberId)
             : undefined;
 
-      if (!userMessage) {
-        if (eventId) await updateManyChatEventStatus(eventId, 'error', 'empty message');
+      // Reject unresolved ManyChat template variables (e.g. {{cuf_12345}}, {{last message text}}).
+      // This happens when the External Request is misconfigured and the variable wasn't substituted.
+      const UNRESOLVED_VAR = /^\{\{.+\}\}$/;
+      if (!userMessage || UNRESOLVED_VAR.test(userMessage)) {
+        const reason = !userMessage ? 'empty message' : `unresolved_variable: ${userMessage}`;
+        console.warn('[ManyChat Webhook] Rejected — message is an unresolved variable:', userMessage);
+        if (eventId) await updateManyChatEventStatus(eventId, 'error', reason);
         return ackResponse(leadUuid, eventType);
       }
 
