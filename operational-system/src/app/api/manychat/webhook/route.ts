@@ -329,6 +329,20 @@ async function processLeadMessage(
       return;
     }
 
+    // ── Fixed opening (first message — bypasses LLM for exact text) ────────
+    if (userMsgCount === 1) {
+      const FIXED_OPENING =
+        'היי אני העוזרת הדיגיטלית של הדר אוטומציות, אני כאן כדי שנבין ביחד האם הדר יכולה לעזור לך ובמידה כן- לקבוע פגישה. שנתחיל בכמה שאלות?';
+      await saveMessage(leadUuid, subscriberId, 'assistant', FIXED_OPENING, {
+        action: 'continue',
+        state: 'discovery',
+      });
+      await upsertBotState(leadUuid, 'discovery', {}, subscriberId);
+      await recordFunnelEvent(leadUuid, 'lead_arrived', { source: 'manychat', msg: 'opening_sent' });
+      await finalize([{ type: 'text', text: FIXED_OPENING }]);
+      return;
+    }
+
     // ── Pre-check: meeting intent — only fires in awaiting_confirmation ───────
     // In other states, meeting-intent detection is handled by the pipeline
     // (antiLoopGuard AL-1 is also state-aware). Bypassing the pipeline here

@@ -39,8 +39,14 @@ function parseWriterOutput(raw: string): AgentOutput | null {
       parsed.action = 'continue';
     }
 
+    // Strip stray { } wrappers the LLM sometimes adds around the reply text
+    const rawReply: string = parsed.reply;
+    const cleanReply = rawReply.trimStart().startsWith('{')
+      ? rawReply.trimStart().replace(/^\{/, '').replace(/\}$/, '').trim()
+      : rawReply;
+
     return {
-      reply: parsed.reply,
+      reply: cleanReply,
       action: parsed.action as AgentAction,
       state: typeof parsed.state === 'string' ? parsed.state : 'discovery',
       extracted_facts: parsed.extracted_facts ?? {},
