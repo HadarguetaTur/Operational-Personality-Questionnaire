@@ -5,6 +5,14 @@ export interface ConversationMessage {
   content: string;
 }
 
+export interface BotConversationState {
+  state: string;
+  context: Record<string, unknown>;
+  subscriber_id?: string;
+}
+
+// ─── conversation_messages helpers ────────────────────────────────────────────
+
 export async function saveMessage(
   leadUuid: string,
   subscriberId: string | undefined,
@@ -32,6 +40,12 @@ export async function saveMessage(
   return data.id;
 }
 
+/**
+ * Returns the most recent N messages in chronological order (oldest→newest).
+ *
+ * Fix: previously used ascending+limit which returned the FIRST N messages,
+ * making the LLM blind to everything said after the first few exchanges.
+ */
 export async function getConversationHistory(
   leadUuid: string,
   limit = 20,
@@ -42,51 +56,15 @@ export async function getConversationHistory(
     .select('role, content')
     .eq('lead_uuid', leadUuid)
     .in('role', ['user', 'assistant'])
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
     .limit(limit);
 
   if (error) {
     console.error('[conversationMessages] getConversationHistory failed:', error.message);
     return [];
   }
-  return (data ?? []) as ConversationMessage[];
-}
-
-export async function getLeadConversationContext(
-  leadUuid: string,
-): Promise<Record<string, unknown>> {
-  const supabase = createServiceRoleClient();
-  const { data, error } = await supabase
-    .from('leads')
-    .select('conversation_context')
-    .eq('id', leadUuid)
-    .maybeSingle();
-
-  if (error) {
-    console.warn('[conversationMessages] getLeadConversationContext failed:', error.message);
-    return {};
-  }
-
-  const ctx = data?.conversation_context;
-  if (ctx && typeof ctx === 'object' && !Array.isArray(ctx)) {
-    return ctx as Record<string, unknown>;
-  }
-  return {};
-}
-
-export async function getLeadConversationState(leadUuid: string): Promise<string> {
-  const supabase = createServiceRoleClient();
-  const { data } = await supabase
-    .from('conversation_messages')
-    .select('metadata')
-    .eq('lead_uuid', leadUuid)
-    .eq('role', 'assistant')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
-
-  const state = (data?.metadata as Record<string, unknown> | null)?.state;
-  return typeof state === 'string' ? state : 'initial';
+  // Reverse so messages are in chronological order for the LLM context window.
+  return ((data ?? []) as ConversationMessage[]).reverse();
 }
 
 export async function countUserMessagesForLead(leadUuid: string): Promise<number> {
@@ -106,7 +84,7 @@ export async function countUserMessagesForLead(leadUuid: string): Promise<number
 
 /**
  * Returns question sentences (ending with "?") from the most recent assistant
- * messages for a given lead. Used to seed `asked_questions` in conversation_context
+ * messages for a given lead. Used to seed `asked_questions` in context
  * for leads that existed before the memory system was introduced.
  */
 export async function getRecentBotQuestions(
@@ -140,40 +118,139 @@ export async function getRecentBotQuestions(
   return questions;
 }
 
+// ─── bot_conversation_state helpers ───────────────────────────────────────────
+// These are the PRIMARY source of truth for bot state and context.
+// Unlike the `leads` table, this table is keyed by lead_uuid only,
+// so ManyChat leads without a `leads` row are fully supported.
+
+/**
+ * Reads the bot state and context for a lead.
+ * Falls back to scanning conversation_messages metadata for the latest state
+ * if no row exists yet (graceful cold-start).
+ */
+export async function getBotState(leadUuid: string): Promise<BotConversationState> {
+  const supabase = createServiceRoleClient();
+
+  const { data, error } = await supabase
+    .from('bot_conversation_state')
+    .select('state, context, subscriber_id')
+    .eq('lead_uuid', leadUuid)
+    .maybeSingle();
+
+  if (error) {
+    console.warn('[conversationMessages] getBotState failed:', error.message);
+  }
+
+  if (data) {
+    return {
+      state: data.state ?? 'initial',
+      context:
+        data.context && typeof data.context === 'object' && !Array.isArray(data.context)
+          ? (data.context as Record<string, unknown>)
+          : {},
+      subscriber_id: data.subscriber_id ?? undefined,
+    };
+  }
+
+  // Cold-start: scan the last assistant message metadata for state.
+  const { data: lastMsg } = await supabase
+    .from('conversation_messages')
+    .select('metadata')
+    .eq('lead_uuid', leadUuid)
+    .eq('role', 'assistant')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const stateFromMsg =
+    typeof (lastMsg?.metadata as Record<string, unknown> | null)?.state === 'string'
+      ? ((lastMsg!.metadata as Record<string, unknown>).state as string)
+      : 'initial';
+
+  return { state: stateFromMsg, context: {} };
+}
+
+/**
+ * Upserts bot state and context for a lead.
+ * The context is merged with the existing context (patch semantics).
+ * Also best-effort updates the `leads` table for dashboard display.
+ */
+export async function upsertBotState(
+  leadUuid: string,
+  state: string,
+  contextPatch?: Record<string, unknown>,
+  subscriberId?: string,
+): Promise<void> {
+  const supabase = createServiceRoleClient();
+
+  // Fetch existing context to merge.
+  const { data: existing } = await supabase
+    .from('bot_conversation_state')
+    .select('context')
+    .eq('lead_uuid', leadUuid)
+    .maybeSingle();
+
+  const prevContext =
+    existing?.context &&
+    typeof existing.context === 'object' &&
+    !Array.isArray(existing.context)
+      ? (existing.context as Record<string, unknown>)
+      : {};
+
+  const mergedContext =
+    contextPatch && Object.keys(contextPatch).length > 0
+      ? { ...prevContext, ...contextPatch }
+      : prevContext;
+
+  const { error } = await supabase.from('bot_conversation_state').upsert(
+    {
+      lead_uuid: leadUuid,
+      state,
+      context: mergedContext,
+      ...(subscriberId ? { subscriber_id: subscriberId } : {}),
+    },
+    { onConflict: 'lead_uuid' },
+  );
+
+  if (error) {
+    console.error('[conversationMessages] upsertBotState failed:', error.message);
+  }
+
+  // Best-effort: also update the `leads` table for dashboard display.
+  // This may fail silently for ManyChat-only leads without a leads row.
+  const leadsUpdate: Record<string, unknown> = { conversation_state: state };
+  if (contextPatch && Object.keys(contextPatch).length > 0) {
+    leadsUpdate.conversation_context = mergedContext;
+  }
+  await supabase.from('leads').update(leadsUpdate).eq('id', leadUuid).then(({ error: e }) => {
+    if (e) {
+      // Expected for ManyChat-only leads — not an error.
+      console.debug('[conversationMessages] leads table update skipped (no row):', e.code);
+    }
+  });
+}
+
+// ─── Backwards-compat shims used by existing callers ─────────────────────────
+
+/** @deprecated Use getBotState() instead. */
+export async function getLeadConversationContext(
+  leadUuid: string,
+): Promise<Record<string, unknown>> {
+  const { context } = await getBotState(leadUuid);
+  return context;
+}
+
+/** @deprecated Use getBotState() instead. */
+export async function getLeadConversationState(leadUuid: string): Promise<string> {
+  const { state } = await getBotState(leadUuid);
+  return state;
+}
+
+/** @deprecated Use upsertBotState() instead. */
 export async function updateLeadConversationState(
   leadUuid: string,
   state: string,
   contextPatch?: Record<string, unknown>,
 ): Promise<void> {
-  const supabase = createServiceRoleClient();
-
-  const update: Record<string, unknown> = { conversation_state: state };
-
-  if (contextPatch && Object.keys(contextPatch).length > 0) {
-    const { data: existing } = await supabase
-      .from('leads')
-      .select('conversation_context')
-      .eq('id', leadUuid)
-      .maybeSingle();
-
-    const prev =
-      existing?.conversation_context &&
-      typeof existing.conversation_context === 'object' &&
-      !Array.isArray(existing.conversation_context)
-        ? (existing.conversation_context as Record<string, unknown>)
-        : {};
-
-    update.conversation_context = { ...prev, ...contextPatch };
-  }
-
-  const { error } = await supabase
-    .from('leads')
-    .update(update)
-    .eq('id', leadUuid);
-
-  if (error) {
-    // leads table uses id not lead_uuid — try matching by report_token if needed.
-    // For ManyChat leads that haven't gone through quiz, this will silently fail.
-    console.warn('[conversationMessages] updateLeadConversationState failed (may not exist yet):', error.message);
-  }
+  await upsertBotState(leadUuid, state, contextPatch);
 }

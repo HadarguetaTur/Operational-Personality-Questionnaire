@@ -10,13 +10,12 @@ import { saveManyChatEvent, updateManyChatEventStatus } from '@/lib/events/saveM
 import {
   saveMessage,
   getConversationHistory,
-  updateLeadConversationState,
+  upsertBotState,
+  getBotState,
   countUserMessagesForLead,
-  getLeadConversationState,
-  getLeadConversationContext,
   getRecentBotQuestions,
 } from '@/lib/db/conversationMessages';
-import { runSalesAgent } from '@/lib/ai/salesAgent';
+import { runAgentPipeline } from '@/lib/ai/agentPipeline';
 import {
   detectMeetingIntent,
   MEETING_BOOKING_REPLY,
@@ -37,6 +36,9 @@ import type {
   SimpleAckResponse,
   ManyChatDynamicBlockResponse,
 } from '@/lib/manychat/types';
+
+// Opt-out keywords — if a user sends these, mark as irrelevant immediately.
+const OPT_OUT_REGEX = /^\s*(הסר|עצור|אל תשלח|stop|בטל|לא רוצה הודעות|unsubscribe|הפסיקי לשלוח)\s*$/i;
 
 function ackResponse(leadUuid: string, eventType: string): NextResponse {
   const body: SimpleAckResponse = {
@@ -165,7 +167,6 @@ export async function POST(request: NextRequest) {
             : undefined;
 
       // Reject unresolved ManyChat template variables (e.g. {{cuf_12345}}, {{last message text}}).
-      // This happens when the External Request is misconfigured and the variable wasn't substituted.
       const UNRESOLVED_VAR = /^\{\{.+\}\}$/;
       if (!userMessage || UNRESOLVED_VAR.test(userMessage)) {
         const reason = !userMessage ? 'empty message' : `unresolved_variable: ${userMessage}`;
@@ -205,30 +206,18 @@ function extractQuestionFromReply(reply: string): string | null {
 }
 
 /**
- * Merges new known_facts and a newly asked question into the existing
- * conversation_context arrays, capping asked_questions at 20.
+ * Merges a newly asked question into the asked_questions array (capped at 20).
  */
-function buildMemoryPatch(
+function mergeAskedQuestion(
   existing: Record<string, unknown>,
-  newKnownFacts: string[],
   newQuestion: string | null,
 ): Record<string, unknown> | undefined {
-  const prevFacts = Array.isArray(existing.known_facts) ? (existing.known_facts as string[]) : [];
-  const prevQuestions = Array.isArray(existing.asked_questions) ? (existing.asked_questions as string[]) : [];
-
-  const mergedFacts = newKnownFacts.length > 0
-    ? [...prevFacts, ...newKnownFacts.filter((f) => !prevFacts.includes(f))]
-    : prevFacts;
-
-  const mergedQuestions = newQuestion && !prevQuestions.includes(newQuestion)
-    ? [...prevQuestions, newQuestion].slice(-20)
-    : prevQuestions;
-
-  const patch: Record<string, unknown> = {};
-  if (mergedFacts.length > 0) patch.known_facts = mergedFacts;
-  if (mergedQuestions.length > 0) patch.asked_questions = mergedQuestions;
-
-  return Object.keys(patch).length > 0 ? patch : undefined;
+  if (!newQuestion) return undefined;
+  const prev = Array.isArray(existing.asked_questions)
+    ? (existing.asked_questions as string[])
+    : [];
+  if (prev.includes(newQuestion)) return undefined;
+  return { asked_questions: [...prev, newQuestion].slice(-20) };
 }
 
 async function processLeadMessage(
@@ -237,9 +226,6 @@ async function processLeadMessage(
   userMessage: string,
   eventId: string | null,
 ): Promise<void> {
-  // push() sends the reply via ManyChat Send API and returns the result.
-  // finalize() calls push() then writes the outcome to manychat_events.process_error
-  // so it is visible in Supabase Table Editor regardless of Vercel log availability.
   const push = async (
     messages: Array<{ type: 'text'; text: string }>,
   ): Promise<{ success: boolean; error?: string }> => {
@@ -256,15 +242,12 @@ async function processLeadMessage(
 
   const finalize = async (messages: Array<{ type: 'text'; text: string }>) => {
     const r = await push(messages);
-    // Include subscriber_id in the debug note so we can compare to ManyChat dashboard.
     const debugNote = r.success
       ? `push_ok | sub=${subscriberId ?? 'MISSING'}`
       : `push_failed: ${r.error ?? 'unknown'} | sub=${subscriberId ?? 'MISSING'}`;
     if (eventId) {
       await updateManyChatEventStatus(eventId, r.success ? 'done' : 'error', debugNote);
     } else {
-      // eventId is null — saveManyChatEvent failed. Write a dedicated debug record so
-      // the push result is always visible in Supabase Table Editor (H-D verification).
       const supa = createServiceRoleClient();
       const { error: debugErr } = await supa.from('manychat_events').insert({
         lead_uuid: leadUuid,
@@ -284,63 +267,85 @@ async function processLeadMessage(
     await saveMessage(leadUuid, subscriberId, 'user', userMessage);
     await recordFunnelEvent(leadUuid, 'lead_arrived', { source: 'manychat' });
 
+    // ── Pre-check: opt-out ──────────────────────────────────────────────────
+    if (OPT_OUT_REGEX.test(userMessage)) {
+      const optOutReply = 'הוסרת מהרשימה. בהצלחה 🙏';
+      await saveMessage(leadUuid, subscriberId, 'assistant', optOutReply, {
+        action: 'mark_irrelevant',
+        state: 'irrelevant',
+      });
+      await upsertBotState(leadUuid, 'irrelevant', { opt_out: true }, subscriberId);
+      await recordFunnelEvent(leadUuid, 'opt_out', { message: userMessage });
+      await finalize([{ type: 'text', text: optOutReply }]);
+      return;
+    }
+
     const userMsgCount = await countUserMessagesForLead(leadUuid);
+
+    // ── Auto-escalate after 10 messages ────────────────────────────────────
     if (userMsgCount >= 10) {
       const escalationReply = 'הדר תחזור אלייך בקרוב לשיחה אישית 🙏';
       await saveMessage(leadUuid, subscriberId, 'assistant', escalationReply, {
         action: 'human_handoff',
         state: 'escalated',
       });
-      await updateLeadConversationState(leadUuid, 'escalated');
+      await upsertBotState(leadUuid, 'escalated', undefined, subscriberId);
       await finalize([{ type: 'text', text: escalationReply }]);
       return;
     }
 
-    const [history, currentState, conversationContext] = await Promise.all([
+    const [history, botStateData] = await Promise.all([
       getConversationHistory(leadUuid),
-      getLeadConversationState(leadUuid),
-      getLeadConversationContext(leadUuid),
+      getBotState(leadUuid),
     ]);
 
+    const currentState = botStateData.state;
+    let conversationContext = botStateData.context;
+
     // Seed asked_questions from DB history for leads that pre-date the memory system.
-    if (!Array.isArray(conversationContext.asked_questions) || (conversationContext.asked_questions as string[]).length === 0) {
+    if (
+      !Array.isArray(conversationContext.asked_questions) ||
+      (conversationContext.asked_questions as string[]).length === 0
+    ) {
       const seeded = await getRecentBotQuestions(leadUuid);
       if (seeded.length > 0) {
-        (conversationContext as Record<string, unknown>).asked_questions = seeded.slice(-20);
+        conversationContext = { ...conversationContext, asked_questions: seeded.slice(-20) };
       }
     }
 
-    // Pre-check: audience filter (first message only)
+    // ── Pre-check: audience filter (first message only) ────────────────────
     if (userMsgCount === 1 && detectNotFitAudience(userMessage)) {
       await saveMessage(leadUuid, subscriberId, 'assistant', AUDIENCE_DISQUALIFY_REPLY, {
         action: 'mark_irrelevant',
         state: 'irrelevant',
       });
-      await updateLeadConversationState(leadUuid, 'irrelevant');
+      await upsertBotState(leadUuid, 'irrelevant', undefined, subscriberId);
       await finalize([{ type: 'text', text: AUDIENCE_DISQUALIFY_REPLY }]);
       return;
     }
 
-    // Pre-check: meeting intent
+    // ── Pre-check: meeting intent (regex — fast path) ──────────────────────
     if (detectMeetingIntent(userMessage)) {
       await saveMessage(leadUuid, subscriberId, 'assistant', MEETING_BOOKING_REPLY, {
         action: 'book_meeting',
         state: 'booking',
       });
-      await updateLeadConversationState(leadUuid, 'booking');
+      const bookingPatch = { offered_booking_count: ((conversationContext.offered_booking_count as number) ?? 0) + 1 };
+      await upsertBotState(leadUuid, 'booking', bookingPatch, subscriberId);
       await recordFunnelEvent(leadUuid, 'meeting_offered', { trigger: 'regex' });
       await finalize(buildBookingMessages(leadUuid, MEETING_BOOKING_REPLY));
       return;
     }
 
-    // Pre-check: meta frustration
+    // ── Pre-check: meta frustration ────────────────────────────────────────
     const frustrationAction = detectMetaFrustration(userMessage, currentState);
     if (frustrationAction === 'book_meeting') {
       await saveMessage(leadUuid, subscriberId, 'assistant', MEETING_BOOKING_REPLY, {
         action: 'book_meeting',
         state: 'booking',
       });
-      await updateLeadConversationState(leadUuid, 'booking');
+      const bookingPatch = { offered_booking_count: ((conversationContext.offered_booking_count as number) ?? 0) + 1 };
+      await upsertBotState(leadUuid, 'booking', bookingPatch, subscriberId);
       await recordFunnelEvent(leadUuid, 'meeting_offered', { trigger: 'frustration' });
       await finalize(buildBookingMessages(leadUuid, MEETING_BOOKING_REPLY));
       return;
@@ -352,66 +357,40 @@ async function processLeadMessage(
         action: 'human_handoff',
         state: 'escalated',
       });
-      await updateLeadConversationState(leadUuid, 'escalated');
+      await upsertBotState(leadUuid, 'escalated', undefined, subscriberId);
       await finalize([{ type: 'text', text: reply }]);
       return;
     }
 
-    const objectionLoops = await countObjectionLoops(leadUuid);
-    if (objectionLoops >= 2 && currentState === 'objection') {
-      const followupReply = 'מבינה. אם תרצי בעוד כמה שבועות — אני פה :)';
-      await saveMessage(leadUuid, subscriberId, 'assistant', followupReply, {
-        action: 'request_followup',
-        state: 'irrelevant',
-      });
-      await updateLeadConversationState(leadUuid, 'irrelevant');
-      await finalize([{ type: 'text', text: followupReply }]);
-      return;
-    }
+    // ── Run the agent pipeline (Classifier → StateMachine → AntiLoop → Writer) ──
 
-    // Hard state escalation: after 3+ user messages still in early discovery → force pitching.
-    // Prevents the bot from asking the same discovery question indefinitely.
-    const EARLY_DISCOVERY_STATES = new Set(['initial', 'discovery', 'qualifying']);
-    const effectiveState =
-      userMsgCount >= 3 && EARLY_DISCOVERY_STATES.has(currentState ?? 'initial')
-        ? 'pitching'
-        : (currentState ?? 'initial');
-    if (effectiveState !== currentState) {
-      console.log(`[ManyChat Webhook] Forcing state from '${currentState}' → 'pitching' at userMsgCount=${userMsgCount}`);
-    }
-
-    // Meeting nudge: if 6+ user messages and meeting not yet offered, push the agent to offer now.
-    const MEETING_OFFERED_STATES = new Set(['booking', 'closed', 'escalated', 'irrelevant', 'spam']);
-    const needsMeetingNudge =
-      userMsgCount >= 6 && !MEETING_OFFERED_STATES.has(effectiveState);
-    const enrichedContext: Record<string, unknown> = {
-      ...((conversationContext as Record<string, unknown>) ?? {}),
-      ...(needsMeetingNudge
-        ? { nudge: 'הגיעה הודעה 6+. אם לא הצעת עדיין שיחת היכרות — הצע עכשיו. אל תשאלי שאלות נוספות.' }
-        : {}),
-    };
-
-    const agentOutput = await runSalesAgent({
+    const { output: agentOutput, contextPatch } = await runAgentPipeline({
       history,
       newMessage: userMessage,
-      currentState: effectiveState,
-      conversationContext: enrichedContext,
+      currentState,
+      conversationContext,
+      userMsgCount,
+      leadUuid,
+      subscriberId,
     });
 
-    // Build memory patch: new known_facts from agent + newly asked question.
+    // Merge newly asked question into context patch
     const agentQuestion = extractQuestionFromReply(agentOutput.reply);
-    const memoryPatch = buildMemoryPatch(
-      conversationContext as Record<string, unknown>,
-      agentOutput.known_facts,
-      agentQuestion,
-    );
+    const questionPatch = mergeAskedQuestion(conversationContext, agentQuestion);
+
+    const fullContextPatch: Record<string, unknown> = {
+      ...contextPatch,
+      ...(questionPatch ?? {}),
+    };
+
+    // ── Handle agent output ────────────────────────────────────────────────
 
     if (agentOutput.action === 'mark_spam') {
       await saveMessage(leadUuid, subscriberId, 'assistant', agentOutput.reply, {
         action: 'mark_spam',
         state: 'spam',
       });
-      await updateLeadConversationState(leadUuid, 'spam');
+      await upsertBotState(leadUuid, 'spam', fullContextPatch, subscriberId);
       await finalize([{ type: 'text', text: agentOutput.reply }]);
       return;
     }
@@ -421,19 +400,19 @@ async function processLeadMessage(
         action: 'mark_irrelevant',
         state: 'irrelevant',
       });
-      await updateLeadConversationState(leadUuid, 'irrelevant');
+      await upsertBotState(leadUuid, 'irrelevant', fullContextPatch, subscriberId);
       await finalize([{ type: 'text', text: agentOutput.reply }]);
       return;
     }
 
     if (agentOutput.action === 'human_handoff') {
-      const reply = await handleHandoff(leadUuid, subscriberId, 'agent_decision', history);
-      const finalReply = agentOutput.reply.trim() || reply;
+      const handoffReply = await handleHandoff(leadUuid, subscriberId, 'agent_decision', history);
+      const finalReply = agentOutput.reply.trim() || handoffReply;
       await saveMessage(leadUuid, subscriberId, 'assistant', finalReply, {
         action: 'human_handoff',
         state: 'escalated',
       });
-      await updateLeadConversationState(leadUuid, 'escalated');
+      await upsertBotState(leadUuid, 'escalated', fullContextPatch, subscriberId);
       await finalize([{ type: 'text', text: finalReply }]);
       return;
     }
@@ -444,20 +423,13 @@ async function processLeadMessage(
         action: 'request_followup',
         state: agentOutput.state,
       });
-      const followupContextPatch: Record<string, unknown> = {
-        ...(Object.keys(agentOutput.extracted_facts).length > 0 ? (agentOutput.extracted_facts as Record<string, unknown>) : {}),
-        ...(memoryPatch ?? {}),
-      };
-      await updateLeadConversationState(
-        leadUuid,
-        agentOutput.state,
-        Object.keys(followupContextPatch).length > 0 ? followupContextPatch : undefined,
-      );
+      await upsertBotState(leadUuid, agentOutput.state, fullContextPatch, subscriberId);
       await scheduleFollowup(leadUuid);
       await finalize([{ type: 'text', text: reply }]);
       return;
     }
 
+    // Save reply and update state
     await saveMessage(leadUuid, subscriberId, 'assistant', agentOutput.reply, {
       action: agentOutput.action,
       state: agentOutput.state,
@@ -469,15 +441,7 @@ async function processLeadMessage(
       }),
     });
 
-    const mainContextPatch: Record<string, unknown> = {
-      ...(Object.keys(agentOutput.extracted_facts).length > 0 ? (agentOutput.extracted_facts as Record<string, unknown>) : {}),
-      ...(memoryPatch ?? {}),
-    };
-    await updateLeadConversationState(
-      leadUuid,
-      agentOutput.state,
-      Object.keys(mainContextPatch).length > 0 ? mainContextPatch : undefined,
-    );
+    await upsertBotState(leadUuid, agentOutput.state, fullContextPatch, subscriberId);
 
     if (agentOutput.action === 'book_meeting') {
       await recordFunnelEvent(leadUuid, 'meeting_offered', { trigger: 'agent' });
@@ -507,20 +471,4 @@ async function scheduleFollowup(leadUuid: string): Promise<void> {
   if (error) {
     console.warn('[webhook] scheduleFollowup failed (non-fatal):', error.message);
   }
-}
-
-async function countObjectionLoops(leadUuid: string): Promise<number> {
-  const { createServiceRoleClient } = await import('@/lib/supabase/server');
-  const supabase = createServiceRoleClient();
-  const { data } = await supabase
-    .from('conversation_messages')
-    .select('metadata')
-    .eq('lead_uuid', leadUuid)
-    .eq('role', 'assistant')
-    .order('created_at', { ascending: true });
-
-  return (data ?? []).filter((m) => {
-    const state = (m.metadata as Record<string, unknown> | null)?.state;
-    return state === 'objection';
-  }).length;
 }

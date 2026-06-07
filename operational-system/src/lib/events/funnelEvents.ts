@@ -5,7 +5,8 @@ export type FunnelEventType =
   | 'quiz_completed'
   | 'meeting_offered'
   | 'meeting_booked'
-  | 'human_handoff_requested';
+  | 'human_handoff_requested'
+  | 'opt_out';
 
 export async function recordFunnelEvent(
   leadUuid: string,

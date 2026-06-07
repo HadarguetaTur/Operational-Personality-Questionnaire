@@ -32,12 +32,12 @@ const FORMAT = `
 ## פורמט תשובה — JSON בלבד, ללא טקסט נוסף
 {
   "reply": "הטקסט שישלח למשתמשת",
-  "action": "continue | book_meeting | mark_irrelevant | request_followup | mark_spam",
-  "state": "<ה-state שיהיה בהודעה הבאה>",
+  "action": "continue | book_meeting | mark_irrelevant | request_followup | mark_spam | human_handoff",
+  "state": "initial | discovery | qualifying | pitching | objection | booking | closed | irrelevant | spam | escalated",
   "extracted_facts": {
     "business_type": "סוג העסק אם נאמר",
     "main_challenge": "הכאב שנאמר בפועל — רק אם נאמר, אחרת ריק",
-    "pain_category": "קטגוריה אם ברורה",
+    "pain_category": "leads_followup | scheduling | overload | conversion | process | trust | other",
     "temperature": "cold | warm | hot"
   },
   "known_facts": ["נקודה חדשה שנאמרה בתגובה הנוכחית בלבד — רשימה קצרה, אחרת מערך ריק []"]

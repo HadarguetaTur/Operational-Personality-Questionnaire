@@ -4,25 +4,9 @@ import { DEFAULT_SECTIONS, BotPromptSections } from './botPromptDefaults';
 export type { BotPromptSections } from './botPromptDefaults';
 export { DEFAULT_SECTIONS } from './botPromptDefaults';
 
-// ─── Locked section — never editable (breaks JSON output if changed) ──────────
-
-const LOCKED_FORMAT_SECTION = `
-## פורמט התשובה
-ענִי תמיד ב-JSON בלבד, ללא טקסט לפני או אחרי, בפורמט הבא:
-{
-  "reply": "הטקסט שישלח לליד",
-  "action": "continue | book_meeting | mark_irrelevant | request_followup | mark_spam | human_handoff",
-  "state": "initial | discovery | qualifying | pitching | objection | booking | closed | irrelevant | spam | escalated",
-  "extracted_facts": {
-    "pain_category": "תיאור הכאב המרכזי אם זוהה",
-    "business_type": "סוג העסק אם זוהה",
-    "main_challenge": "האתגר הספציפי",
-    "temperature": "cold | warm | hot"
-  },
-  "known_facts": ["נקודה חדשה מהתגובה הנוכחית — מה שהלקוחה אמרה עכשיו. מערך ריק [] אם לא נאמר שום דבר חדש."]
-}`;
-
 // ─── Assemble full prompt from sections ───────────────────────────────────────
+// Note: the FORMAT block is injected by each stage prompt (stagePrompts.ts).
+// Do NOT add a second format block here — it causes JSON schema conflicts.
 
 function assembleSections(s: BotPromptSections): string {
   return [
@@ -32,7 +16,6 @@ function assembleSections(s: BotPromptSections): string {
     s.objections,
     s.testimonials,
     s.rules,
-    LOCKED_FORMAT_SECTION,
   ].join('\n\n');
 }
 
