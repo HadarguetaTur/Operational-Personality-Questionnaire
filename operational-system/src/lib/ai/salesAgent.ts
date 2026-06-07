@@ -47,6 +47,7 @@ export interface AgentOutput {
   action: AgentAction;
   state: string;
   extracted_facts: ExtractedFacts;
+  known_facts: string[];
   usage?: AgentUsage;
 }
 
@@ -80,6 +81,7 @@ function parseAgentOutput(raw: string): AgentOutput | null {
       action: parsed.action as AgentAction,
       state,
       extracted_facts: parsed.extracted_facts ?? {},
+      known_facts: Array.isArray(parsed.known_facts) ? parsed.known_facts.filter((f: unknown) => typeof f === 'string') : [],
     };
   } catch {
     return null;
@@ -92,11 +94,34 @@ function buildContextSection(
   if (!conversationContext || Object.keys(conversationContext).length === 0) {
     return '';
   }
-  const lines = Object.entries(conversationContext)
-    .filter(([, v]) => v != null && v !== '')
+
+  const parts: string[] = [];
+
+  // Render known_facts as a bullet list — structured memory of what the lead said
+  const knownFacts = conversationContext.known_facts;
+  if (Array.isArray(knownFacts) && knownFacts.length > 0) {
+    const bullets = knownFacts.map((f) => `• ${f}`).join('\n');
+    parts.push(`## מה הלקוחה אמרה — ידוע ומאושר\n${bullets}`);
+  }
+
+  // Render asked_questions as a strict prohibition list
+  const askedQuestions = conversationContext.asked_questions;
+  if (Array.isArray(askedQuestions) && askedQuestions.length > 0) {
+    const bullets = askedQuestions.map((q) => `• ${q}`).join('\n');
+    parts.push(`## שאלות שכבר נשאלו — חל איסור מוחלט לחזור עליהן\n${bullets}`);
+  }
+
+  // Render remaining scalar fields (business_type, pain_category, etc.)
+  const SKIP_KEYS = new Set(['known_facts', 'asked_questions', 'opening_hook']);
+  const scalarLines = Object.entries(conversationContext)
+    .filter(([k, v]) => !SKIP_KEYS.has(k) && v != null && v !== '')
     .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`);
-  if (lines.length === 0) return '';
-  return `\n\n## מה כבר ידוע על הליד\n${lines.join('\n')}`;
+  if (scalarLines.length > 0) {
+    parts.push(`## פרטים על הליד\n${scalarLines.join('\n')}`);
+  }
+
+  if (parts.length === 0) return '';
+  return '\n\n' + parts.join('\n\n');
 }
 
 function buildPersonaSection(facts?: ExtractedFacts): string {
@@ -124,11 +149,11 @@ async function buildSystemPrompt(
     .join('\n');
 }
 
-function getPreviousBotReply(history: ConversationMessage[]): string | undefined {
-  for (let i = history.length - 1; i >= 0; i--) {
-    if (history[i].role === 'assistant') return history[i].content;
-  }
-  return undefined;
+function getRecentBotReplies(history: ConversationMessage[], limit = 5): string[] {
+  return history
+    .filter((m) => m.role === 'assistant')
+    .map((m) => m.content)
+    .slice(-limit);
 }
 
 function normalizeState(
@@ -158,6 +183,7 @@ export async function runSalesAgent(input: {
     action: 'continue',
     state: stageFallback.state,
     extracted_facts: {},
+    known_facts: [],
   };
   // Pitching fallback used when discovery fallback would repeat previous reply.
   const pitchingFallback = getFallbackForState('pitching');
@@ -195,7 +221,7 @@ export async function runSalesAgent(input: {
   );
 
   const redactedHistory = redactHistory(input.history);
-  const previousBotReply = getPreviousBotReply(input.history);
+  const recentBotReplies = getRecentBotReplies(input.history);
 
   const messages = [
     { role: 'system', content: systemPrompt },
@@ -241,18 +267,18 @@ export async function runSalesAgent(input: {
 
       normalizeState(parsed, currentState);
 
-      const validation = validateReply(parsed.reply, previousBotReply);
+      const validation = validateReply(parsed.reply, recentBotReplies);
       // #region agent log
-      console.error(`[DEBUG-06149a:validator] state=${currentState} | valid=${validation.valid} | reason=${validation.reason??'ok'} | prevReplyLen=${previousBotReply?.length??0} | replySnippet=${parsed.reply.slice(0,80).replace(/\n/g,' ')}`);
+      console.error(`[DEBUG-06149a:validator] state=${currentState} | valid=${validation.valid} | reason=${validation.reason??'ok'} | recentReplies=${recentBotReplies.length} | replySnippet=${parsed.reply.slice(0,80).replace(/\n/g,' ')}`);
       // #endregion
       if (!validation.valid) {
         console.warn(`[salesAgent:${currentState}] Reply validation failed (attempt ${attempt + 1}):`, validation.reason);
         if (attempt < MAX_RETRIES) continue;
         // All retries exhausted — choose fallback carefully to avoid repeating previous reply.
-        if (EARLY_STAGES_SET.has(currentState) && previousBotReply) {
+        if (EARLY_STAGES_SET.has(currentState) && recentBotReplies.length > 0) {
           // In early stages: advance to pitching rather than repeating discovery question.
           console.warn(`[salesAgent:${currentState}] All retries failed — escalating to pitching fallback`);
-          return { ...pitchingFallback, action: 'continue', extracted_facts: {} };
+          return { ...pitchingFallback, action: 'continue', extracted_facts: {}, known_facts: [] };
         }
         console.warn(`[salesAgent:${currentState}] All retries failed validation — using stage fallback`);
         return FALLBACK_OUTPUT;

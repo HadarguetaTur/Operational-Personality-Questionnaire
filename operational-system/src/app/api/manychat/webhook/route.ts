@@ -14,6 +14,7 @@ import {
   countUserMessagesForLead,
   getLeadConversationState,
   getLeadConversationContext,
+  getRecentBotQuestions,
 } from '@/lib/db/conversationMessages';
 import { runSalesAgent } from '@/lib/ai/salesAgent';
 import {
@@ -190,6 +191,46 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/**
+ * Extracts the first question sentence (ending with "?") from a bot reply.
+ * Used to track which questions the bot has already asked.
+ */
+function extractQuestionFromReply(reply: string): string | null {
+  const sentences = reply.split(/(?<=[.!?])\s+/);
+  for (const sentence of sentences) {
+    const trimmed = sentence.trim();
+    if (trimmed.endsWith('?')) return trimmed;
+  }
+  return null;
+}
+
+/**
+ * Merges new known_facts and a newly asked question into the existing
+ * conversation_context arrays, capping asked_questions at 20.
+ */
+function buildMemoryPatch(
+  existing: Record<string, unknown>,
+  newKnownFacts: string[],
+  newQuestion: string | null,
+): Record<string, unknown> | undefined {
+  const prevFacts = Array.isArray(existing.known_facts) ? (existing.known_facts as string[]) : [];
+  const prevQuestions = Array.isArray(existing.asked_questions) ? (existing.asked_questions as string[]) : [];
+
+  const mergedFacts = newKnownFacts.length > 0
+    ? [...prevFacts, ...newKnownFacts.filter((f) => !prevFacts.includes(f))]
+    : prevFacts;
+
+  const mergedQuestions = newQuestion && !prevQuestions.includes(newQuestion)
+    ? [...prevQuestions, newQuestion].slice(-20)
+    : prevQuestions;
+
+  const patch: Record<string, unknown> = {};
+  if (mergedFacts.length > 0) patch.known_facts = mergedFacts;
+  if (mergedQuestions.length > 0) patch.asked_questions = mergedQuestions;
+
+  return Object.keys(patch).length > 0 ? patch : undefined;
+}
+
 async function processLeadMessage(
   leadUuid: string,
   subscriberId: string | undefined,
@@ -260,6 +301,14 @@ async function processLeadMessage(
       getLeadConversationState(leadUuid),
       getLeadConversationContext(leadUuid),
     ]);
+
+    // Seed asked_questions from DB history for leads that pre-date the memory system.
+    if (!Array.isArray(conversationContext.asked_questions) || (conversationContext.asked_questions as string[]).length === 0) {
+      const seeded = await getRecentBotQuestions(leadUuid);
+      if (seeded.length > 0) {
+        (conversationContext as Record<string, unknown>).asked_questions = seeded.slice(-20);
+      }
+    }
 
     // Pre-check: audience filter (first message only)
     if (userMsgCount === 1 && detectNotFitAudience(userMessage)) {
@@ -349,6 +398,14 @@ async function processLeadMessage(
       conversationContext: enrichedContext,
     });
 
+    // Build memory patch: new known_facts from agent + newly asked question.
+    const agentQuestion = extractQuestionFromReply(agentOutput.reply);
+    const memoryPatch = buildMemoryPatch(
+      conversationContext as Record<string, unknown>,
+      agentOutput.known_facts,
+      agentQuestion,
+    );
+
     if (agentOutput.action === 'mark_spam') {
       await saveMessage(leadUuid, subscriberId, 'assistant', agentOutput.reply, {
         action: 'mark_spam',
@@ -387,12 +444,14 @@ async function processLeadMessage(
         action: 'request_followup',
         state: agentOutput.state,
       });
+      const followupContextPatch: Record<string, unknown> = {
+        ...(Object.keys(agentOutput.extracted_facts).length > 0 ? (agentOutput.extracted_facts as Record<string, unknown>) : {}),
+        ...(memoryPatch ?? {}),
+      };
       await updateLeadConversationState(
         leadUuid,
         agentOutput.state,
-        Object.keys(agentOutput.extracted_facts).length > 0
-          ? (agentOutput.extracted_facts as Record<string, unknown>)
-          : undefined,
+        Object.keys(followupContextPatch).length > 0 ? followupContextPatch : undefined,
       );
       await scheduleFollowup(leadUuid);
       await finalize([{ type: 'text', text: reply }]);
@@ -410,12 +469,14 @@ async function processLeadMessage(
       }),
     });
 
+    const mainContextPatch: Record<string, unknown> = {
+      ...(Object.keys(agentOutput.extracted_facts).length > 0 ? (agentOutput.extracted_facts as Record<string, unknown>) : {}),
+      ...(memoryPatch ?? {}),
+    };
     await updateLeadConversationState(
       leadUuid,
       agentOutput.state,
-      Object.keys(agentOutput.extracted_facts).length > 0
-        ? (agentOutput.extracted_facts as Record<string, unknown>)
-        : undefined,
+      Object.keys(mainContextPatch).length > 0 ? mainContextPatch : undefined,
     );
 
     if (agentOutput.action === 'book_meeting') {

@@ -18,7 +18,8 @@ const LOCKED_FORMAT_SECTION = `
     "business_type": "סוג העסק אם זוהה",
     "main_challenge": "האתגר הספציפי",
     "temperature": "cold | warm | hot"
-  }
+  },
+  "known_facts": ["נקודה חדשה מהתגובה הנוכחית — מה שהלקוחה אמרה עכשיו. מערך ריק [] אם לא נאמר שום דבר חדש."]
 }`;
 
 // ─── Assemble full prompt from sections ───────────────────────────────────────

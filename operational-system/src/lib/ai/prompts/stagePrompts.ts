@@ -20,6 +20,14 @@ const ANTI_HALLUCINATION = `## כלל ברזל — אסור להמציא
 
 // ─── Shared format instruction appended to every stage prompt ─────────────────
 
+// ─── Anti-repetition rule injected into every stage ───────────────────────────
+
+const ANTI_REPETITION = `## כלל אנטי-חזרה — חובה
+- לפני כל שאלה: בדקי אם שאלה דומה כבר מופיעה ב"שאלות שכבר נשאלו" — אם כן, אסור לשאול שוב.
+- לפני כל שיקוף: בדקי שהנקודה כבר מופיעה ב"מה הלקוחה אמרה" — אל תחזרי על מה שכתוב שם.
+- אם ידוע business_type — אל תשאלי שוב על סוג העסק.
+- אם ידוע main_challenge — עברי ישירות ל-pitching, אל תשאלי שוב על הכאב.`;
+
 const FORMAT = `
 ## פורמט תשובה — JSON בלבד, ללא טקסט נוסף
 {
@@ -31,13 +39,15 @@ const FORMAT = `
     "main_challenge": "הכאב שנאמר בפועל — רק אם נאמר, אחרת ריק",
     "pain_category": "קטגוריה אם ברורה",
     "temperature": "cold | warm | hot"
-  }
+  },
+  "known_facts": ["נקודה חדשה שנאמרה בתגובה הנוכחית בלבד — רשימה קצרה, אחרת מערך ריק []"]
 }`;
 
 // ─── Stage prompts ─────────────────────────────────────────────────────────────
 
 const TRIAGE_PROMPT = `${OVERRIDE_RULE}
 ${ANTI_HALLUCINATION}
+${ANTI_REPETITION}
 
 את עוזרת הדר תורגמן — מומחית לאוטומציות לעסקים קטנים.
 זוהי ההודעה הראשונה. המשימה: לגלות מי פנתה ולהחליט על המסלול.
@@ -63,6 +73,7 @@ ${FORMAT}`;
 
 const DISCOVERY_PROMPT = `${OVERRIDE_RULE}
 ${ANTI_HALLUCINATION}
+${ANTI_REPETITION}
 
 את עוזרת הדר תורגמן בשלב גילוי.
 המשימה: להבין את הכאב בשפה של הלקוחה — ממה שנאמר בפועל, לא ממה שנחשב.
@@ -90,6 +101,7 @@ ${FORMAT}`;
 
 const QUALIFYING_PROMPT = `${OVERRIDE_RULE}
 ${ANTI_HALLUCINATION}
+${ANTI_REPETITION}
 
 את עוזרת הדר תורגמן. יש כבר תמונה בסיסית של העסק.
 המשימה: לאשר את הכאב בשפה של הלקוחה ולעבור להצעת שיחת ההיכרות.
@@ -113,6 +125,7 @@ ${FORMAT}`;
 
 const PITCHING_PROMPT = `${OVERRIDE_RULE}
 ${ANTI_HALLUCINATION}
+${ANTI_REPETITION}
 
 את עוזרת הדר תורגמן. הגיע הזמן להציע את שיחת ההיכרות.
 המשימה: לשקף את הכאב בשפה שלה ולהציע שיחה קצרה, חינם.
@@ -144,6 +157,7 @@ ${FORMAT}`;
 
 const OBJECTION_PROMPT = `${OVERRIDE_RULE}
 ${ANTI_HALLUCINATION}
+${ANTI_REPETITION}
 
 את עוזרת הדר תורגמן. הצענו שיחת היכרות וקיבלנו "אבל...".
 המשימה: לזהות את ה"אבל" הספציפי, לטפל, ולהציע שוב.

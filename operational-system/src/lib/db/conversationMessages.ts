@@ -104,6 +104,42 @@ export async function countUserMessagesForLead(leadUuid: string): Promise<number
   return count ?? 0;
 }
 
+/**
+ * Returns question sentences (ending with "?") from the most recent assistant
+ * messages for a given lead. Used to seed `asked_questions` in conversation_context
+ * for leads that existed before the memory system was introduced.
+ */
+export async function getRecentBotQuestions(
+  leadUuid: string,
+  limit = 20,
+): Promise<string[]> {
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from('conversation_messages')
+    .select('content')
+    .eq('lead_uuid', leadUuid)
+    .eq('role', 'assistant')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.warn('[conversationMessages] getRecentBotQuestions failed:', error.message);
+    return [];
+  }
+
+  const questions: string[] = [];
+  for (const row of data ?? []) {
+    const sentences = row.content.split(/(?<=[.!?])\s+/);
+    for (const sentence of sentences) {
+      const trimmed = sentence.trim();
+      if (trimmed.endsWith('?')) {
+        questions.push(trimmed);
+      }
+    }
+  }
+  return questions;
+}
+
 export async function updateLeadConversationState(
   leadUuid: string,
   state: string,

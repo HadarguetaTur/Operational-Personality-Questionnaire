@@ -56,7 +56,7 @@ function similarityRatio(a: string, b: string): number {
 
 export function validateReply(
   reply: string,
-  previousBotReply?: string,
+  recentBotReplies?: string[],
 ): ReplyValidationResult {
   const trimmed = reply.trim();
   if (!trimmed) {
@@ -77,8 +77,12 @@ export function validateReply(
     return { valid: false, reason: 'too_long' };
   }
 
-  if (previousBotReply && similarityRatio(trimmed, previousBotReply) >= 0.8) {
-    return { valid: false, reason: 'too_similar' };
+  if (recentBotReplies && recentBotReplies.length > 0) {
+    for (const prev of recentBotReplies) {
+      if (similarityRatio(trimmed, prev) >= 0.8) {
+        return { valid: false, reason: 'too_similar' };
+      }
+    }
   }
 
   return { valid: true };
