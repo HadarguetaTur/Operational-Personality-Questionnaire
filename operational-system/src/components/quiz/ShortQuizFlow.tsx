@@ -318,13 +318,13 @@ function ResultPreviewScreen({
         {/* CTA */}
         <div className="text-center">
           <p className="text-[15px] text-[var(--qa-text-secondary)] mb-4 leading-relaxed">
-            ראית כמה כסף נופל לך כל שנה. עכשיו בואי נרים אותו מהרצפה.
+            ראית איפה כסף נופל בדרך. בואי נבדוק אם אני יכולה לעזור לך לשמור אותו אצלך.
           </p>
           <button
             onClick={onContinue}
             className="w-full py-4 px-6 rounded-[12px] bg-[var(--qa-accent)] text-white text-[17px] font-semibold hover:opacity-90 active:scale-[0.99] transition-all duration-150"
           >
-            בואי נרים את הכסף מהרצפה ←
+            בדקי אם אפשר לשמור יותר כסף אצלך ←
           </button>
         </div>
       </div>
@@ -379,10 +379,10 @@ function LeadForm({ onSubmit, submitting, error }: LeadFormProps) {
     <div className="flex flex-col min-h-screen bg-[var(--qa-bg)] items-center justify-center px-6 md:px-8" dir="rtl">
       <div className="max-w-[480px] w-full text-right">
         <h2 className="text-[24px] md:text-[28px] font-bold mb-2 text-[var(--qa-text-primary)]">
-          מפת התיקון שלך מוכנה
+          בואי נבדוק אם אפשר לשמור יותר כסף אצלך
         </h2>
         <p className="text-[14px] text-[var(--qa-text-muted)] mb-8 leading-relaxed">
-          השאירי שם + וואטסאפ — מקבלת 3 פעולות קונקרטיות לפי הסיטואציה שלך, עכשיו.
+          השאירי פרטים ונמשיך לבדוק אם יש כאן תהליך שכדאי לסדר, ומה הצעד הראשון הנכון.
         </p>
 
         <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
@@ -442,7 +442,7 @@ function LeadForm({ onSubmit, submitting, error }: LeadFormProps) {
               className="mt-1 shrink-0 accent-[var(--qa-accent)]"
             />
             <span className="text-[13px] text-[var(--qa-text-muted)] leading-relaxed group-hover:text-[var(--qa-text-secondary)] transition-colors">
-              אני אשלח לך את מפת התיקון והודעת וואטסאפ אחת להמשך. בלי ספאם.
+              אני אשלח לך הודעת וואטסאפ אחת להמשך בדיקת התאמה. בלי ספאם.
             </span>
           </label>
 
@@ -453,7 +453,7 @@ function LeadForm({ onSubmit, submitting, error }: LeadFormProps) {
             disabled={submitting || !consent}
             className="w-full py-4 px-6 rounded-[12px] bg-[var(--qa-accent)] text-white text-[17px] font-semibold hover:opacity-90 active:scale-[0.99] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitting ? 'שומרת...' : 'קבלי את מפת התיקון ←'}
+            {submitting ? 'שומרת...' : 'המשיכי לבדיקת התאמה ←'}
           </button>
         </form>
       </div>
