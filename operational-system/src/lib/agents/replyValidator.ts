@@ -11,6 +11,7 @@ const BLOCKLIST_PHRASES = [
   'נהדר שפנית',
   'כמובן!',
   'אלינו היום',
+  '--',
 ];
 
 const MAX_REPLY_LENGTH = 400;

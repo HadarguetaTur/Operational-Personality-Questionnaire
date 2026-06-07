@@ -56,6 +56,24 @@ const MODEL = 'openai/gpt-4.1';
 const MAX_RETRIES = 2;
 
 
+/**
+ * Unwraps a reply that the LLM accidentally double-encoded as JSON.
+ * If reply starts with '{', try to parse it and pull out the nested `reply` field.
+ */
+function unwrapNestedJson(reply: string): string {
+  const trimmed = reply.trim();
+  if (!trimmed.startsWith('{')) return reply;
+  try {
+    const nested = JSON.parse(trimmed);
+    if (typeof nested.reply === 'string' && nested.reply.trim().length > 0) {
+      return nested.reply;
+    }
+  } catch {
+    // not valid JSON — return as-is
+  }
+  return reply;
+}
+
 function parseAgentOutput(raw: string): AgentOutput | null {
   try {
     const parsed = JSON.parse(raw);
@@ -77,7 +95,7 @@ function parseAgentOutput(raw: string): AgentOutput | null {
     }
 
     return {
-      reply: parsed.reply,
+      reply: unwrapNestedJson(parsed.reply),
       action: parsed.action as AgentAction,
       state,
       extracted_facts: parsed.extracted_facts ?? {},
