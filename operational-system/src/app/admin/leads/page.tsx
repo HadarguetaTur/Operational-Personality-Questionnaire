@@ -28,6 +28,7 @@ interface Lead {
   result_scale_stage: string | null;
   payment_status: string | null;
   lead_status: string | null;
+  lead_source: string | null;
   report_token: string | null;
   drive_folder_url: string | null;
   marketing_consent: boolean;
@@ -49,6 +50,13 @@ const leadStatusLabels: Record<string, string> = {
   meeting_booked: 'פגישה נקבעה',
 };
 
+const leadSourceLabels: Record<string, string> = {
+  instagram: 'אינסטגרם',
+  facebook: 'פייסבוק',
+  landing_page: 'דף נחיתה',
+  whatsapp: 'וואטסאפ',
+};
+
 type SortField = 'created_at' | 'name' | 'email' | 'payment_status';
 type SortDir = 'asc' | 'desc';
 
@@ -59,6 +67,7 @@ export default function LeadsPage() {
   const [searchDebounced, setSearchDebounced] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [leadStatusFilter, setLeadStatusFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
   const [sortField, setSortField] = useState<SortField>('created_at');
@@ -90,6 +99,9 @@ export default function LeadsPage() {
     if (leadStatusFilter !== 'all') {
       query = query.eq('lead_status', leadStatusFilter);
     }
+    if (sourceFilter !== 'all') {
+      query = query.eq('lead_source', sourceFilter);
+    }
     if (searchDebounced.trim()) {
       query = query.or(`name.ilike.%${searchDebounced}%,email.ilike.%${searchDebounced}%,phone.ilike.%${searchDebounced}%`);
     }
@@ -98,7 +110,7 @@ export default function LeadsPage() {
     setLeads(data ?? []);
     setTotalCount(count ?? 0);
     setLoading(false);
-  }, [supabase, page, statusFilter, leadStatusFilter, searchDebounced, sortField, sortDir]);
+  }, [supabase, page, statusFilter, leadStatusFilter, sourceFilter, searchDebounced, sortField, sortDir]);
 
   useEffect(() => {
     fetchLeads();
@@ -137,11 +149,12 @@ export default function LeadsPage() {
   };
 
   const exportCsv = () => {
-    const headers = ['שם', 'אימייל', 'טלפון', 'דפוס', 'סטטוס תשלום', 'סטטוס ליד', 'תאריך'];
+    const headers = ['שם', 'אימייל', 'טלפון', 'מקור הגעה', 'דפוס', 'סטטוס תשלום', 'סטטוס ליד', 'תאריך'];
     const rows = leads.map((l) => [
       l.name,
       l.email,
       l.phone ?? '',
+      l.lead_source ? (leadSourceLabels[l.lead_source] ?? l.lead_source) : '',
       l.result_pattern ?? '',
       paymentStatusLabels[l.payment_status ?? 'unpaid']?.text ?? '',
       leadStatusLabels[l.lead_status ?? 'new'] ?? '',
@@ -231,6 +244,17 @@ export default function LeadsPage() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={sourceFilter} onValueChange={(v) => { setSourceFilter(v); setPage(0); }}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="מקור הגעה" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">כל המקורות</SelectItem>
+            {Object.entries(leadSourceLabels).map(([val, label]) => (
+              <SelectItem key={val} value={val}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <Card>
@@ -256,6 +280,7 @@ export default function LeadsPage() {
                       אימייל <SortIcon field="email" />
                     </th>
                     <th className="text-right py-3 px-3 font-medium text-gray-500">טלפון</th>
+                    <th className="text-right py-3 px-3 font-medium text-gray-500">מקור</th>
                     <th className="text-right py-3 px-3 font-medium text-gray-500">דפוס</th>
                     <th className="text-right py-3 px-3 font-medium text-gray-500">סטטוס</th>
                     <th className="text-right py-3 px-3 font-medium text-gray-500 cursor-pointer select-none" onClick={() => toggleSort('payment_status')}>
@@ -284,6 +309,7 @@ export default function LeadsPage() {
                         <td className="py-3 px-3 font-medium">{lead.name}</td>
                         <td className="py-3 px-3 text-gray-600" dir="ltr">{lead.email}</td>
                         <td className="py-3 px-3 text-gray-600" dir="ltr">{lead.phone ?? '-'}</td>
+                        <td className="py-3 px-3 text-gray-600">{lead.lead_source ? (leadSourceLabels[lead.lead_source] ?? lead.lead_source) : '-'}</td>
                         <td className="py-3 px-3">{lead.result_pattern ?? '-'}</td>
                         <td className="py-3 px-3">
                           <span className="text-xs">{leadStatusLabels[lead.lead_status ?? 'new'] ?? lead.lead_status ?? '-'}</span>

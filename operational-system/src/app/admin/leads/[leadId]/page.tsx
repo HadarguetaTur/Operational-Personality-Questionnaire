@@ -53,6 +53,7 @@ interface LeadDetail {
   followup_submitted_at: string | null;
   meeting_booked_at: string | null;
   lead_status: string | null;
+  lead_source: string | null;
   notes: string | null;
   tags: string[] | null;
 }
@@ -90,6 +91,15 @@ const paymentStatusLabels: Record<string, string> = {
   refunded: 'הוחזר',
 };
 
+const leadSourceLabels: Record<string, string> = {
+  instagram: 'אינסטגרם',
+  facebook: 'פייסבוק',
+  landing_page: 'דף נחיתה',
+  whatsapp: 'וואטסאפ',
+};
+
+const UNKNOWN_SOURCE = 'unknown';
+
 export default function LeadDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -104,6 +114,7 @@ export default function LeadDetailPage() {
   const [editNotes, setEditNotes] = useState('');
   const [editStatus, setEditStatus] = useState('');
   const [editTags, setEditTags] = useState('');
+  const [editSource, setEditSource] = useState(UNKNOWN_SOURCE);
 
   const fetchData = useCallback(async () => {
     const [leadRes, emailsRes, docsRes] = await Promise.all([
@@ -117,6 +128,7 @@ export default function LeadDetailPage() {
       setEditNotes(leadRes.data.notes ?? '');
       setEditStatus(leadRes.data.lead_status ?? 'new');
       setEditTags((leadRes.data.tags ?? []).join(', '));
+      setEditSource(leadRes.data.lead_source ?? UNKNOWN_SOURCE);
     }
     setEmails(emailsRes.data ?? []);
     setDocuments(docsRes.data ?? []);
@@ -133,6 +145,7 @@ export default function LeadDetailPage() {
       .from('leads')
       .update({
         lead_status: editStatus,
+        lead_source: editSource === UNKNOWN_SOURCE ? null : editSource,
         notes: editNotes || null,
         tags: editTags ? editTags.split(',').map((t) => t.trim()).filter(Boolean) : [],
       })
@@ -246,6 +259,10 @@ export default function LeadDetailPage() {
                   <span className="text-gray-500 block">הסכמה שיווקית</span>
                   <span className="font-medium">{lead.marketing_consent ? 'כן' : 'לא'}</span>
                 </div>
+                <div>
+                  <span className="text-gray-500 block">מקור הגעה</span>
+                  <span className="font-medium">{lead.lead_source ? (leadSourceLabels[lead.lead_source] ?? lead.lead_source) : '-'}</span>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -265,6 +282,20 @@ export default function LeadDetailPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {Object.entries(leadStatusLabels).map(([val, label]) => (
+                        <SelectItem key={val} value={val}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>מקור הגעה</Label>
+                  <Select value={editSource} onValueChange={setEditSource}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={UNKNOWN_SOURCE}>לא ידוע</SelectItem>
+                      {Object.entries(leadSourceLabels).map(([val, label]) => (
                         <SelectItem key={val} value={val}>{label}</SelectItem>
                       ))}
                     </SelectContent>

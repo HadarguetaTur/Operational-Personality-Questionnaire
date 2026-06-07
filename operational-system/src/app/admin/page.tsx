@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, GitBranch, Mail, FileText, TrendingUp, Clock, Plus, Send, ArrowLeft } from 'lucide-react';
+import { Users, GitBranch, Mail, FileText, TrendingUp, Clock, Plus, Send, ArrowLeft, Instagram, Facebook, MessageCircle, Globe } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
   BarChart,
@@ -39,7 +39,23 @@ interface PaymentBreakdown {
   color: string;
 }
 
+interface SourceCard {
+  key: string;
+  label: string;
+  value: number;
+  icon: React.ElementType;
+  color: string;
+  bg: string;
+}
+
 const PIE_COLORS = ['#10b981', '#f59e0b', '#6b7280', '#ef4444'];
+
+const SOURCE_META: Array<{ key: string; label: string; icon: React.ElementType; color: string; bg: string }> = [
+  { key: 'landing_page', label: 'דף נחיתה', icon: Globe, color: 'text-blue-600', bg: 'bg-blue-50' },
+  { key: 'instagram', label: 'אינסטגרם', icon: Instagram, color: 'text-pink-600', bg: 'bg-pink-50' },
+  { key: 'facebook', label: 'פייסבוק', icon: Facebook, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+  { key: 'whatsapp', label: 'וואטסאפ', icon: MessageCircle, color: 'text-green-600', bg: 'bg-green-50' },
+];
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats>({
@@ -60,6 +76,7 @@ export default function AdminDashboard() {
   }>>([]);
   const [dailyLeads, setDailyLeads] = useState<DailyLeadCount[]>([]);
   const [paymentBreakdown, setPaymentBreakdown] = useState<PaymentBreakdown[]>([]);
+  const [sourceCards, setSourceCards] = useState<SourceCard[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
@@ -127,6 +144,15 @@ export default function AdminDashboard() {
           { name: 'לא שולם', value: paymentMap.unpaid, color: PIE_COLORS[2] },
           { name: 'הוחזר', value: paymentMap.refunded, color: PIE_COLORS[3] },
         ].filter((p) => p.value > 0));
+
+        // Leads per source (platform)
+        const { data: sourceLeads } = await supabase.from('leads').select('lead_source');
+        const sourceMap: Record<string, number> = {};
+        (sourceLeads ?? []).forEach((l) => {
+          const s = l.lead_source ?? 'landing_page';
+          sourceMap[s] = (sourceMap[s] ?? 0) + 1;
+        });
+        setSourceCards(SOURCE_META.map((m) => ({ ...m, value: sourceMap[m.key] ?? 0 })));
       } catch (err) {
         console.error('Error fetching dashboard stats:', err);
       } finally {
@@ -205,6 +231,31 @@ export default function AdminDashboard() {
             </Card>
           );
         })}
+      </div>
+
+      {/* Leads by source (platform) */}
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">לידים לפי מקור הגעה</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {sourceCards.map((s) => {
+            const Icon = s.icon;
+            return (
+              <Card key={s.key}>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${s.bg}`}>
+                      <Icon className={`w-5 h-5 ${s.color}`} />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">{s.label}</p>
+                      <p className="text-xl font-bold text-gray-900">{s.value}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       </div>
 
       {/* Charts row */}
