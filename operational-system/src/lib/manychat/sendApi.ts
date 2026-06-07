@@ -168,28 +168,28 @@ export async function pushManyChatReply(
   } catch(e) { console.warn('[ManyChatSendApi] getInfo failed', e); }
   // #endregion
 
-  // Step 3: send via ManyChat flow trigger.
-  // sendContent API fails with error 3011 (24h window) for native WhatsApp subscribers
-  // because the API-level window check doesn't recognise the active conversation context.
-  // Instead: set the `response` field (done above) and trigger a dedicated ManyChat flow
-  // ("Bot Reply Sender") that contains a single "Send WhatsApp Message: {{response}}" step.
-  // ManyChat flow sends bypass the API-level window restriction.
-  const flowNs = process.env.MANYCHAT_SEND_FLOW_NS?.trim();
-  if (!flowNs) {
-    return { success: false, error: 'MANYCHAT_SEND_FLOW_NS env var not set' };
-  }
+  // Step 3: send the message(s) to WhatsApp via sendContent.
+  // Error 3011 says "without a message tag" — we include NON_PROMOTIONAL_SUBSCRIPTION
+  // which is the most permissive tag; if ManyChat rejects it for WhatsApp we will see
+  // a different error code and can try a WhatsApp-specific tag from the Swagger docs.
   const body = {
     subscriber_id: subscriberId,
-    flow_ns: flowNs,
+    data: {
+      version: 'v2',
+      content: {
+        messages: filtered,
+      },
+    },
+    message_tag: 'NON_PROMOTIONAL_SUBSCRIPTION',
   };
 
   // #region agent log
-  fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ca65b'},body:JSON.stringify({sessionId:'0ca65b',location:'sendApi.ts:pushManyChatReply-beforeSend',message:'sendFlowToSubscriber request body',data:{subscriberId,subscriberIdType:typeof subscriberId,subscriberIdLen:String(subscriberId).length,bodyJson:JSON.stringify(body)},timestamp:Date.now(),hypothesisId:'H-G'})}).catch(()=>{});
+  fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ca65b'},body:JSON.stringify({sessionId:'0ca65b',location:'sendApi.ts:pushManyChatReply-beforeSend',message:'sendContent+tag request body',data:{subscriberId,tag:'NON_PROMOTIONAL_SUBSCRIPTION',bodyJson:JSON.stringify(body)},timestamp:Date.now(),hypothesisId:'H-H'})}).catch(()=>{});
   // #endregion
 
   let response: Response;
   try {
-    response = await fetch(`${MANYCHAT_API_BASE}/fb/sending/sendFlowToSubscriber`, {
+    response = await fetch(`${MANYCHAT_API_BASE}/fb/sending/sendContent`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
