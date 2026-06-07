@@ -21,4 +21,4 @@ export function detectMeetingIntent(message: string): boolean {
   return MEETING_PATTERNS.some((pattern) => pattern.test(normalized));
 }
 
-export const MEETING_BOOKING_REPLY = 'מעולה! שולחת לך את הקישור לקביעת גישת האפיון 🗓️';
+export const MEETING_BOOKING_REPLY = 'מעולה! שולחת לך עכשיו את הקישור לשיחת ההיכרות עם הדר 🗓️';

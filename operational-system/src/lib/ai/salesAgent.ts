@@ -1,5 +1,5 @@
 import { getSystemPrompt } from './prompts/salesAgentSystemPrompt';
-import { getStageDirective, getFallbackForState } from './prompts/stagePrompts';
+import { getPromptForState, getFallbackForState } from './prompts/stagePrompts';
 import { validateReply } from '@/lib/agents/replyValidator';
 import { redactHistory } from './redact';
 import { matchPersona } from './knowledge/personas';
@@ -51,26 +51,9 @@ export interface AgentOutput {
 }
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const MODEL = 'openai/gpt-4.1-mini';
+const MODEL = 'openai/gpt-4.1';
 const MAX_RETRIES = 2;
 
-const OVERRIDE_RULE = `## כלל עקיפה — עדיפות מוחלטת
-אם המשתמשת ביקשה פגישה / גישת אפיון / קישור → action: book_meeting, state: booking
-אם מתוסכלת ("חופרת", "מספיק שאלות") → book_meeting או human_handoff
-אסור לומר "לא ראיתי תשובה" — אף פעם.`;
-
-const FORMAT_SECTION = `## פורמט — JSON בלבד
-{
-  "reply": "טקסט ללקוחה",
-  "action": "continue | book_meeting | mark_irrelevant | request_followup | mark_spam | human_handoff",
-  "state": "initial | discovery | qualifying | pitching | objection | booking | closed | irrelevant | spam | escalated",
-  "extracted_facts": {
-    "pain_category": "leads_followup | scheduling | overload | conversion | process | trust | other",
-    "business_type": "",
-    "main_challenge": "",
-    "temperature": "cold | warm | hot"
-  }
-}`;
 
 function parseAgentOutput(raw: string): AgentOutput | null {
   try {
@@ -127,14 +110,16 @@ async function buildSystemPrompt(
   conversationContext?: Record<string, unknown>,
   extractedFacts?: ExtractedFacts,
 ): Promise<string> {
-  const base = await getSystemPrompt();
-  const directive = getStageDirective(currentState);
+  // Full per-stage prompt: contains OVERRIDE_RULE, ANTI_HALLUCINATION, stage instructions, FORMAT.
+  const stagePrompt = getPromptForState(currentState);
+  // Knowledge base: product info, objections, testimonials, rules — loaded from DB with 60s cache.
+  const knowledgeBase = await getSystemPrompt();
   const context = buildContextSection(conversationContext);
   const persona = buildPersonaSection(extractedFacts);
   // #region agent log
-  console.error(`[DEBUG-06149a:buildSystemPrompt] state=${currentState} | baseLen=${base.length} | baseSnippet=${base.slice(0,120).replace(/\n/g,' ')}`);
+  console.error(`[DEBUG-06149a:buildSystemPrompt] state=${currentState} | stageLen=${stagePrompt.length} | kbLen=${knowledgeBase.length}`);
   // #endregion
-  return [OVERRIDE_RULE, base, `\n## שלב נוכחי\n${directive}`, context, persona, FORMAT_SECTION]
+  return [stagePrompt, knowledgeBase, context, persona]
     .filter(Boolean)
     .join('\n');
 }
@@ -228,7 +213,7 @@ export async function runSalesAgent(input: {
           model: MODEL,
           messages,
           response_format: { type: 'json_object' },
-          temperature: 0.3,
+          temperature: 0.2,
           max_tokens: attempt > 0 ? 300 : 600,
         }),
       });
@@ -256,16 +241,20 @@ export async function runSalesAgent(input: {
       // #region agent log
       console.error(`[DEBUG-06149a:validator] state=${currentState} | valid=${validation.valid} | reason=${validation.reason??'ok'} | prevReplyLen=${previousBotReply?.length??0} | replySnippet=${parsed.reply.slice(0,80).replace(/\n/g,' ')}`);
       // #endregion
-      if (!validation.valid && attempt < MAX_RETRIES) {
-        console.warn(`[salesAgent:${currentState}] Reply validation failed:`, validation.reason);
-        continue;
+      if (!validation.valid) {
+        console.warn(`[salesAgent:${currentState}] Reply validation failed (attempt ${attempt + 1}):`, validation.reason);
+        if (attempt < MAX_RETRIES) continue;
+        // All retries exhausted — return safe stage fallback instead of sending bad reply.
+        console.warn(`[salesAgent:${currentState}] All retries failed validation — using stage fallback`);
+        return FALLBACK_OUTPUT;
       }
 
       const rawUsage = json?.usage;
       let usage: AgentUsage | undefined;
       if (rawUsage?.prompt_tokens != null) {
+        // gpt-4.1: $2/1M prompt tokens, $8/1M completion tokens
         const cost_usd =
-          (rawUsage.prompt_tokens * 0.4 + (rawUsage.completion_tokens ?? 0) * 1.6) / 1_000_000;
+          (rawUsage.prompt_tokens * 2 + (rawUsage.completion_tokens ?? 0) * 8) / 1_000_000;
         usage = {
           prompt_tokens: rawUsage.prompt_tokens,
           completion_tokens: rawUsage.completion_tokens ?? 0,

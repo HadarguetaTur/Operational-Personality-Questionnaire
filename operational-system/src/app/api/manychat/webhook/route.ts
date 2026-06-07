@@ -71,7 +71,7 @@ function buildBookingMessages(
   if (bookingUrl) {
     messages.push({
       type: 'text',
-      text: `לקביעת גישת האפיון עם הדר: ${bookingUrl}`,
+      text: `לקביעת שיחת ההיכרות עם הדר: ${bookingUrl}`,
     });
   }
   return messages;
@@ -240,7 +240,7 @@ async function processLeadMessage(
 
     const userMsgCount = await countUserMessagesForLead(leadUuid);
     if (userMsgCount >= 10) {
-      const escalationReply = 'שיחה זו הועברה לנציג. הדר תחזור אליך בהקדם 🙏';
+      const escalationReply = 'הדר תחזור אלייך בקרוב לשיחה אישית 🙏';
       await saveMessage(leadUuid, subscriberId, 'assistant', escalationReply, {
         action: 'human_handoff',
         state: 'escalated',
@@ -315,11 +315,22 @@ async function processLeadMessage(
       return;
     }
 
+    // Meeting nudge: if 6+ user messages and meeting not yet offered, push the agent to offer now.
+    const MEETING_OFFERED_STATES = new Set(['booking', 'closed', 'escalated', 'irrelevant', 'spam']);
+    const needsMeetingNudge =
+      userMsgCount >= 6 && !MEETING_OFFERED_STATES.has(currentState ?? '');
+    const enrichedContext: Record<string, unknown> = {
+      ...((conversationContext as Record<string, unknown>) ?? {}),
+      ...(needsMeetingNudge
+        ? { nudge: 'הגיעה הודעה 6+. אם לא הצעת עדיין שיחת היכרות — הצע עכשיו. אל תשאלי שאלות נוספות.' }
+        : {}),
+    };
+
     const agentOutput = await runSalesAgent({
       history,
       newMessage: userMessage,
       currentState,
-      conversationContext,
+      conversationContext: enrichedContext,
     });
 
     if (agentOutput.action === 'mark_spam') {
