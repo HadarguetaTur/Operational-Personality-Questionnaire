@@ -168,28 +168,25 @@ export async function pushManyChatReply(
   } catch(e) { console.warn('[ManyChatSendApi] getInfo failed', e); }
   // #endregion
 
-  // Step 3: send the message(s) to WhatsApp via sendContent.
-  // Error 3011 says "without a message tag" — we include NON_PROMOTIONAL_SUBSCRIPTION
-  // which is the most permissive tag; if ManyChat rejects it for WhatsApp we will see
-  // a different error code and can try a WhatsApp-specific tag from the Swagger docs.
+  // Step 3: trigger the "Bot Reply Sender" flow via /fb/sending/sendFlow.
+  // The flow contains a single WhatsApp Send Message step with {{response}}.
+  // Using sendFlow instead of sendContent bypasses the 24h window check.
+  const flowNs = process.env.MANYCHAT_SEND_FLOW_NS?.trim();
+  if (!flowNs) {
+    return { success: false, error: 'MANYCHAT_SEND_FLOW_NS env var not set' };
+  }
   const body = {
     subscriber_id: subscriberId,
-    data: {
-      version: 'v2',
-      content: {
-        messages: filtered,
-      },
-    },
-    message_tag: 'NON_PROMOTIONAL_SUBSCRIPTION',
+    flow_ns: flowNs,
   };
 
   // #region agent log
-  fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ca65b'},body:JSON.stringify({sessionId:'0ca65b',location:'sendApi.ts:pushManyChatReply-beforeSend',message:'sendContent+tag request body',data:{subscriberId,tag:'NON_PROMOTIONAL_SUBSCRIPTION',bodyJson:JSON.stringify(body)},timestamp:Date.now(),hypothesisId:'H-H'})}).catch(()=>{});
+  fetch('http://127.0.0.1:7859/ingest/eaae9886-8d8c-42ff-b024-50d1c3875c50',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ca65b'},body:JSON.stringify({sessionId:'0ca65b',location:'sendApi.ts:pushManyChatReply-beforeSend',message:'sendFlow request body',data:{subscriberId,flowNs,bodyJson:JSON.stringify(body)},timestamp:Date.now(),hypothesisId:'H-H'})}).catch(()=>{});
   // #endregion
 
   let response: Response;
   try {
-    response = await fetch(`${MANYCHAT_API_BASE}/fb/sending/sendContent`, {
+    response = await fetch(`${MANYCHAT_API_BASE}/fb/sending/sendFlow`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
