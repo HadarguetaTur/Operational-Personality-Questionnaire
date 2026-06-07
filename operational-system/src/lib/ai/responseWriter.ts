@@ -25,7 +25,11 @@ function parseWriterOutput(raw: string): AgentOutput | null {
 
     const validActions: AgentAction[] = [
       'continue',
-      'book_meeting',
+      'propose_diagnostic_call',
+      'propose_intro_call',
+      'book_diagnostic_call',
+      'book_intro_call',
+      'assign_homework',
       'mark_irrelevant',
       'request_followup',
       'mark_spam',

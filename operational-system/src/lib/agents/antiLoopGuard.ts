@@ -1,33 +1,29 @@
 /**
- * antiLoopGuard — deterministic loop-prevention layer.
+ * antiLoopGuard — deterministic loop-prevention layer (v4)
  *
- * Runs BEFORE the LLM call. Reads from conversation context (memory) and
- * the current message count to detect loops and return hard overrides.
+ * Core Doctrine: לא עוברים לשלב הבא כי עבר מספר הודעות — אלא כי הבוט מבין מספיק.
  *
- * Rules (AL-1 … AL-9):
- *   AL-1  User explicitly requested a meeting in any of the last 3 messages
- *         (safety net in case regex pre-check missed it) → force book_meeting.
+ * Rules:
+ *   AL-1  User requested meeting WHILE in awaiting_confirmation → fire book_*
+ *         (restricted — only in awaiting_confirmation state)
  *   AL-2  clarification_count >= 2 → force handoff.
- *   AL-3  offered_booking_count >= 3 → force handoff (user is stuck).
- *   AL-4  objection_count >= 2 AND state == 'objection' → soft close (request_followup).
- *   AL-5  userMsgCount >= 3 AND state in {initial, discovery, qualifying}
- *         AND main_challenge is empty → nudge to pitching (not force, just signal).
- *   AL-6  userMsgCount >= 6 AND offered_booking_count == 0 → must offer booking.
- *   AL-7  repeated_user_intent_count >= 2 → must respond to that intent directly.
- *   AL-8  Bot asked the same question twice (last_asked_question repeated) → skip to next stage.
- *   AL-9  State == 'booking' or 'closed' → never ask discovery questions.
+ *   AL-3  offered_booking_count >= 3 → force handoff (user stuck in loop).
+ *   AL-4  objection_count >= 2 AND state == 'objection' → soft close.
+ *   AL-5  userMsgCount >= 4 AND state in {discovery, diagnostic} AND no main_challenge → nudge.
+ *   AL-7a diagnostic 5+ turns AND clarity_score < 40 → assign homework (can't get clarity).
+ *   AL-7b diagnostic 3+ turns AND fit clearly disqualified → mark irrelevant.
+ *   AL-7c diagnostic 3+ turns AND process_exists=false AND has_repeatability=false → homework.
+ *
+ * Removed:
+ *   AL-6  (userMsgCount >= 6 → force booking) — violates Core Doctrine
  */
 
 import type { AgentAction } from '@/lib/ai/salesAgent';
 
 export interface LoopContext {
-  /** Current conversation state */
   state: string;
-  /** Total user messages sent so far */
   userMsgCount: number;
-  /** Conversation context object from bot_conversation_state */
   context: Record<string, unknown>;
-  /** Last 3 user messages (most-recent last) for AL-1 check */
   recentUserMessages?: string[];
 }
 
@@ -35,25 +31,20 @@ export interface AntiLoopOverride {
   forced_action: AgentAction;
   forced_reply: string;
   reason: string;
-  /** Updated context patch to persist after override */
   context_patch?: Record<string, unknown>;
 }
 
-// Meeting keywords for AL-1 (covers common misses by regex pre-check)
+// Meeting confirmation keywords — only relevant in awaiting_confirmation state
 const MEETING_KEYWORDS =
   /פגישה|לקבוע|תשלחי קישור|שלחי לינק|רוצה להתקדם|נקבע|אשמח לקבוע|בואי נקבע|רוצה לקבוע/i;
 
-const EARLY_DISCOVERY_STATES = new Set(['initial', 'discovery', 'qualifying']);
-const TERMINAL_STATES = new Set(['booking', 'closed', 'escalated', 'irrelevant', 'spam']);
+const TERMINAL_STATES = new Set(['booking', 'closed', 'escalated', 'irrelevant', 'spam', 'homework']);
 
 function getCount(context: Record<string, unknown>, key: string): number {
   const v = context[key];
   return typeof v === 'number' ? v : 0;
 }
 
-/**
- * Builds a context patch that increments a numeric counter.
- */
 export function buildCounterPatch(
   key: 'offered_booking_count' | 'objection_count' | 'clarification_count',
   context: Record<string, unknown>,
@@ -61,25 +52,31 @@ export function buildCounterPatch(
   return { [key]: getCount(context, key) + 1 };
 }
 
-/**
- * Returns an override if a loop condition is detected, or null if all clear.
- */
 export function runAntiLoopGuard(params: LoopContext): AntiLoopOverride | null {
   const { state, userMsgCount, context, recentUserMessages = [] } = params;
 
   const offeredBookingCount = getCount(context, 'offered_booking_count');
   const objectionCount = getCount(context, 'objection_count');
   const clarificationCount = getCount(context, 'clarification_count');
+  const diagnosticTurnCount = getCount(context, 'diagnostic_turn_count');
+  const clarityScore = getCount(context, 'clarity_score');
 
-  // AL-1: Recent user message explicitly requested a meeting
+  // AL-1: Meeting keyword ONLY when user is already in awaiting_confirmation
+  // (prevents premature booking during discovery/diagnostic)
   if (
-    !TERMINAL_STATES.has(state) &&
+    state === 'awaiting_confirmation' &&
     recentUserMessages.some((m) => MEETING_KEYWORDS.test(m))
   ) {
+    const bookingAction: AgentAction =
+      context.pending_booking_type === 'intro' ? 'book_intro_call' : 'book_diagnostic_call';
+    const reply =
+      context.pending_booking_type === 'intro'
+        ? 'מעולה! שולחת לך עכשיו את הקישור לזום ההיכרות עם הדר 🗓️'
+        : 'מעולה! שולחת לך עכשיו את הקישור לשיחת האפיון עם הדר 🗓️';
     return {
-      forced_action: 'book_meeting',
-      forced_reply: 'מעולה! שולחת לך עכשיו את הקישור לשיחת ההיכרות עם הדר 🗓️',
-      reason: 'AL-1: meeting request detected in recent messages',
+      forced_action: bookingAction,
+      forced_reply: reply,
+      reason: 'AL-1: meeting request in awaiting_confirmation',
     };
   }
 
@@ -106,21 +103,50 @@ export function runAntiLoopGuard(params: LoopContext): AntiLoopOverride | null {
     return {
       forced_action: 'request_followup',
       forced_reply: 'מבינה לגמרי. אם בעתיד תרצי לחזור ולבדוק — אני פה 🙏',
-      reason: `AL-4: objection_count=${objectionCount} in 'objection' state`,
+      reason: `AL-4: objection_count=${objectionCount} in objection state`,
     };
   }
 
-  // AL-6: 6+ messages with no booking offer → must offer now
+  // AL-7a: Long diagnostic with very low clarity → homework (can't extract info)
   if (
-    userMsgCount >= 6 &&
-    offeredBookingCount === 0 &&
-    !TERMINAL_STATES.has(state)
+    state === 'diagnostic' &&
+    diagnosticTurnCount >= 5 &&
+    clarityScore < 40
   ) {
     return {
-      forced_action: 'book_meeting',
+      forced_action: 'assign_homework',
       forced_reply:
-        'הדר עוסקת בדיוק בזה — בואי נקבע שיחה קצרה של 15 דקות, חינם, ונסתכל ביחד על העסק שלך. מה את חושבת?',
-      reason: `AL-6: ${userMsgCount} messages with 0 booking offers`,
+        'לפני שאמשיך, אני רוצה לבקש ממך תרגיל קטן — שבוע אחד של יומן: כל פנייה שמגיעה, רשמי מה ביקשו, מה עשית, איפה זה נתקע. אחרי שבוע יהיה לנו הרבה יותר ברור מה לעשות. יכולה לעשות את זה?',
+      reason: `AL-7a: diagnostic_turn_count=${diagnosticTurnCount}, clarity_score=${clarityScore} < 40`,
+    };
+  }
+
+  // AL-7b: Fit clearly disqualified after a few turns → irrelevant
+  if (
+    state === 'diagnostic' &&
+    diagnosticTurnCount >= 3 &&
+    context.problem_in_hadar_domain === false &&
+    context.active_business === false
+  ) {
+    return {
+      forced_action: 'mark_irrelevant',
+      forced_reply: 'תודה שפנית — נראה שבשלב הזה אני לא הכתובת המתאימה. בהצלחה עם העסק! 🙏',
+      reason: 'AL-7b: problem_in_hadar_domain=false AND active_business=false',
+    };
+  }
+
+  // AL-7c: No process and no repeatability → homework
+  if (
+    state === 'diagnostic' &&
+    diagnosticTurnCount >= 3 &&
+    context.process_exists === false &&
+    context.has_repeatability === false
+  ) {
+    return {
+      forced_action: 'assign_homework',
+      forced_reply:
+        'מה שאני שומעת הוא שכל מקרה הוא שונה ואין עדיין שיטה קבועה. לפני שממליצה על משהו, אני מציעה לרשום יומן שבועי — כל פנייה שמגיעה: מה ביקשו, מה עשית, מה קרה. אחרי שבוע יהיה לנו תמונה הרבה יותר ברורה. יכולה?',
+      reason: 'AL-7c: process_exists=false AND has_repeatability=false',
     };
   }
 
@@ -128,34 +154,28 @@ export function runAntiLoopGuard(params: LoopContext): AntiLoopOverride | null {
 }
 
 /**
- * Builds a nudge string to inject into the conversation context
- * when AL-5 applies (long discovery without articulated pain).
+ * Builds a nudge string to inject into the conversation context.
+ * AL-5: Long discovery without articulated pain/process.
  */
 export function buildDiscoveryNudge(
   userMsgCount: number,
   state: string,
   context: Record<string, unknown>,
 ): string | null {
+  const earlyStates = new Set(['initial', 'discovery', 'diagnostic']);
   if (
-    userMsgCount >= 3 &&
-    EARLY_DISCOVERY_STATES.has(state) &&
-    !context.main_challenge
+    userMsgCount >= 4 &&
+    earlyStates.has(state) &&
+    !context.main_challenge &&
+    !context.bottleneck_identified
   ) {
-    return 'הגיעה הודעה 3+. אם הכאב ברור — עבור ל-pitching מיד. אל תשאלי שאלת גילוי נוספת.';
-  }
-  if (
-    userMsgCount >= 6 &&
-    getCount(context, 'offered_booking_count') === 0 &&
-    !TERMINAL_STATES.has(state)
-  ) {
-    return 'הגיעה הודעה 6+. חובה להציע שיחת היכרות עכשיו — אל תשאלי שאלות נוספות.';
+    return 'הגיעה הודעה 4+. אם עוד לא שאלת על תהליך ספציפי — שאלי "כשמגיעה פנייה, מה הצעד הראשון שאת עושה?"';
   }
   return null;
 }
 
 /**
  * Updates anti-loop counters in the context based on the agent's action and reply.
- * Call this AFTER the agent runs to update context for the next turn.
  */
 export function updateAntiLoopCounters(
   context: Record<string, unknown>,
@@ -165,24 +185,32 @@ export function updateAntiLoopCounters(
 ): Record<string, unknown> {
   const patch: Record<string, unknown> = {};
 
-  if (action === 'book_meeting') {
+  // Track booking offers (propose actions count as offers)
+  if (action === 'propose_diagnostic_call' || action === 'propose_intro_call') {
     patch.offered_booking_count = getCount(context, 'offered_booking_count') + 1;
   }
+
+  // Objection tracking
   if (state === 'objection') {
     patch.objection_count = getCount(context, 'objection_count') + 1;
-  } else {
-    // Reset objection count when we leave objection state
-    if (getCount(context, 'objection_count') > 0 && state !== 'objection') {
-      patch.objection_count = 0;
-    }
+  } else if (getCount(context, 'objection_count') > 0) {
+    patch.objection_count = 0;
   }
 
-  // Track last asked question to detect AL-8 (same question twice)
+  // Track last asked question (AL-8: repeated question → clarification_count++)
   const question = extractQuestion(lastReply);
   if (question) {
     patch.last_asked_question = question;
     if (question === context.last_asked_question) {
       patch.clarification_count = getCount(context, 'clarification_count') + 1;
+    }
+  }
+
+  // Add asked question to asked_questions list (for stagePrompts anti-repetition)
+  if (question) {
+    const prev = Array.isArray(context.asked_questions) ? (context.asked_questions as string[]) : [];
+    if (!prev.includes(question)) {
+      patch.asked_questions = [...prev, question].slice(-20);
     }
   }
 

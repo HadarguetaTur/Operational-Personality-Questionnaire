@@ -7,7 +7,11 @@ import type { ConversationMessage } from '@/lib/db/conversationMessages';
 
 export type AgentAction =
   | 'continue'
-  | 'book_meeting'
+  | 'propose_diagnostic_call'
+  | 'propose_intro_call'
+  | 'book_diagnostic_call'
+  | 'book_intro_call'
+  | 'assign_homework'
   | 'mark_irrelevant'
   | 'request_followup'
   | 'mark_spam'
@@ -16,8 +20,11 @@ export type AgentAction =
 export const VALID_STATES = [
   'initial',
   'discovery',
-  'qualifying',
-  'pitching',
+  'diagnostic',
+  'summary',
+  'vision',
+  'awaiting_confirmation',
+  'homework',
   'objection',
   'booking',
   'closed',
@@ -81,7 +88,11 @@ function parseAgentOutput(raw: string): AgentOutput | null {
 
     const validActions: AgentAction[] = [
       'continue',
-      'book_meeting',
+      'propose_diagnostic_call',
+      'propose_intro_call',
+      'book_diagnostic_call',
+      'book_intro_call',
+      'assign_homework',
       'mark_irrelevant',
       'request_followup',
       'mark_spam',
@@ -194,8 +205,8 @@ export async function runSalesAgent(input: {
   const currentState = input.currentState ?? 'initial';
 
   const stageFallback = getFallbackForState(currentState);
-  // In early stages, never repeat the same message — escalate to pitching fallback instead.
-  const EARLY_STAGES_SET = new Set(['initial', 'discovery', 'qualifying']);
+  // In early stages, never repeat the same message — escalate to diagnostic fallback instead.
+  const EARLY_STAGES_SET = new Set(['initial', 'discovery', 'diagnostic']);
   const FALLBACK_OUTPUT: AgentOutput = {
     reply: stageFallback.reply,
     action: 'continue',
@@ -203,8 +214,8 @@ export async function runSalesAgent(input: {
     extracted_facts: {},
     known_facts: [],
   };
-  // Pitching fallback used when discovery fallback would repeat previous reply.
-  const pitchingFallback = getFallbackForState('pitching');
+  // Diagnostic fallback used when discovery fallback would repeat previous reply.
+  const diagnosticFallback = getFallbackForState('diagnostic');
 
   if (!apiKey) {
     console.error(`[salesAgent:${currentState}] OPENROUTER_API_KEY not configured`);
@@ -295,8 +306,8 @@ export async function runSalesAgent(input: {
         // All retries exhausted — choose fallback carefully to avoid repeating previous reply.
         if (EARLY_STAGES_SET.has(currentState) && recentBotReplies.length > 0) {
           // In early stages: advance to pitching rather than repeating discovery question.
-          console.warn(`[salesAgent:${currentState}] All retries failed — escalating to pitching fallback`);
-          return { ...pitchingFallback, action: 'continue', extracted_facts: {}, known_facts: [] };
+          console.warn(`[salesAgent:${currentState}] All retries failed — escalating to diagnostic fallback`);
+          return { ...diagnosticFallback, action: 'continue', extracted_facts: {}, known_facts: [] };
         }
         console.warn(`[salesAgent:${currentState}] All retries failed validation — using stage fallback`);
         return FALLBACK_OUTPUT;

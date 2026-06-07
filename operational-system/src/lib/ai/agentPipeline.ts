@@ -17,10 +17,21 @@ import {
   updateAntiLoopCounters,
   type LoopContext,
 } from '@/lib/agents/antiLoopGuard';
+import {
+  computeFitScore,
+  computeClarityScore,
+  getRecommendedNextStep,
+} from '@/lib/agents/understandingEngine';
 import { runResponseWriter } from './responseWriter';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import type { ConversationMessage } from '@/lib/db/conversationMessages';
 import type { AgentOutput, AgentAction } from './salesAgent';
+
+// Backward-compat: map removed states to their replacements
+const LEGACY_STATE_MAP: Record<string, string> = {
+  qualifying: 'diagnostic',
+  pitching: 'vision',
+};
 
 export interface PipelineInput {
   history: ConversationMessage[];
@@ -66,7 +77,14 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
   output: AgentOutput;
   contextPatch: Record<string, unknown>;
 }> {
-  const { history, newMessage, currentState, conversationContext, userMsgCount, leadUuid } = input;
+  const { history, newMessage, userMsgCount, leadUuid } = input;
+  let { currentState, conversationContext } = input;
+
+  // Backward-compat: remap removed states
+  if (LEGACY_STATE_MAP[currentState]) {
+    console.log(`[agentPipeline] Remapping legacy state ${currentState} → ${LEGACY_STATE_MAP[currentState]}`);
+    currentState = LEGACY_STATE_MAP[currentState];
+  }
 
   // ── Stage 1: Classify ──────────────────────────────────────────────────────
 
@@ -88,15 +106,42 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
     usage: classifierResult.usage,
   });
 
+  // ── Stage 1b: Apply new_facts from classifier + run Understanding Engine ───
+
+  // Merge classifier new_facts into a temporary context for understandingEngine scoring
+  const facts = classifierOutput.new_facts;
+  const enrichedForScoring: Record<string, unknown> = { ...conversationContext };
+  if (facts.reason_for_reaching_out)  enrichedForScoring.reason_for_reaching_out = facts.reason_for_reaching_out;
+  if (facts.business_type)            enrichedForScoring.business_type = facts.business_type;
+  if (facts.main_challenge)           enrichedForScoring.main_challenge = facts.main_challenge;
+  if (facts.active_business != null)  enrichedForScoring.active_business = facts.active_business;
+  if (facts.problem_in_hadar_domain != null) enrichedForScoring.problem_in_hadar_domain = facts.problem_in_hadar_domain;
+  if (facts.process_exists != null)   enrichedForScoring.process_exists = facts.process_exists;
+  if (facts.has_repeatability != null) enrichedForScoring.has_repeatability = facts.has_repeatability;
+  if (facts.open_to_guidance != null) enrichedForScoring.open_to_guidance = facts.open_to_guidance;
+  if (facts.bottleneck_identified)    enrichedForScoring.bottleneck_identified = facts.bottleneck_identified;
+  if (facts.process_flow_known != null) enrichedForScoring.process_flow_known = facts.process_flow_known;
+  if (facts.gap_identified != null)   enrichedForScoring.gap_identified = facts.gap_identified;
+
+  const fitScore = computeFitScore(enrichedForScoring as Parameters<typeof computeFitScore>[0]);
+  const clarityScore = computeClarityScore(enrichedForScoring as Parameters<typeof computeClarityScore>[0]);
+  const recommendedNextStep = getRecommendedNextStep(enrichedForScoring as Parameters<typeof getRecommendedNextStep>[0]);
+
+  enrichedForScoring.fit_score = fitScore;
+  enrichedForScoring.clarity_score = clarityScore;
+  enrichedForScoring.recommended_next_step = recommendedNextStep;
+
+  console.log(`[agentPipeline] fit=${fitScore} clarity=${clarityScore} next=${recommendedNextStep}`);
+
   // ── Stage 2: State Machine ─────────────────────────────────────────────────
 
   const smOutput = runStateMachine({
     currentState,
     intent: classifierOutput.intent,
-    shouldOfferBooking: classifierOutput.should_offer_booking,
+    shouldOfferBooking: false, // understandingEngine drives booking, not classifier
     shouldHandoff: classifierOutput.should_handoff,
     isOptOut: classifierOutput.is_opt_out,
-    context: conversationContext,
+    context: enrichedForScoring,
   });
 
   let nextState = smOutput.nextState;
@@ -113,29 +158,37 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
   const loopCtx: LoopContext = {
     state: currentState,
     userMsgCount,
-    context: conversationContext,
+    context: enrichedForScoring,
     recentUserMessages,
   };
 
   const antiLoopOverride = runAntiLoopGuard(loopCtx);
   if (antiLoopOverride) {
     console.log(`[agentPipeline] AntiLoop override: ${antiLoopOverride.reason}`);
+    const overrideAction = antiLoopOverride.forced_action;
+    const overrideState =
+      overrideAction === 'book_diagnostic_call' || overrideAction === 'book_intro_call'
+        ? 'booking'
+        : overrideAction === 'human_handoff'
+          ? 'escalated'
+          : overrideAction === 'assign_homework'
+            ? 'homework'
+            : overrideAction === 'mark_irrelevant'
+              ? 'irrelevant'
+              : overrideAction === 'request_followup'
+                ? currentState
+                : 'irrelevant';
+
     const overriddenOutput: AgentOutput = {
       reply: antiLoopOverride.forced_reply,
-      action: antiLoopOverride.forced_action,
-      state: antiLoopOverride.forced_action === 'book_meeting'
-        ? 'booking'
-        : antiLoopOverride.forced_action === 'human_handoff'
-          ? 'escalated'
-          : antiLoopOverride.forced_action === 'request_followup'
-            ? 'irrelevant'
-            : 'irrelevant',
+      action: overrideAction,
+      state: overrideState,
       extracted_facts: {},
       known_facts: [],
     };
 
     const contextPatch = updateAntiLoopCounters(
-      conversationContext,
+      enrichedForScoring,
       overriddenOutput.action,
       overriddenOutput.state,
       overriddenOutput.reply,
@@ -144,12 +197,9 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
     return { output: overriddenOutput, contextPatch };
   }
 
-  // Inject discovery nudge into context if applicable
-  const nudge = buildDiscoveryNudge(userMsgCount, currentState, conversationContext);
-  const enrichedContext: Record<string, unknown> = {
-    ...conversationContext,
-    ...(nudge ? { nudge } : {}),
-  };
+  // Inject discovery nudge into enriched context if applicable
+  const nudge = buildDiscoveryNudge(userMsgCount, currentState, enrichedForScoring);
+  if (nudge) enrichedForScoring.nudge = nudge;
 
   // ── Stage 4: Response Writer ───────────────────────────────────────────────
 
@@ -159,7 +209,7 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
     nextState,
     forcedAction,
     classifierOutput,
-    context: enrichedContext,
+    context: enrichedForScoring,
   });
 
   await recordAiRun({
@@ -176,30 +226,52 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
   // ── Build context patch ────────────────────────────────────────────────────
 
   const antiLoopCounterPatch = updateAntiLoopCounters(
-    conversationContext,
+    enrichedForScoring,
     writerOutput.action,
     writerOutput.state,
     writerOutput.reply,
   );
 
   const newFactsPatch: Record<string, unknown> = {};
-  if (classifierOutput.new_facts.business_type) {
-    newFactsPatch.business_type = classifierOutput.new_facts.business_type;
+
+  // Standard facts
+  if (facts.business_type)   newFactsPatch.business_type = facts.business_type;
+  if (facts.main_challenge)  newFactsPatch.main_challenge = facts.main_challenge;
+  if (facts.pain_category)   newFactsPatch.pain_category = facts.pain_category;
+  if (facts.temperature)     newFactsPatch.temperature = facts.temperature;
+
+  // Fit signals
+  if (facts.reason_for_reaching_out)        newFactsPatch.reason_for_reaching_out = facts.reason_for_reaching_out;
+  if (facts.active_business != null)        newFactsPatch.active_business = facts.active_business;
+  if (facts.problem_in_hadar_domain != null) newFactsPatch.problem_in_hadar_domain = facts.problem_in_hadar_domain;
+  if (facts.process_exists != null)         newFactsPatch.process_exists = facts.process_exists;
+  if (facts.has_repeatability != null)      newFactsPatch.has_repeatability = facts.has_repeatability;
+  if (facts.open_to_guidance != null)       newFactsPatch.open_to_guidance = facts.open_to_guidance;
+  if (facts.bottleneck_identified)          newFactsPatch.bottleneck_identified = facts.bottleneck_identified;
+
+  // Clarity signals
+  if (facts.process_flow_known != null)     newFactsPatch.process_flow_known = facts.process_flow_known;
+  if (facts.gap_identified != null)         newFactsPatch.gap_identified = facts.gap_identified;
+  if (facts.feelings_only != null)          newFactsPatch.feelings_only = facts.feelings_only;
+
+  // Understanding engine scores (always update)
+  newFactsPatch.fit_score = fitScore;
+  newFactsPatch.clarity_score = clarityScore;
+  newFactsPatch.recommended_next_step = recommendedNextStep;
+
+  // Increment diagnostic turn count when in diagnostic state
+  if (currentState === 'diagnostic') {
+    const prev = typeof conversationContext.diagnostic_turn_count === 'number'
+      ? conversationContext.diagnostic_turn_count : 0;
+    newFactsPatch.diagnostic_turn_count = prev + 1;
   }
-  if (classifierOutput.new_facts.main_challenge) {
-    newFactsPatch.main_challenge = classifierOutput.new_facts.main_challenge;
-  }
-  if (classifierOutput.new_facts.pain_category) {
-    newFactsPatch.pain_category = classifierOutput.new_facts.pain_category;
-  }
-  if (classifierOutput.new_facts.temperature) {
-    newFactsPatch.temperature = classifierOutput.new_facts.temperature;
-  }
+
+  // Writer-extracted facts
   if (Object.keys(writerOutput.extracted_facts).length > 0) {
     Object.assign(newFactsPatch, writerOutput.extracted_facts);
   }
 
-  // Merge known_facts from writer output into context
+  // Merge known_facts from writer output
   if (writerOutput.known_facts.length > 0) {
     const prevFacts = Array.isArray(conversationContext.known_facts)
       ? (conversationContext.known_facts as string[])
@@ -208,7 +280,6 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
     newFactsPatch.known_facts = merged;
   }
 
-  // Track last intent
   newFactsPatch.last_intent = classifierOutput.intent;
 
   const contextPatch = { ...newFactsPatch, ...antiLoopCounterPatch };

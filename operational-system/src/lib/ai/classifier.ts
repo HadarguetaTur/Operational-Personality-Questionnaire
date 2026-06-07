@@ -16,6 +16,11 @@ export type ClassifierIntent =
   | 'price_inquiry'
   | 'objection'
   | 'discovery_answer'
+  | 'process_described'
+  | 'short_answer'
+  | 'chaos_detected'
+  | 'guidance_receptive'
+  | 'guidance_resistant'
   | 'info_request'
   | 'frustration'
   | 'opt_out'
@@ -46,6 +51,18 @@ export interface ClassifierOutput {
     main_challenge?: string;
     pain_category?: string;
     temperature?: 'cold' | 'warm' | 'hot';
+    // fit signals
+    reason_for_reaching_out?: string;
+    active_business?: boolean;
+    problem_in_hadar_domain?: boolean;
+    process_exists?: boolean;
+    has_repeatability?: boolean;
+    open_to_guidance?: boolean;
+    bottleneck_identified?: string;
+    // clarity signals
+    process_flow_known?: boolean;
+    gap_identified?: boolean;
+    feelings_only?: boolean;
   };
   missing_slots: string[];
   should_handoff: boolean;
@@ -53,53 +70,68 @@ export interface ClassifierOutput {
   is_opt_out: boolean;
 }
 
-const CLASSIFIER_SYSTEM_PROMPT = `אתה מסווג שיחות לבוט מכירות בוואטסאפ. עבודתך: לנתח הודעת משתמש ולהחזיר JSON מובנה.
+const CLASSIFIER_SYSTEM_PROMPT = `אתה מסווג שיחות לבוט אבחון עסקי בוואטסאפ. עבודתך: לנתח הודעת משתמש ולהחזיר JSON מובנה.
 אסור לכתוב תשובת מכירה — רק ניתוח.
 
+## Core Doctrine
+תחושות אינן עובדות. פתרונות אינם אבחנה.
+אם המשתמשת ציינה תחושה בלבד ללא נתון תהליכי ממשי → new_facts.feelings_only = true.
+
 ## הוראות
+
 1. intent: מה הכוונה האמיתית של ההודעה?
    - meeting_request: בקשה מפורשת לפגישה/שיחה/קישור
    - price_inquiry: שאלה על מחיר/עלות/השקעה
    - objection: "אבל...", ספקנות, חסמים
-   - discovery_answer: תשובה לשאלת גילוי (מה העסק, מה הבעיה)
-   - info_request: שאלה על המוצר/שירות
+   - discovery_answer: תשובה לשאלת גילוי — מה העסק, למה פנתה
+   - process_described: תיאור תהליך ממשי (לא רק תחושה) — "אני עושה X, אחר כך Y"
+   - short_answer: תשובה קצרה בלבד — "כן", "לא", "אולי", "לא יודעת"
+   - chaos_detected: "הכול מבולגן", "אין לי שיטה", "לא יודעת אפילו מאיפה להתחיל"
+   - guidance_receptive: "אשמח לשמוע מה את חושבת", "לא בטוחה מה נכון", "אשמח להכוונה"
+   - guidance_resistant: "אני יודעת בדיוק מה צריך", "רק תבצעי", "אל תשני לי כלום"
+   - info_request: שאלה על המוצר/שירות של הדר
    - frustration: תסכול מהשיחה / מהבוט
    - opt_out: "הסר", "עצור", "STOP", "לא רוצה הודעות"
-   - not_relevant: לא קהל יעד, לא עסק שירותי, גבר, חו"ל
+   - not_relevant: לא קהל יעד, גבר, חו"ל, עסק לא שירותי
    - spam: פרסום, דיוג, תוכן פוגעני
-   - affirmative: הסכמה ("בסדר", "כן", "בואי נקבע", "נשמע טוב")
+   - affirmative: הסכמה — "כן", "בדיוק", "נכון", "מדויק", "נשמע טוב"
    - other: כל שאר
 
-2. confidence: 0-1, כמה בטוח אתה ב-intent.
+2. confidence: 0-1
 
 3. sentiment: positive / neutral / negative
 
-4. is_objection: true אם יש חסם שמונע מהלקוח להתקדם.
+4. is_objection: true אם יש חסם להתקדמות
 
-5. objection_type: אם is_objection=true, מה סוג החסם?
+5. objection_type: אם is_objection=true
 
-6. new_facts: מידע חדש שנאמר בהודעה זו (לא מה שכבר ידוע).
-   - business_type: סוג העסק אם נאמר (טיפולי, עיצוב, הדרכה, ייעוץ, קייטרינג...)
-   - main_challenge: הכאב שנאמר בפועל — רק אם נאמר מפורשות
+6. new_facts: מידע חדש שנאמר בהודעה זו בלבד (לא מה שכבר ידוע מה-context).
+   קיים:
+   - business_type: סוג העסק (טיפולי, עיצוב, הדרכה, ייעוץ, קייטרינג...)
+   - main_challenge: הכאב שנאמר מפורשות
    - pain_category: leads_followup | scheduling | overload | conversion | process | trust | other
    - temperature: cold | warm | hot
+   חדש — fit signals:
+   - reason_for_reaching_out: למה פנתה דווקא לכאן (ציטוט/תמצות)
+   - active_business: true אם יש עסק פעיל עם לקוחות כרגע, false אם "עדיין לא פתחתי" / "מתכוננת"
+   - problem_in_hadar_domain: true רק אם הבעיה היא ניהול לידים/מעקב לקוחות/עומס על הזמן/תהליך חוזר/המרה — false אם סושיאל/עיצוב/SEO/מיתוג/פיתוח
+   - process_exists: true אם תיארה תהליך שחוזר על עצמו, false אם "אין שיטה" / "הכול מבולגן"
+   - has_repeatability: true אם יש pattern קבוע, false אם כל מקרה שונה לגמרי
+   - open_to_guidance: true אם פתוחה לשמוע המלצה/כיוון, false אם "אני יודעת בדיוק מה צריך"
+   - bottleneck_identified: צוואר הבקבוק הספציפי (מחרוזת) אם צוין מפורשות
+   חדש — clarity signals:
+   - process_flow_known: true אם תיארה גם איך מתחיל וגם איך נגמר התהליך
+   - gap_identified: true אם ציינה גם מצב קיים וגם מצב רצוי (הפער ברור)
+   - feelings_only: true אם ההודעה כוללת תחושה בלבד ללא נתון תהליכי ממשי
 
-7. missing_slots: מה חסר כדי להתקדם?
-   - "business_type" אם סוג העסק לא ידוע
-   - "main_challenge" אם הכאב לא נאמר
-   אל תרשום missing_slots שכבר ידועים מה-context.
+7. missing_slots: מה חסר כדי להתקדם (רק מה שלא ידוע):
+   - "reason_for_reaching_out", "business_type", "main_challenge", "process_flow_known", "gap_identified"
 
-8. should_handoff: true רק אם:
-   - ביקשה לדבר עם אדם מפורשות
-   - כאב חריג (בריאותי, משפטי, כלכלי חמור)
-   - 2+ אי-הבנות ברציפות
+8. should_handoff: true רק אם ביקשה אדם מפורשות, כאב חריג, או 2+ אי-הבנות
 
-9. should_offer_booking: true אם:
-   - הכאב ברור + הלקוחה חמה
-   - affirmative לאחר הצעת שיחה
-   - meeting_request
+9. should_offer_booking: false תמיד — ה-understandingEngine מחליט על booking, לא הclassifier
 
-10. is_opt_out: true אם זו בקשת הסרה מפורשת
+10. is_opt_out: true אם בקשת הסרה מפורשת
 
 ## פורמט — JSON בלבד
 {
@@ -146,6 +178,12 @@ function buildUserPrompt(
   if (context.business_type) contextSummary.push(`עסק: ${context.business_type}`);
   if (context.main_challenge) contextSummary.push(`כאב: ${context.main_challenge}`);
   if (context.pain_category) contextSummary.push(`קטגוריה: ${context.pain_category}`);
+  if (context.reason_for_reaching_out) contextSummary.push(`למה פנתה: ${context.reason_for_reaching_out}`);
+  if (context.active_business != null) contextSummary.push(`עסק פעיל: ${context.active_business}`);
+  if (context.process_exists != null) contextSummary.push(`תהליך קיים: ${context.process_exists}`);
+  if (context.open_to_guidance != null) contextSummary.push(`פתוחה להכוונה: ${context.open_to_guidance}`);
+  if (context.clarity_score != null) contextSummary.push(`clarity_score: ${context.clarity_score}`);
+  if (context.fit_score != null) contextSummary.push(`fit_score: ${context.fit_score}`);
 
   const historySnippet = recentHistory
     .slice(-4)

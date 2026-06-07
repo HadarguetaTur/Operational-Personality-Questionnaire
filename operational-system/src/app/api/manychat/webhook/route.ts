@@ -68,14 +68,19 @@ function dynamicBlockResponse(
 function buildBookingMessages(
   leadUuid: string,
   reply: string,
+  bookingType: 'diagnostic' | 'intro',
 ): Array<{ type: 'text'; text: string }> {
   const messages: Array<{ type: 'text'; text: string }> = [{ type: 'text', text: reply }];
-  const bookingUrl = process.env.CALCOM_BOOKING_URL?.trim();
-  if (bookingUrl) {
-    messages.push({
-      type: 'text',
-      text: `לקביעת שיחת ההיכרות עם הדר: ${bookingUrl}`,
-    });
+  const url =
+    bookingType === 'diagnostic'
+      ? process.env.CALCOM_URL_DIAGNOSTIC?.trim()
+      : process.env.CALCOM_URL_INTRO?.trim();
+  if (url) {
+    const label =
+      bookingType === 'diagnostic'
+        ? `לקביעת שיחת האפיון עם הדר (60 דקות, 350₪): ${url}`
+        : `לקביעת זום ההיכרות עם הדר (20 דקות, חינם): ${url}`;
+    messages.push({ type: 'text', text: label });
   }
   return messages;
 }
@@ -324,34 +329,36 @@ async function processLeadMessage(
       return;
     }
 
-    // ── Pre-check: meeting intent (regex — fast path) ──────────────────────
-    if (detectMeetingIntent(userMessage)) {
-      await saveMessage(leadUuid, subscriberId, 'assistant', MEETING_BOOKING_REPLY, {
-        action: 'book_meeting',
+    // ── Pre-check: meeting intent — only fires in awaiting_confirmation ───────
+    // In other states, meeting-intent detection is handled by the pipeline
+    // (antiLoopGuard AL-1 is also state-aware). Bypassing the pipeline here
+    // for any other state would skip scoring and understanding checks.
+    if (currentState === 'awaiting_confirmation' && detectMeetingIntent(userMessage)) {
+      const bookingType =
+        conversationContext.pending_booking_type === 'intro' ? 'intro' : 'diagnostic';
+      const bookingAction =
+        bookingType === 'diagnostic' ? 'book_diagnostic_call' : 'book_intro_call';
+      const bookingReply =
+        bookingType === 'diagnostic'
+          ? 'מעולה! שולחת לך עכשיו את הקישור לשיחת האפיון עם הדר 🗓️'
+          : 'מעולה! שולחת לך עכשיו את הקישור לזום ההיכרות עם הדר 🗓️';
+      await saveMessage(leadUuid, subscriberId, 'assistant', bookingReply, {
+        action: bookingAction,
         state: 'booking',
       });
-      const bookingPatch = { offered_booking_count: ((conversationContext.offered_booking_count as number) ?? 0) + 1 };
+      const bookingPatch = {
+        offered_booking_count: ((conversationContext.offered_booking_count as number) ?? 0) + 1,
+      };
       await upsertBotState(leadUuid, 'booking', bookingPatch, subscriberId);
-      await recordFunnelEvent(leadUuid, 'meeting_offered', { trigger: 'regex' });
-      await finalize(buildBookingMessages(leadUuid, MEETING_BOOKING_REPLY));
+      await recordFunnelEvent(leadUuid, `${bookingType}_offered`, { trigger: 'regex' });
+      await finalize(buildBookingMessages(leadUuid, bookingReply, bookingType));
       return;
     }
 
-    // ── Pre-check: meta frustration ────────────────────────────────────────
+    // ── Pre-check: meta frustration → human_handoff only ──────────────────
+    // Core Doctrine: frustration never triggers booking — only handoff.
     const frustrationAction = detectMetaFrustration(userMessage, currentState);
-    if (frustrationAction === 'book_meeting') {
-      await saveMessage(leadUuid, subscriberId, 'assistant', MEETING_BOOKING_REPLY, {
-        action: 'book_meeting',
-        state: 'booking',
-      });
-      const bookingPatch = { offered_booking_count: ((conversationContext.offered_booking_count as number) ?? 0) + 1 };
-      await upsertBotState(leadUuid, 'booking', bookingPatch, subscriberId);
-      await recordFunnelEvent(leadUuid, 'meeting_offered', { trigger: 'frustration' });
-      await finalize(buildBookingMessages(leadUuid, MEETING_BOOKING_REPLY));
-      return;
-    }
-
-    if (frustrationAction === 'human_handoff') {
+    if (frustrationAction === 'human_handoff' || frustrationAction === 'book_meeting') {
       const reply = await handleHandoff(leadUuid, subscriberId, 'meta_frustration', history);
       await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
         action: 'human_handoff',
@@ -443,9 +450,46 @@ async function processLeadMessage(
 
     await upsertBotState(leadUuid, agentOutput.state, fullContextPatch, subscriberId);
 
-    if (agentOutput.action === 'book_meeting') {
-      await recordFunnelEvent(leadUuid, 'meeting_offered', { trigger: 'agent' });
-      await finalize(buildBookingMessages(leadUuid, agentOutput.reply));
+    // ── Booking proposals: set pending type, send reply only (no link yet) ───
+    if (agentOutput.action === 'propose_diagnostic_call') {
+      await upsertBotState(
+        leadUuid,
+        'awaiting_confirmation',
+        { ...fullContextPatch, pending_booking_type: 'diagnostic' },
+        subscriberId,
+      );
+      await finalize([{ type: 'text', text: agentOutput.reply }]);
+      return;
+    }
+
+    if (agentOutput.action === 'propose_intro_call') {
+      await upsertBotState(
+        leadUuid,
+        'awaiting_confirmation',
+        { ...fullContextPatch, pending_booking_type: 'intro' },
+        subscriberId,
+      );
+      await finalize([{ type: 'text', text: agentOutput.reply }]);
+      return;
+    }
+
+    // ── Booking confirmations: send reply + booking link ──────────────────
+    if (agentOutput.action === 'book_diagnostic_call') {
+      await recordFunnelEvent(leadUuid, 'diagnostic_offered', { trigger: 'agent' });
+      await finalize(buildBookingMessages(leadUuid, agentOutput.reply, 'diagnostic'));
+      return;
+    }
+
+    if (agentOutput.action === 'book_intro_call') {
+      await recordFunnelEvent(leadUuid, 'intro_offered', { trigger: 'agent' });
+      await finalize(buildBookingMessages(leadUuid, agentOutput.reply, 'intro'));
+      return;
+    }
+
+    // ── Homework: chaos journal assignment ────────────────────────────────
+    if (agentOutput.action === 'assign_homework') {
+      await recordFunnelEvent(leadUuid, 'homework_assigned');
+      await finalize([{ type: 'text', text: agentOutput.reply }]);
       return;
     }
 
