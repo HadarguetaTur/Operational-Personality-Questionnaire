@@ -22,7 +22,7 @@ export function calcROI(inputs: ROIInputs): ROIResult {
   }
 
   // Reduce for very small business signals
-  if (inputs.monthly_inquiries.mid <= 7 && inputs.avg_customer_value.mid <= 500) {
+  if (inputs.monthly_inquiries.mid <= 7 && inputs.avg_customer_value.mid <= 1000) {
     opp_low *= 0.50;
     opp_high *= 0.50;
   }
@@ -101,8 +101,8 @@ function computeAccuracy(inputs: ROIInputs): { level: AccuracyLevel; notes: stri
     defaults++;
     parts.push('אחוז פניות בסיכון: הנחה שמרנית (45%), נתון לא סופק');
   }
-  if (inputs.hourly_value.low < 100) {
-    parts.push('שווי שעה: סוגר תחתון (עד ₪100), משפיע על עלות הזמן');
+  if (inputs.hourly_value.low < 150) {
+    parts.push('שווי שעה: סוגר תחתון (עד ₪150), משפיע על עלות הזמן');
   }
 
   const level: AccuracyLevel =

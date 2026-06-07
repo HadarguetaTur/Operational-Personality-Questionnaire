@@ -135,10 +135,10 @@ const TESTIMONIALS = [
     headline: 'קיצרה זמני טיפול בתביעות ויצרה שיתוף פעולה בין משרדים',
     text: 'הדר עבדה איתנו על פיתוח נהלי עבודה במסגרת עבודה משותפת לביטוח לאומי, האפוטרופוס הכללי ומשרד הרווחה. בזמן קצר שכללה את הנהלים, קיצרה את זמן הטיפול בתביעות, ויצרה שיתופי פעולה בין משרדים. בשקט ובחריצות הובילה שדרוג משמעותי בשירות ובמיצוי הזכויות. אני ממליצה עליה ביחסי העבודה ובכישוריה המקצועיים.',
     name: 'רחל איגר לוין',
-    role: 'משרד הרווחה · עובדת סוציאלית מומחית בכירה · מפקחת אומנה ארצית',
+    role: 'משרד הרווחה · עובדת סוציאלית מומחית בכירה',
   },
   {
-    headline: 'בנתה אוטומציה לקמפיין ובדקה עד שהכל עבד בדיוק',
+    headline: 'בנתה אוטומציה לקמפיין ובדקה עד שהכול עבד בדיוק',
     text: 'הדר עשתה באופן מאוד מקצועי את האוטומציה לקמפיין שלנו. הרגשנו שאכפת לה, שהיא רוצה שהכל יעבוד כמו שצריך. היא לא חסכה, בדקה הלוך חזור, עד שהכל היה בדיוק כמו שצריך. ממליצה בחום.',
     name: 'איילה עיצובים',
     role: '',
@@ -146,8 +146,8 @@ const TESTIMONIALS = [
   {
     headline: 'הפכה את עולמנו לאוטומטי ופחות סיזיפי',
     text: 'הדר אהובה, חייבים לך תודה ענקית על מסירות אין קץ, על עבודה עם חיוך וצחוקים תוך כדי תודה שהפכת את עולמנו לאוטומטי ופחות סיזיפי, מעריכים בטירוף! נהננו לעבוד איתך ולהטמיע אוטומציות עסקיות חכמות בתחום כל כך רגיש! מודים ואוהבים! מסד גרופ',
-    name: 'מסד גרופ',
-    role: 'לידור בושרי · סמנכ"ל תפעול',
+    name: 'לידור בושרי',
+    role: 'סמנכ"ל תפעול · מסד גרופ',
   },
 ];
 
@@ -217,7 +217,7 @@ export default function HomePage() {
             onClick={() => goToQuiz('navbar_cta')}
             className="min-h-[38px] px-5 rounded-lg bg-teal-500 text-white text-sm font-semibold transition-all duration-200 hover:bg-teal-400 active:scale-[0.97]"
           >
-            בואי נראה את המספרים
+            בואי נראה כמה זה עולה לך
           </button>
         </div>
       </header>
@@ -261,11 +261,11 @@ export default function HomePage() {
               >
                 <span aria-hidden className="absolute inset-y-0 -right-1/3 w-1/3 bg-gradient-to-l from-transparent via-white/30 to-transparent skew-x-[-18deg] translate-x-0 group-hover:translate-x-[420%] transition-transform duration-[1100ms] ease-out" />
                 <span aria-hidden className="absolute inset-0 rounded-2xl bg-gradient-to-l from-teal-400 to-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-2xl -z-10" />
-                <span className="relative z-10">בואי נראה כמה זה עולה לך (4 דקות)</span>
+                <span className="relative z-10">בואי נראה כמה זה עולה לך</span>
                 <ArrowRight className="relative z-10 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
               </button>
 
-              <p className="text-sm text-white/35">10 שאלות · 4 דקות · חינם · בלי להשאיר אימייל לפני שרואים תוצאה</p>
+              <p className="text-sm text-white/35">10 שאלות · 4 דקות · חינם · בלי להשאיר מייל לפני התוצאה</p>
             </div>
           </FadeIn>
 
@@ -310,7 +310,7 @@ export default function HomePage() {
                   <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
                 </svg>
                 <p className="text-white/85 text-sm font-medium leading-relaxed mb-3">{t.headline}</p>
-                <p className="text-teal-400/70 text-xs">— {t.name} · {t.role}</p>
+                <p className="text-teal-400/70 text-xs">— <span className="font-semibold text-teal-300/90">{t.name}</span> · {t.role}</p>
               </div>
             ))}
           </div>
@@ -339,10 +339,10 @@ export default function HomePage() {
                 onClick={() => goToQuiz('identification_cta')}
                 className="group inline-flex items-center gap-2.5 min-h-[52px] px-9 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 font-semibold transition-all duration-200 hover:bg-teal-500/25 hover:border-teal-400/50 active:scale-[0.98]"
               >
-                בואי נראה את המספרים שלך
+                בואי נראה כמה זה עולה לך
                 <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
               </button>
-              <p className="text-white/35 text-sm mt-3">מחשבון, לא טופס. פחות מ-4 דקות. לא צריך להשאיר פרטים לפני שמתחילים.</p>
+              <p className="text-white/35 text-sm mt-3">10 שאלות · 4 דקות · חינם · בלי להשאיר מייל לפני התוצאה</p>
             </div>
           </FadeIn>
         </div>
@@ -377,8 +377,8 @@ export default function HomePage() {
                     <p className="text-sm font-semibold text-teal-300 mb-3 leading-snug">{t.headline}</p>
                     <p className="text-white/75 leading-relaxed flex-1 mb-5">&ldquo;{t.text}&rdquo;</p>
                     <div className="border-t border-white/[0.06] pt-4">
-                      <p className="font-semibold text-sm">{t.name}</p>
-                      {t.role.trim() !== '' ? <p className="text-white/40 text-xs mt-1">{t.role}</p> : null}
+                      <p className="font-bold text-sm text-white">{t.name}</p>
+                      {t.role.trim() !== '' ? <p className="text-white/50 text-xs mt-0.5">{t.role}</p> : null}
                     </div>
                   </div>
                 </FadeIn>
@@ -458,9 +458,10 @@ export default function HomePage() {
                 onClick={() => goToQuiz('calculator_areas_cta')}
                 className="group inline-flex items-center gap-2.5 min-h-[52px] px-9 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 font-semibold transition-all duration-200 hover:bg-teal-500/25 hover:border-teal-400/50 active:scale-[0.98]"
               >
-                בואי נבדוק איפה זה קורה אצלך
+                בואי נראה כמה זה עולה לך
                 <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
               </button>
+              <p className="text-white/35 text-sm mt-3">10 שאלות · 4 דקות · חינם · בלי להשאיר מייל לפני התוצאה</p>
             </div>
           </FadeIn>
         </div>
@@ -493,9 +494,10 @@ export default function HomePage() {
                 onClick={() => goToQuiz('deliverables_cta')}
                 className="group inline-flex items-center gap-2.5 min-h-[52px] px-9 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 font-semibold transition-all duration-200 hover:bg-teal-500/25 hover:border-teal-400/50 active:scale-[0.98]"
               >
-                בואי נבדוק איפה הכסף
+                בואי נראה כמה זה עולה לך
                 <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
               </button>
+              <p className="text-white/35 text-sm mt-3">10 שאלות · 4 דקות · חינם · בלי להשאיר מייל לפני התוצאה</p>
             </div>
           </FadeIn>
         </div>
@@ -529,9 +531,10 @@ export default function HomePage() {
               onClick={() => goToQuiz('footer_cta')}
               className="group relative min-h-[60px] px-12 rounded-xl bg-gradient-to-l from-teal-500 to-emerald-500 text-white text-lg font-bold transition-all duration-300 hover:shadow-[0_0_60px_-12px_rgba(20,184,166,0.6)] hover:scale-[1.03] active:scale-[0.98]"
             >
-              בואי נראה את המספרים שלך
+              בואי נראה כמה זה עולה לך
             </button>
-            <p className="text-sm text-white/30 mt-5">הערכה ראשונית ושמרנית. לא דוח חשבונאי. לא הבטחה לחיסכון.</p>
+            <p className="text-sm text-white/35 mt-3">10 שאלות · 4 דקות · חינם · בלי להשאיר מייל לפני התוצאה</p>
+            <p className="text-sm text-white/30 mt-3">הערכה ראשונית ושמרנית. לא דוח חשבונאי. לא הבטחה לחיסכון.</p>
             <div className="mt-8 pt-8 border-t border-white/[0.06]">
               <p className="text-white/30 text-sm mb-3">יש שאלה לפני שמתחילים?</p>
               <a

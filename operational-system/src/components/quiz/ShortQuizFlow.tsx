@@ -65,9 +65,9 @@ function buildROIInputs(answers: string[]): ROIInputs {
       high: q7?.high ?? 1.5,
     },
     hourly_value: {
-      low: q8?.low ?? 100,
-      mid: q8?.mid ?? 150,
-      high: q8?.high ?? 200,
+      low: q8?.low ?? 90,
+      mid: q8?.mid ?? 120,
+      high: q8?.high ?? 150,
     },
     response_speed: q9?.responseSpeed ?? 'MODERATE',
     primary_pain: q10?.resultType ?? 'CENTRALIZED',
@@ -151,18 +151,24 @@ function QuestionScreen({ questionIndex, onAnswer }: QuestionScreenProps) {
       <PhaseProgressBar currentIndex={questionIndex} />
 
       <div className="flex-1 flex flex-col justify-center px-6 md:px-8 pb-12 max-w-[640px] w-full mx-auto">
-        {question.microCopy && (
-          <p className="text-[12px] text-[var(--qa-text-muted)] mb-3 text-right">
-            {question.microCopy}
+        {question.context && (
+          <p className="text-[12px] font-medium text-[var(--qa-accent)] mb-2 text-right opacity-80">
+            {question.context}
           </p>
         )}
         <h2
           ref={headingRef}
           tabIndex={-1}
-          className="text-[22px] md:text-[26px] font-semibold leading-snug mb-8 text-right outline-none"
+          className="text-[22px] md:text-[26px] font-semibold leading-snug mb-2 text-right outline-none"
         >
           {question.text}
         </h2>
+        {question.microCopy && (
+          <p className="text-[12px] text-[var(--qa-text-muted)] mb-6 text-right">
+            {question.microCopy}
+          </p>
+        )}
+        {!question.microCopy && <div className="mb-6" />}
         <div className="flex flex-col gap-3 w-full" role="radiogroup" dir="rtl">
           {question.options.map((opt) => {
             const isSelected = selectedId === opt.id;
@@ -204,8 +210,8 @@ function QuestionScreen({ questionIndex, onAnswer }: QuestionScreenProps) {
           })}
         </div>
         {selectedId === null && (
-          <p className="mt-4 text-[12px] text-[var(--qa-text-muted)] text-right">
-            בחרי תשובה אחת כדי להמשיך
+          <p className="mt-5 text-[13px] font-semibold text-[var(--qa-accent)] text-right opacity-70">
+            ← בחרי תשובה אחת כדי להמשיך
           </p>
         )}
       </div>
@@ -312,13 +318,13 @@ function ResultPreviewScreen({
         {/* CTA */}
         <div className="text-center">
           <p className="text-[15px] text-[var(--qa-text-secondary)] mb-4 leading-relaxed">
-            רוצה 3 פעולות ראשונות לסיטואציה שלך?
+            ראית כמה כסף נופל לך כל שנה. עכשיו בואי נרים אותו מהרצפה.
           </p>
           <button
             onClick={onContinue}
             className="w-full py-4 px-6 rounded-[12px] bg-[var(--qa-accent)] text-white text-[17px] font-semibold hover:opacity-90 active:scale-[0.99] transition-all duration-150"
           >
-            קבלי את מפת התיקון ←
+            בואי נרים את הכסף מהרצפה ←
           </button>
         </div>
       </div>

@@ -21,6 +21,8 @@ export interface ShortQuizOption {
 export interface ShortQuestion {
   id: string;
   text: string;
+  /** One-line "why we ask this" shown above the question */
+  context?: string;
   microCopy?: string;
   phase: 1 | 2 | 3 | 4;
   phaseName: string;
@@ -40,6 +42,7 @@ export const SHORT_QUIZ_QUESTIONS: ShortQuestion[] = [
     id: 'Q1',
     phase: 1,
     phaseName: PHASE_NAMES[1],
+    context: 'כדי לחשב את נפח הפניות שעוברות דרכך ומה שווי הזדמנויות שעלולות ללכת לאיבוד',
     text: 'כמה פניות / מתעניינות מגיעות אליך בחודש ממוצע?',
     microCopy: 'כולל וואטסאפ, אינסטגרם, טפסים, הכול',
     options: [
@@ -53,20 +56,21 @@ export const SHORT_QUIZ_QUESTIONS: ShortQuestion[] = [
     id: 'Q2',
     phase: 1,
     phaseName: PHASE_NAMES[1],
+    context: 'כדי לחשב כמה שווה כל לקוחה שלא נסגרה — ומה זה מסתכם לשנה',
     text: 'מה שווי לקוחה ממוצעת? (סך התשלום הכולל לעסקה / פרויקט)',
     microCopy: 'הערכה בסדר גמור, לא צריך מספר מדויק',
     options: [
-      { id: 'Q2_1', text: 'עד ₪500',          low: 200,   mid: 300,   high: 500   },
-      { id: 'Q2_2', text: '₪500–₪1,500',       low: 500,   mid: 1000,  high: 1500  },
-      { id: 'Q2_3', text: '₪1,500–₪4,000',     low: 1500,  mid: 2500,  high: 4000  },
-      { id: 'Q2_4', text: '₪4,000–₪10,000',    low: 4000,  mid: 7000,  high: 10000 },
-      { id: 'Q2_5', text: 'מעל ₪10,000',       low: 10000, mid: 15000, high: 20000 },
+      { id: 'Q2_1', text: 'עד ₪1,500',         low: 500,   mid: 1000,  high: 1500  },
+      { id: 'Q2_2', text: '₪1,500–₪4,000',     low: 1500,  mid: 2500,  high: 4000  },
+      { id: 'Q2_3', text: '₪4,000–₪10,000',    low: 4000,  mid: 7000,  high: 10000 },
+      { id: 'Q2_4', text: 'מעל ₪10,000',       low: 10000, mid: 15000, high: 20000 },
     ],
   },
   {
     id: 'Q3',
     phase: 1,
     phaseName: PHASE_NAMES[1],
+    context: 'כדי לדעת מה שיעור הסגירה האמיתי שלך ואיפה הפניות נתקעות',
     text: 'מתוך 10 פניות רלוונטיות, כמה בדרך כלל הופכות ללקוחות?',
     microCopy: "אם בחרת 'אין לי מושג', המחשבון ישתמש ב-7% ויציג זאת בפירוט",
     options: [
@@ -81,6 +85,7 @@ export const SHORT_QUIZ_QUESTIONS: ShortQuestion[] = [
     id: 'Q4',
     phase: 1,
     phaseName: PHASE_NAMES[1],
+    context: 'כדי להעריך כמה הכנסה נשארת על השולחן בגלל פולואפ לא מסודר',
     text: 'מה קורה אצלך אחרי שמתעניינת פנתה ולא סגרה מיד?',
     options: [
       { id: 'Q4_1', text: 'יש לי תהליך פולואפ קבוע',                         rate: 0.10 },
@@ -96,6 +101,7 @@ export const SHORT_QUIZ_QUESTIONS: ShortQuestion[] = [
     id: 'Q5',
     phase: 2,
     phaseName: PHASE_NAMES[2],
+    context: 'כדי להבין כמה מידע פרוס בין מקומות שונים — ומה זה עולה בזמן',
     text: 'איפה מנוהלות הפניות והשיחות עם לקוחות פוטנציאליות היום?',
     options: [
       { id: 'Q5_1', text: 'בעיקר בראש + וואטסאפ',              dispersionScore: 3   },
@@ -108,6 +114,7 @@ export const SHORT_QUIZ_QUESTIONS: ShortQuestion[] = [
     id: 'Q6',
     phase: 2,
     phaseName: PHASE_NAMES[2],
+    context: 'כדי לתרגם את הזמן הידני שלך לעלות שנתית בכסף',
     text: 'כמה שעות בשבוע את מקדישה להודעות, תיאומים, תזכורות ופולואפים?',
     microCopy: 'כולל גם מה שנעשה בערב ובין פגישות',
     options: [
@@ -123,6 +130,7 @@ export const SHORT_QUIZ_QUESTIONS: ShortQuestion[] = [
     id: 'Q7',
     phase: 3,
     phaseName: PHASE_NAMES[3],
+    context: 'כדי לחשב את עלות הגבייה הידנית שאפשר לחסוך',
     text: 'כמה זמן בשבוע עובר על שליחת חשבוניות, תזכורות תשלום ומעקב?',
     options: [
       { id: 'Q7_1', text: 'כמעט אין',       low: 0,   mid: 0.25, high: 0.5 },
@@ -135,19 +143,21 @@ export const SHORT_QUIZ_QUESTIONS: ShortQuestion[] = [
     id: 'Q8',
     phase: 3,
     phaseName: PHASE_NAMES[3],
+    context: 'כדי לתמחר את הזמן שלך בכסף ולחשב מה כל שעה ידנית עולה לך בפועל',
     text: 'מה שווי שעת עבודה שלך, לפי תעריף שירות או לפי מה שתרצי להרוויח?',
     microCopy: 'הכניסי לפי מה שנראה הגיוני, גם הערכה בסדר',
     options: [
-      { id: 'Q8_1', text: 'עד ₪100',      low: 60,  mid: 80,  high: 100 },
-      { id: 'Q8_2', text: '₪100–₪200',    low: 100, mid: 150, high: 200 },
-      { id: 'Q8_3', text: '₪200–₪400',    low: 200, mid: 300, high: 400 },
-      { id: 'Q8_4', text: 'מעל ₪400',     low: 400, mid: 500, high: 700 },
+      { id: 'Q8_1', text: 'עד ₪150',      low: 90,  mid: 120, high: 150 },
+      { id: 'Q8_2', text: '₪150–₪300',    low: 150, mid: 225, high: 300 },
+      { id: 'Q8_3', text: '₪300–₪500',    low: 300, mid: 400, high: 500 },
+      { id: 'Q8_4', text: 'מעל ₪500',     low: 500, mid: 650, high: 900 },
     ],
   },
   {
     id: 'Q9',
     phase: 3,
     phaseName: PHASE_NAMES[3],
+    context: 'מחקרים מראים שמהירות התגובה משפיעה ישירות על שיעור הסגירה',
     text: 'כמה זמן עובר בדרך כלל מרגע פנייה עד שמתעניינת מקבלת תשובה / הצעת מחיר?',
     options: [
       { id: 'Q9_1', text: 'אותו יום',         responseSpeed: 'FAST'      },
@@ -162,6 +172,7 @@ export const SHORT_QUIZ_QUESTIONS: ShortQuestion[] = [
     id: 'Q10',
     phase: 4,
     phaseName: PHASE_NAMES[4],
+    context: 'כדי להתאים את הניתוח לנקודת הכאב הכי משמעותית אצלך',
     text: 'מה הכי נכון לגביך עכשיו?',
     options: [
       { id: 'Q10_1', text: 'פניות ופולואפים נתקעים',                         resultType: 'FOLLOWUP'   },
