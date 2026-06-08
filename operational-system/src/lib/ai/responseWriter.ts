@@ -41,9 +41,10 @@ function parseWriterOutput(raw: string): AgentOutput | null {
 
     // Strip stray { } wrappers the LLM sometimes adds around the reply text
     const rawReply: string = parsed.reply;
-    const cleanReply = rawReply.trimStart().startsWith('{')
-      ? rawReply.trimStart().replace(/^\{/, '').replace(/\}$/, '').trim()
-      : rawReply;
+    let cleanReply = rawReply.trim();
+    while (cleanReply.startsWith('{') && cleanReply.endsWith('}')) {
+      cleanReply = cleanReply.slice(1, -1).trim();
+    }
 
     return {
       reply: cleanReply,
@@ -203,7 +204,11 @@ export async function runResponseWriter(input: {
         parsed.state = nextState;
       }
 
-      const validation = validateReply(parsed.reply, recentBotReplies);
+      const validation = validateReply(
+        parsed.reply,
+        recentBotReplies,
+        Array.isArray(input.context.asked_questions) ? (input.context.asked_questions as string[]) : [],
+      );
       if (!validation.valid) {
         console.warn(`[responseWriter:${nextState}] Validation failed (attempt ${attempt + 1}):`, validation.reason);
         if (attempt < MAX_RETRIES) continue;

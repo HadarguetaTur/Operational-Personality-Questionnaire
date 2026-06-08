@@ -18,7 +18,7 @@ const MAX_REPLY_LENGTH = 400;
 
 export interface ReplyValidationResult {
   valid: boolean;
-  reason?: 'blocklist' | 'multiple_questions' | 'too_long' | 'too_similar';
+  reason?: 'blocklist' | 'multiple_questions' | 'too_long' | 'too_similar' | 'question_repeated';
 }
 
 function countQuestionMarks(text: string): number {
@@ -55,9 +55,25 @@ function similarityRatio(a: string, b: string): number {
   return union === 0 ? 0 : intersection / union;
 }
 
+function extractQuestions(text: string): string[] {
+  return text.split(/(?<=[.!?])\s+/).filter((s) => s.trim().endsWith('?'));
+}
+
+function wordOverlap(a: string, b: string): number {
+  const wordsA = new Set(normalizeForComparison(a).split(' ').filter(Boolean));
+  const wordsB = new Set(normalizeForComparison(b).split(' ').filter(Boolean));
+  if (!wordsA.size || !wordsB.size) return 0;
+  let intersection = 0;
+  for (const w of wordsA) {
+    if (wordsB.has(w)) intersection++;
+  }
+  return intersection / new Set([...wordsA, ...wordsB]).size;
+}
+
 export function validateReply(
   reply: string,
   recentBotReplies?: string[],
+  askedQuestions?: string[],
 ): ReplyValidationResult {
   const trimmed = reply.trim();
   if (!trimmed) {
@@ -82,6 +98,17 @@ export function validateReply(
     for (const prev of recentBotReplies) {
       if (similarityRatio(trimmed, prev) >= 0.8) {
         return { valid: false, reason: 'too_similar' };
+      }
+    }
+  }
+
+  if (askedQuestions && askedQuestions.length > 0) {
+    const newQuestions = extractQuestions(trimmed);
+    for (const newQ of newQuestions) {
+      for (const pastQ of askedQuestions) {
+        if (wordOverlap(newQ, pastQ) >= 0.45) {
+          return { valid: false, reason: 'question_repeated' };
+        }
       }
     }
   }

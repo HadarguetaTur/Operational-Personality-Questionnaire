@@ -40,6 +40,14 @@ import type {
 // Opt-out keywords — if a user sends these, mark as irrelevant immediately.
 const OPT_OUT_REGEX = /^\s*(הסר|עצור|אל תשלח|stop|בטל|לא רוצה הודעות|unsubscribe|הפסיקי לשלוח)\s*$/i;
 
+function sanitizeOutgoing(text: string): string {
+  let s = text.trim();
+  while (s.startsWith('{') && s.endsWith('}')) {
+    s = s.slice(1, -1).trim();
+  }
+  return s;
+}
+
 function ackResponse(leadUuid: string, eventType: string): NextResponse {
   const body: SimpleAckResponse = {
     ok: true,
@@ -246,7 +254,8 @@ async function processLeadMessage(
   };
 
   const finalize = async (messages: Array<{ type: 'text'; text: string }>) => {
-    const r = await push(messages);
+    const sanitized = messages.map((m) => ({ ...m, text: sanitizeOutgoing(m.text) }));
+    const r = await push(sanitized);
     const debugNote = r.success
       ? `push_ok | sub=${subscriberId ?? 'MISSING'}`
       : `push_failed: ${r.error ?? 'unknown'} | sub=${subscriberId ?? 'MISSING'}`;
