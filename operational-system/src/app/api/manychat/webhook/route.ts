@@ -298,7 +298,8 @@ async function processLeadMessage(
 
     // ── Auto-escalate after 10 messages ────────────────────────────────────
     if (userMsgCount >= 10) {
-      const escalationReply = 'הדר תחזור אלייך בקרוב לשיחה אישית 🙏';
+      const escalationHistory = await getConversationHistory(leadUuid);
+      const escalationReply = await handleHandoff(leadUuid, subscriberId, 'message_limit', escalationHistory);
       await saveMessage(leadUuid, subscriberId, 'assistant', escalationReply, {
         action: 'human_handoff',
         state: 'escalated',
@@ -437,13 +438,12 @@ async function processLeadMessage(
 
     if (agentOutput.action === 'human_handoff') {
       const handoffReply = await handleHandoff(leadUuid, subscriberId, 'agent_decision', history);
-      const finalReply = agentOutput.reply.trim() || handoffReply;
-      await saveMessage(leadUuid, subscriberId, 'assistant', finalReply, {
+      await saveMessage(leadUuid, subscriberId, 'assistant', handoffReply, {
         action: 'human_handoff',
         state: 'escalated',
       });
       await upsertBotState(leadUuid, 'escalated', fullContextPatch, subscriberId);
-      await finalize([{ type: 'text', text: finalReply }]);
+      await finalize([{ type: 'text', text: handoffReply }]);
       return;
     }
 

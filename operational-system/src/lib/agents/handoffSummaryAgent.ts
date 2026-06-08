@@ -28,8 +28,11 @@ export async function runHandoffSummary(input: {
 
   const system = `את מסכמת שיחת WhatsApp לצוות פנימי בלבד.
 החזר JSON: { "headline": "", "summary": "", "key_facts": [], "customer_reply": "" }
-customer_reply: משפט קצר ללקוחה בעברית (מקס 2 משפטים).
-אל תמציא עובדות שלא בשיחה.`;
+customer_reply: בדיוק 2 משפטים בעברית ללקוחה:
+  משפט 1 — שקפי את האתגר העיקרי שהיא תיארה ("הבנתי שיש לך אתגר עם...").
+  משפט 2 — הודיעי שהדר תחזור אלייך ("הדר תחזור אלייך בקרוב לשיחה אישית 🙏").
+אם אין מידע ברור על האתגר — כתבי רק: "הדר תחזור אלייך בקרוב לשיחה אישית 🙏".
+אל תמציא עובדות שלא בשיחה. אל תעטפי את הטקסט בסוגריים מסולסלות.`;
 
   try {
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
