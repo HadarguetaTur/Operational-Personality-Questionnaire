@@ -100,9 +100,12 @@ export function runAntiLoopGuard(params: LoopContext): AntiLoopOverride | null {
 
   // AL-4: Stuck in repeated objection loop → soft close
   if (objectionCount >= 2 && state === 'objection') {
+    const challenge = typeof context.main_challenge === 'string' && context.main_challenge
+      ? ` לגבי ${context.main_challenge}`
+      : '';
     return {
       forced_action: 'request_followup',
-      forced_reply: 'מבינה לגמרי. אם בעתיד תרצי לחזור ולבדוק — אני פה 🙏',
+      forced_reply: `מבינה${challenge}. אם בעתיד תרצי לחזור ולבדוק — אני פה 🙏`,
       reason: `AL-4: objection_count=${objectionCount} in objection state`,
     };
   }
@@ -113,10 +116,13 @@ export function runAntiLoopGuard(params: LoopContext): AntiLoopOverride | null {
     diagnosticTurnCount >= 5 &&
     clarityScore < 40
   ) {
+    const bizContext = typeof context.business_type === 'string' && context.business_type
+      ? ` בעסק ב${context.business_type}`
+      : '';
     return {
       forced_action: 'assign_homework',
       forced_reply:
-        'לפני שאמשיך, אני רוצה לבקש ממך תרגיל קטן — שבוע אחד של יומן: כל פנייה שמגיעה, רשמי מה ביקשו, מה עשית, איפה זה נתקע. אחרי שבוע יהיה לנו הרבה יותר ברור מה לעשות. יכולה לעשות את זה?',
+        `לפני שאמשיך${bizContext}, אני רוצה לבקש ממך תרגיל קטן — שבוע אחד של יומן: כל פנייה שמגיעה, רשמי מה ביקשו, מה עשית, איפה זה נתקע. אחרי שבוע יהיה לנו הרבה יותר ברור מה לעשות. יכולה לעשות את זה?`,
       reason: `AL-7a: diagnostic_turn_count=${diagnosticTurnCount}, clarity_score=${clarityScore} < 40`,
     };
   }
@@ -142,10 +148,13 @@ export function runAntiLoopGuard(params: LoopContext): AntiLoopOverride | null {
     context.process_exists === false &&
     context.has_repeatability === false
   ) {
+    const challengeRef = typeof context.main_challenge === 'string' && context.main_challenge
+      ? ` עם ${context.main_challenge}`
+      : '';
     return {
       forced_action: 'assign_homework',
       forced_reply:
-        'מה שאני שומעת הוא שכל מקרה הוא שונה ואין עדיין שיטה קבועה. לפני שממליצה על משהו, אני מציעה לרשום יומן שבועי — כל פנייה שמגיעה: מה ביקשו, מה עשית, מה קרה. אחרי שבוע יהיה לנו תמונה הרבה יותר ברורה. יכולה?',
+        `מה שאני שומעת${challengeRef} הוא שכל מקרה שונה ואין עדיין שיטה קבועה. לפני שממליצה על משהו, אני מציעה לרשום יומן שבועי — כל פנייה שמגיעה: מה ביקשו, מה עשית, מה קרה. אחרי שבוע יהיה לנו תמונה הרבה יותר ברורה. יכולה?`,
       reason: 'AL-7c: process_exists=false AND has_repeatability=false',
     };
   }

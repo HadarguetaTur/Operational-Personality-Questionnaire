@@ -282,6 +282,11 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
 
   newFactsPatch.last_intent = classifierOutput.intent;
 
+  // Persist communication_style — update only when classifier detected a non-null value
+  if (classifierOutput.communication_style != null) {
+    newFactsPatch.communication_style = classifierOutput.communication_style;
+  }
+
   const contextPatch = { ...newFactsPatch, ...antiLoopCounterPatch };
 
   return { output: writerOutput, contextPatch };

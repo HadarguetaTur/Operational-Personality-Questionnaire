@@ -40,12 +40,15 @@ export type ObjectionType =
   | 'not_interested'
   | 'other';
 
+export type CommunicationStyle = 'red' | 'yellow' | 'green' | 'blue';
+
 export interface ClassifierOutput {
   intent: ClassifierIntent;
   confidence: number;
   sentiment: 'positive' | 'neutral' | 'negative';
   is_objection: boolean;
   objection_type?: ObjectionType;
+  communication_style: CommunicationStyle | null;
   new_facts: {
     business_type?: string;
     main_challenge?: string;
@@ -133,6 +136,13 @@ const CLASSIFIER_SYSTEM_PROMPT = `אתה מסווג שיחות לבוט אבחו
 
 10. is_opt_out: true אם בקשת הסרה מפורשת
 
+11. communication_style: זיהוי סגנון תקשורת (DISC) — מבוסס על כלל ההודעות בהיסטוריה.
+    עדכן רק אם יש אינדיקציה ברורה; אחרת null.
+    red: קצרה וישירה, "בקיצור", "כמה עולה?", ממהרת לתוצאה, מתוסכלת מהר מתהליכים ארוכים, "תני לי את התחתית"
+    yellow: אנרגטית, מספרת סיפורים, "שמעי מה קרה לי", קריאות כמו "וואו!" / "מדהים!", רגשית, מילים רבות, שיתופית
+    green: מחושבת, אמפתית, "אני לא רוצה ללחוץ", "נשמע טוב", מהססת, תשובות ארוכות ומדוקדקות, מחפשת ביטחון
+    blue: אנליטית, שואלת שאלות טכניות ("כמה בדיוק?", "איך זה עובד?", "מה הצעדים?"), מבקשת פרטים ומספרים, ROI
+
 ## פורמט — JSON בלבד
 {
   "intent": "...",
@@ -140,6 +150,7 @@ const CLASSIFIER_SYSTEM_PROMPT = `אתה מסווג שיחות לבוט אבחו
   "sentiment": "neutral",
   "is_objection": false,
   "objection_type": null,
+  "communication_style": null,
   "new_facts": {},
   "missing_slots": [],
   "should_handoff": false,
@@ -151,12 +162,16 @@ function parseClassifierOutput(raw: string): ClassifierOutput | null {
   try {
     const parsed = JSON.parse(raw);
     if (typeof parsed.intent !== 'string') return null;
+    const VALID_STYLES = new Set<string>(['red', 'yellow', 'green', 'blue']);
     return {
       intent: parsed.intent as ClassifierIntent,
       confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.5,
       sentiment: parsed.sentiment ?? 'neutral',
       is_objection: Boolean(parsed.is_objection),
       objection_type: parsed.objection_type ?? undefined,
+      communication_style: VALID_STYLES.has(parsed.communication_style)
+        ? (parsed.communication_style as CommunicationStyle)
+        : null,
       new_facts: parsed.new_facts ?? {},
       missing_slots: Array.isArray(parsed.missing_slots) ? parsed.missing_slots : [],
       should_handoff: Boolean(parsed.should_handoff),
@@ -218,6 +233,7 @@ export async function runClassifier(input: {
     confidence: 0,
     sentiment: 'neutral',
     is_objection: false,
+    communication_style: null,
     new_facts: {},
     missing_slots: [],
     should_handoff: false,

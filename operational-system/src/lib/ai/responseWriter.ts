@@ -15,7 +15,7 @@ import type { AgentOutput, AgentAction, ExtractedFacts, AgentUsage } from './sal
 import type { ClassifierOutput } from './classifier';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const WRITER_MODEL = 'openai/gpt-4.1-mini';
+const WRITER_MODEL = 'anthropic/claude-sonnet-4-6';
 const MAX_RETRIES = 2;
 
 function parseWriterOutput(raw: string): AgentOutput | null {
@@ -223,7 +223,7 @@ export async function runResponseWriter(input: {
       let usage: AgentUsage | undefined;
       if (rawUsage?.prompt_tokens != null) {
         const cost_usd =
-          (rawUsage.prompt_tokens * 0.15 + (rawUsage.completion_tokens ?? 0) * 0.6) / 1_000_000;
+          (rawUsage.prompt_tokens * 3 + (rawUsage.completion_tokens ?? 0) * 15) / 1_000_000;
         usage = {
           prompt_tokens: rawUsage.prompt_tokens,
           completion_tokens: rawUsage.completion_tokens ?? 0,

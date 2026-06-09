@@ -90,6 +90,12 @@ export function validateReply(
     return { valid: false, reason: 'multiple_questions' };
   }
 
+  // Block bullet-list formatting (2+ lines starting with "- ")
+  const bulletLines = trimmed.split('\n').filter((line) => /^[-•]\s/.test(line.trim()));
+  if (bulletLines.length >= 2) {
+    return { valid: false, reason: 'blocklist' };
+  }
+
   if (trimmed.length > MAX_REPLY_LENGTH) {
     return { valid: false, reason: 'too_long' };
   }
