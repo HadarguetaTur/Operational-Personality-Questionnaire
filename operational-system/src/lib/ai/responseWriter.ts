@@ -7,7 +7,7 @@
  */
 
 import { getSystemPrompt } from './prompts/salesAgentSystemPrompt';
-import { getPromptForState, getFallbackForState } from './prompts/stagePrompts';
+import { getPromptForState, getFallbackForState, getDiscStyleAddendum } from './prompts/stagePrompts';
 import { validateReply } from '@/lib/agents/replyValidator';
 import { redactHistory } from './redact';
 import type { ConversationMessage } from '@/lib/db/conversationMessages';
@@ -42,9 +42,12 @@ function parseWriterOutput(raw: string): AgentOutput | null {
     // Strip stray { } wrappers the LLM sometimes adds around the reply text
     const rawReply: string = parsed.reply;
     let cleanReply = rawReply.trim();
+    // Remove matching { } pairs
     while (cleanReply.startsWith('{') && cleanReply.endsWith('}')) {
       cleanReply = cleanReply.slice(1, -1).trim();
     }
+    // Remove lone leading { or trailing } (no matching pair)
+    cleanReply = cleanReply.replace(/^\{+/, '').replace(/\}+$/, '').trim();
 
     return {
       reply: cleanReply,
@@ -102,8 +105,9 @@ function buildWriterSystemPrompt(
   }
 
   const nudge = typeof context.nudge === 'string' ? `\n\n⚠️ ${context.nudge}` : '';
+  const discAddendum = getDiscStyleAddendum(context.communication_style);
 
-  return [stagePrompt, classifierSection, knowledgeBase, ...contextSection]
+  return [stagePrompt, discAddendum, classifierSection, knowledgeBase, ...contextSection]
     .filter(Boolean)
     .join('\n\n') + nudge;
 }
