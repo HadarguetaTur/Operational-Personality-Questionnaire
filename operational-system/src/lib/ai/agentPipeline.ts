@@ -1,22 +1,27 @@
 /**
- * agentPipeline.ts — orchestrates the new 3-stage pipeline (P4)
+ * agentPipeline.ts — multi-agent orchestrator (P4 refactor)
  *
- * Stage 1: Classifier (gpt-4.1-mini) — intent, facts, flags
- * Stage 2: State Machine (deterministic) — next state, forced action
- * Stage 3: Anti-Loop Guard (deterministic) — override if loop detected
- * Stage 4: Response Writer (gpt-4.1-mini) — writes the actual reply
- *
- * Returns AgentOutput — same interface as the legacy runSalesAgent.
+ * New flow:
+ *   Stage 1: Classifier (gpt-4.1-mini) — intent, facts, DISC
+ *   Stage 1b: Enrich context + compute fit/clarity scores (deterministic)
+ *   Stage 2: Sales Conversation Manager (deterministic routing + specialist agents)
+ *              ├── Pain Mapper Agent (LLM, discovery/diagnostic)
+ *              ├── Diagnostic Fit Agent (LLM, diagnostic/summary)
+ *              ├── Offer Framing Agent (LLM, vision/awaiting_confirmation)
+ *              └── Objection Agent (LLM, objection)
+ *   Stage 3: Strategic Guardrails — pre-writer loop detection (deterministic)
+ *   Stage 4: Hebrew Writer Agent (claude-sonnet-4-6) — crafts the actual reply
+ *   Stage 5: Strategic Guardrails — post-writer counter updates (deterministic)
  */
 
 import { runClassifier } from './classifier';
-import { runStateMachine } from '@/lib/agents/stateMachine';
+import { runSalesConversationManager } from '@/lib/agents/salesConversationManager';
 import {
-  runAntiLoopGuard,
+  runGuardrailsCheck,
   buildDiscoveryNudge,
-  updateAntiLoopCounters,
-  type LoopContext,
-} from '@/lib/agents/antiLoopGuard';
+  updateGuardrailCounters,
+  type GuardrailsContext,
+} from '@/lib/agents/strategicGuardrails';
 import {
   computeFitScore,
   computeClarityScore,
@@ -45,7 +50,7 @@ export interface PipelineInput {
 
 async function recordAiRun(params: {
   leadUuid: string;
-  task: 'classify' | 'write';
+  task: string;
   model: string;
   stateIn?: string;
   stateOut?: string;
@@ -106,48 +111,48 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
     usage: classifierResult.usage,
   });
 
-  // ── Stage 1b: Apply new_facts from classifier + run Understanding Engine ───
+  // ── Stage 1b: Enrich context + compute understanding scores ───────────────
 
-  // Merge classifier new_facts into a temporary context for understandingEngine scoring
   const facts = classifierOutput.new_facts;
-  const enrichedForScoring: Record<string, unknown> = { ...conversationContext };
-  if (facts.reason_for_reaching_out)  enrichedForScoring.reason_for_reaching_out = facts.reason_for_reaching_out;
-  if (facts.business_type)            enrichedForScoring.business_type = facts.business_type;
-  if (facts.main_challenge)           enrichedForScoring.main_challenge = facts.main_challenge;
-  if (facts.active_business != null)  enrichedForScoring.active_business = facts.active_business;
-  if (facts.problem_in_hadar_domain != null) enrichedForScoring.problem_in_hadar_domain = facts.problem_in_hadar_domain;
-  if (facts.process_exists != null)   enrichedForScoring.process_exists = facts.process_exists;
-  if (facts.has_repeatability != null) enrichedForScoring.has_repeatability = facts.has_repeatability;
-  if (facts.open_to_guidance != null) enrichedForScoring.open_to_guidance = facts.open_to_guidance;
-  if (facts.bottleneck_identified)    enrichedForScoring.bottleneck_identified = facts.bottleneck_identified;
-  if (facts.process_flow_known != null) enrichedForScoring.process_flow_known = facts.process_flow_known;
-  if (facts.gap_identified != null)   enrichedForScoring.gap_identified = facts.gap_identified;
+  const enrichedContext: Record<string, unknown> = { ...conversationContext };
+  if (facts.reason_for_reaching_out)         enrichedContext.reason_for_reaching_out = facts.reason_for_reaching_out;
+  if (facts.business_type)                   enrichedContext.business_type = facts.business_type;
+  if (facts.main_challenge)                  enrichedContext.main_challenge = facts.main_challenge;
+  if (facts.active_business != null)         enrichedContext.active_business = facts.active_business;
+  if (facts.problem_in_hadar_domain != null) enrichedContext.problem_in_hadar_domain = facts.problem_in_hadar_domain;
+  if (facts.process_exists != null)          enrichedContext.process_exists = facts.process_exists;
+  if (facts.has_repeatability != null)       enrichedContext.has_repeatability = facts.has_repeatability;
+  if (facts.open_to_guidance != null)        enrichedContext.open_to_guidance = facts.open_to_guidance;
+  if (facts.bottleneck_identified)           enrichedContext.bottleneck_identified = facts.bottleneck_identified;
+  if (facts.process_flow_known != null)      enrichedContext.process_flow_known = facts.process_flow_known;
+  if (facts.gap_identified != null)          enrichedContext.gap_identified = facts.gap_identified;
 
-  const fitScore = computeFitScore(enrichedForScoring as Parameters<typeof computeFitScore>[0]);
-  const clarityScore = computeClarityScore(enrichedForScoring as Parameters<typeof computeClarityScore>[0]);
-  const recommendedNextStep = getRecommendedNextStep(enrichedForScoring as Parameters<typeof getRecommendedNextStep>[0]);
+  type ScoringCtx = Parameters<typeof computeFitScore>[0];
+  const fitScore = computeFitScore(enrichedContext as ScoringCtx);
+  const clarityScore = computeClarityScore(enrichedContext as ScoringCtx);
+  const recommendedNextStep = getRecommendedNextStep(enrichedContext as ScoringCtx);
 
-  enrichedForScoring.fit_score = fitScore;
-  enrichedForScoring.clarity_score = clarityScore;
-  enrichedForScoring.recommended_next_step = recommendedNextStep;
+  enrichedContext.fit_score = fitScore;
+  enrichedContext.clarity_score = clarityScore;
+  enrichedContext.recommended_next_step = recommendedNextStep;
 
   console.log(`[agentPipeline] fit=${fitScore} clarity=${clarityScore} next=${recommendedNextStep}`);
 
-  // ── Stage 2: State Machine ─────────────────────────────────────────────────
+  // ── Stage 2: Sales Conversation Manager + Specialists ─────────────────────
 
-  const smOutput = runStateMachine({
+  const managerOutput = await runSalesConversationManager({
     currentState,
-    intent: classifierOutput.intent,
-    shouldOfferBooking: false, // understandingEngine drives booking, not classifier
-    shouldHandoff: classifierOutput.should_handoff,
-    isOptOut: classifierOutput.is_opt_out,
-    context: enrichedForScoring,
+    classifierOutput,
+    context: enrichedContext,
+    history,
+    newMessage,
   });
 
-  let nextState = smOutput.nextState;
-  let forcedAction: AgentAction | undefined = smOutput.forcedAction;
+  let nextState = managerOutput.nextState;
+  let forcedAction: AgentAction | undefined = managerOutput.forcedAction;
+  const specialistContext = managerOutput.specialistContext;
 
-  // ── Stage 3: Anti-Loop Guard ───────────────────────────────────────────────
+  // ── Stage 3: Strategic Guardrails (pre-writer loop detection) ─────────────
 
   const recentUserMessages = history
     .filter((m) => m.role === 'user')
@@ -155,17 +160,17 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
     .slice(-3)
     .concat(newMessage);
 
-  const loopCtx: LoopContext = {
+  const guardrailsCtx: GuardrailsContext = {
     state: currentState,
     userMsgCount,
-    context: enrichedForScoring,
+    context: enrichedContext,
     recentUserMessages,
   };
 
-  const antiLoopOverride = runAntiLoopGuard(loopCtx);
-  if (antiLoopOverride) {
-    console.log(`[agentPipeline] AntiLoop override: ${antiLoopOverride.reason}`);
-    const overrideAction = antiLoopOverride.forced_action;
+  const guardrailsOverride = runGuardrailsCheck(guardrailsCtx);
+  if (guardrailsOverride) {
+    console.log(`[agentPipeline] Guardrails override: ${guardrailsOverride.reason}`);
+    const overrideAction = guardrailsOverride.forced_action;
     const overrideState =
       overrideAction === 'book_diagnostic_call' || overrideAction === 'book_intro_call'
         ? 'booking'
@@ -180,15 +185,15 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
                 : 'irrelevant';
 
     const overriddenOutput: AgentOutput = {
-      reply: antiLoopOverride.forced_reply,
+      reply: guardrailsOverride.forced_reply,
       action: overrideAction,
       state: overrideState,
       extracted_facts: {},
       known_facts: [],
     };
 
-    const contextPatch = updateAntiLoopCounters(
-      enrichedForScoring,
+    const contextPatch = updateGuardrailCounters(
+      enrichedContext,
       overriddenOutput.action,
       overriddenOutput.state,
       overriddenOutput.reply,
@@ -197,11 +202,11 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
     return { output: overriddenOutput, contextPatch };
   }
 
-  // Inject discovery nudge into enriched context if applicable
-  const nudge = buildDiscoveryNudge(userMsgCount, currentState, enrichedForScoring);
-  if (nudge) enrichedForScoring.nudge = nudge;
+  // Inject discovery nudge if applicable (AL-5)
+  const nudge = buildDiscoveryNudge(userMsgCount, currentState, enrichedContext);
+  if (nudge) enrichedContext.nudge = nudge;
 
-  // ── Stage 4: Response Writer ───────────────────────────────────────────────
+  // ── Stage 4: Hebrew Writer Agent ──────────────────────────────────────────
 
   const writerOutput = await runResponseWriter({
     history,
@@ -209,13 +214,14 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
     nextState,
     forcedAction,
     classifierOutput,
-    context: enrichedForScoring,
+    context: enrichedContext,
+    specialistContext,
   });
 
   await recordAiRun({
     leadUuid,
     task: 'write',
-    model: 'openai/gpt-4.1-mini',
+    model: 'anthropic/claude-sonnet-4-6',
     stateIn: currentState,
     stateOut: writerOutput.state,
     intent: classifierOutput.intent,
@@ -223,10 +229,10 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
     usage: writerOutput.usage,
   });
 
-  // ── Build context patch ────────────────────────────────────────────────────
+  // ── Stage 5: Build context patch ──────────────────────────────────────────
 
-  const antiLoopCounterPatch = updateAntiLoopCounters(
-    enrichedForScoring,
+  const guardrailCounterPatch = updateGuardrailCounters(
+    enrichedContext,
     writerOutput.action,
     writerOutput.state,
     writerOutput.reply,
@@ -235,31 +241,31 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
   const newFactsPatch: Record<string, unknown> = {};
 
   // Standard facts
-  if (facts.business_type)   newFactsPatch.business_type = facts.business_type;
-  if (facts.main_challenge)  newFactsPatch.main_challenge = facts.main_challenge;
-  if (facts.pain_category)   newFactsPatch.pain_category = facts.pain_category;
-  if (facts.temperature)     newFactsPatch.temperature = facts.temperature;
+  if (facts.business_type)  newFactsPatch.business_type = facts.business_type;
+  if (facts.main_challenge) newFactsPatch.main_challenge = facts.main_challenge;
+  if (facts.pain_category)  newFactsPatch.pain_category = facts.pain_category;
+  if (facts.temperature)    newFactsPatch.temperature = facts.temperature;
 
   // Fit signals
-  if (facts.reason_for_reaching_out)        newFactsPatch.reason_for_reaching_out = facts.reason_for_reaching_out;
-  if (facts.active_business != null)        newFactsPatch.active_business = facts.active_business;
+  if (facts.reason_for_reaching_out)         newFactsPatch.reason_for_reaching_out = facts.reason_for_reaching_out;
+  if (facts.active_business != null)         newFactsPatch.active_business = facts.active_business;
   if (facts.problem_in_hadar_domain != null) newFactsPatch.problem_in_hadar_domain = facts.problem_in_hadar_domain;
-  if (facts.process_exists != null)         newFactsPatch.process_exists = facts.process_exists;
-  if (facts.has_repeatability != null)      newFactsPatch.has_repeatability = facts.has_repeatability;
-  if (facts.open_to_guidance != null)       newFactsPatch.open_to_guidance = facts.open_to_guidance;
-  if (facts.bottleneck_identified)          newFactsPatch.bottleneck_identified = facts.bottleneck_identified;
+  if (facts.process_exists != null)          newFactsPatch.process_exists = facts.process_exists;
+  if (facts.has_repeatability != null)       newFactsPatch.has_repeatability = facts.has_repeatability;
+  if (facts.open_to_guidance != null)        newFactsPatch.open_to_guidance = facts.open_to_guidance;
+  if (facts.bottleneck_identified)           newFactsPatch.bottleneck_identified = facts.bottleneck_identified;
 
   // Clarity signals
-  if (facts.process_flow_known != null)     newFactsPatch.process_flow_known = facts.process_flow_known;
-  if (facts.gap_identified != null)         newFactsPatch.gap_identified = facts.gap_identified;
-  if (facts.feelings_only != null)          newFactsPatch.feelings_only = facts.feelings_only;
+  if (facts.process_flow_known != null) newFactsPatch.process_flow_known = facts.process_flow_known;
+  if (facts.gap_identified != null)     newFactsPatch.gap_identified = facts.gap_identified;
+  if (facts.feelings_only != null)      newFactsPatch.feelings_only = facts.feelings_only;
 
-  // Understanding engine scores (always update)
+  // Understanding engine scores
   newFactsPatch.fit_score = fitScore;
   newFactsPatch.clarity_score = clarityScore;
   newFactsPatch.recommended_next_step = recommendedNextStep;
 
-  // Increment diagnostic turn count when in diagnostic state
+  // Increment diagnostic turn count
   if (currentState === 'diagnostic') {
     const prev = typeof conversationContext.diagnostic_turn_count === 'number'
       ? conversationContext.diagnostic_turn_count : 0;
@@ -271,23 +277,21 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
     Object.assign(newFactsPatch, writerOutput.extracted_facts);
   }
 
-  // Merge known_facts from writer output
+  // Merge known_facts
   if (writerOutput.known_facts.length > 0) {
     const prevFacts = Array.isArray(conversationContext.known_facts)
-      ? (conversationContext.known_facts as string[])
-      : [];
+      ? (conversationContext.known_facts as string[]) : [];
     const merged = [...prevFacts, ...writerOutput.known_facts.filter((f) => !prevFacts.includes(f))];
     newFactsPatch.known_facts = merged;
   }
 
   newFactsPatch.last_intent = classifierOutput.intent;
 
-  // Persist communication_style — update only when classifier detected a non-null value
   if (classifierOutput.communication_style != null) {
     newFactsPatch.communication_style = classifierOutput.communication_style;
   }
 
-  const contextPatch = { ...newFactsPatch, ...antiLoopCounterPatch };
+  const contextPatch = { ...newFactsPatch, ...guardrailCounterPatch };
 
   return { output: writerOutput, contextPatch };
 }

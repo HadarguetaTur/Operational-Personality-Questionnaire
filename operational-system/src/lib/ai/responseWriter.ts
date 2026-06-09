@@ -1,18 +1,23 @@
 /**
- * responseWriter.ts — response generation agent (P4)
+ * responseWriter.ts — Hebrew Writer Agent (P4 refactor)
  *
- * Receives the classifier's analysis + state machine's next-state decision
+ * Receives the state machine decision + specialist agents' structured analysis
  * and writes the actual WhatsApp message in Hadar's brand voice.
+ *
  * Does NOT change strategic decisions — only crafts the message.
+ * Specialist context (painAnalysis, fitAssessment, offerFrame, objectionResponse)
+ * gives the writer concrete, grounded material to work with instead of
+ * trying to derive everything from scratch in one giant prompt.
  */
 
 import { getSystemPrompt } from './prompts/salesAgentSystemPrompt';
 import { getPromptForState, getFallbackForState, getDiscStyleAddendum } from './prompts/stagePrompts';
-import { validateReply } from '@/lib/agents/replyValidator';
+import { validateReply } from '@/lib/agents/strategicGuardrails';
 import { redactHistory } from './redact';
 import type { ConversationMessage } from '@/lib/db/conversationMessages';
-import type { AgentOutput, AgentAction, ExtractedFacts, AgentUsage } from './salesAgent';
+import type { AgentOutput, AgentAction, AgentUsage } from './salesAgent';
 import type { ClassifierOutput } from './classifier';
+import type { SpecialistContext } from '@/lib/agents/specialists/types';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const WRITER_MODEL = 'anthropic/claude-sonnet-4-6';
@@ -39,14 +44,11 @@ function parseWriterOutput(raw: string): AgentOutput | null {
       parsed.action = 'continue';
     }
 
-    // Strip stray { } wrappers the LLM sometimes adds around the reply text
     const rawReply: string = parsed.reply;
     let cleanReply = rawReply.trim();
-    // Remove matching { } pairs
     while (cleanReply.startsWith('{') && cleanReply.endsWith('}')) {
       cleanReply = cleanReply.slice(1, -1).trim();
     }
-    // Remove lone leading { or trailing } (no matching pair)
     cleanReply = cleanReply.replace(/^\{+/, '').replace(/\}+$/, '').trim();
 
     return {
@@ -63,13 +65,72 @@ function parseWriterOutput(raw: string): AgentOutput | null {
   }
 }
 
+function buildSpecialistSection(specialistContext: SpecialistContext): string {
+  const sections: string[] = [];
+
+  if (specialistContext.painAnalysis) {
+    const p = specialistContext.painAnalysis;
+    const lines = [
+      `## ניתוח כאב — תדריך לכותב (ל-internal use בלבד)`,
+      `כאב במילות הלקוחה: ${p.exact_words}`,
+      `השפעה עסקית: ${p.business_impact}`,
+      `עומק הבנה: ${p.depth}`,
+      `כאב תהליכי: ${p.is_process_pain ? 'כן' : 'לא — עדיין רגשי/כללי'}`,
+    ];
+    if (p.missing_info.length > 0) {
+      lines.push(`מידע חסר: ${p.missing_info.join(', ')}`);
+    }
+    sections.push(lines.join('\n'));
+  }
+
+  if (specialistContext.fitAssessment) {
+    const f = specialistContext.fitAssessment;
+    const lines = [
+      `## הערכת fit — תדריך לכותב`,
+      `fit_score: ${f.fit_score}/100 | clarity_score: ${f.clarity_score}/100`,
+      `המלצה: ${f.recommended_next_step}`,
+    ];
+    if (f.fit_reasoning) lines.push(`הסבר: ${f.fit_reasoning}`);
+    if (f.key_gaps.length > 0) lines.push(`פערים: ${f.key_gaps.join(', ')}`);
+    sections.push(lines.join('\n'));
+  }
+
+  if (specialistContext.offerFrame) {
+    const o = specialistContext.offerFrame;
+    const lines = [
+      `## מסגרת הצעה — תדריך לכותב`,
+      `שיקוף כאב (השתמשי בניסוח הזה): ${o.pain_mirror}`,
+      `טרנספורמציה: ${o.transformation}`,
+      `סוג שיחה מוצעת: ${o.call_type ?? 'לא הוחלט'}`,
+    ];
+    if (o.why_now) lines.push(`למה עכשיו: ${o.why_now}`);
+    sections.push(lines.join('\n'));
+  }
+
+  if (specialistContext.objectionResponse) {
+    const obj = specialistContext.objectionResponse;
+    const lines = [
+      `## אסטרטגיית התנגדות — תדריך לכותב`,
+      `אישור: ${obj.acknowledgment}`,
+      `מסגור מחדש: ${obj.reframe}`,
+      `סגירה רכה: ${obj.soft_close}`,
+    ];
+    sections.push(lines.join('\n'));
+  }
+
+  return sections.join('\n\n');
+}
+
 function buildWriterSystemPrompt(
   nextState: string,
   knowledgeBase: string,
   classifierOutput: ClassifierOutput,
   context: Record<string, unknown>,
+  specialistContext: SpecialistContext,
 ): string {
   const stagePrompt = getPromptForState(nextState);
+
+  const specialistSection = buildSpecialistSection(specialistContext);
 
   const classifierSection = [
     `## ניתוח הסיווג (לשימוש פנימי בלבד — אל תחזיר את זה בתשובה)`,
@@ -96,7 +157,7 @@ function buildWriterSystemPrompt(
     .filter(([k, v]) =>
       !['known_facts', 'asked_questions', 'opening_hook', 'offered_booking_count',
         'objection_count', 'clarification_count', 'last_intent', 'repeated_user_intent_count',
-        'last_asked_question', 'nudge'].includes(k) &&
+        'last_asked_question', 'nudge', 'specialist_outputs'].includes(k) &&
       v != null && v !== ''
     )
     .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`);
@@ -107,7 +168,7 @@ function buildWriterSystemPrompt(
   const nudge = typeof context.nudge === 'string' ? `\n\n⚠️ ${context.nudge}` : '';
   const discAddendum = getDiscStyleAddendum(context.communication_style);
 
-  return [stagePrompt, discAddendum, classifierSection, knowledgeBase, ...contextSection]
+  return [stagePrompt, discAddendum, specialistSection, classifierSection, knowledgeBase, ...contextSection]
     .filter(Boolean)
     .join('\n\n') + nudge;
 }
@@ -119,9 +180,11 @@ export async function runResponseWriter(input: {
   forcedAction?: AgentAction;
   classifierOutput: ClassifierOutput;
   context: Record<string, unknown>;
+  specialistContext?: SpecialistContext;
 }): Promise<AgentOutput> {
   const apiKey = process.env.OPENROUTER_API_KEY?.trim();
   const { nextState, forcedAction } = input;
+  const specialistContext = input.specialistContext ?? {};
 
   const fallback = getFallbackForState(nextState);
   const FALLBACK_OUTPUT: AgentOutput = {
@@ -143,6 +206,7 @@ export async function runResponseWriter(input: {
     knowledgeBase,
     input.classifierOutput,
     input.context,
+    specialistContext,
   );
 
   const redactedHistory = redactHistory(input.history);
@@ -157,7 +221,6 @@ export async function runResponseWriter(input: {
     { role: 'user', content: input.newMessage },
   ];
 
-  // If there's a forced action, inject it as a constraint
   const forceInstruction = forcedAction
     ? `\n\n[OVERRIDE] action חייב להיות: ${forcedAction}. state חייב להיות: ${nextState}.`
     : '';
@@ -174,7 +237,7 @@ export async function runResponseWriter(input: {
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': 'https://hadarturgemanautomations.com',
-          'X-Title': 'Hadar Automations Writer',
+          'X-Title': 'Hadar Hebrew Writer',
         },
         body: JSON.stringify({
           model: WRITER_MODEL,
@@ -197,12 +260,11 @@ export async function runResponseWriter(input: {
       const parsed = parseWriterOutput(rawContent);
 
       if (!parsed) {
-        console.warn(`[responseWriter:${nextState}] Parse failed on attempt ${attempt + 1}:`, rawContent.slice(0, 200));
+        console.warn(`[responseWriter:${nextState}] Parse failed (attempt ${attempt + 1}):`, rawContent.slice(0, 200));
         if (attempt === MAX_RETRIES) return FALLBACK_OUTPUT;
         continue;
       }
 
-      // Apply forced action/state overrides
       if (forcedAction) {
         parsed.action = forcedAction;
         parsed.state = nextState;
@@ -232,12 +294,10 @@ export async function runResponseWriter(input: {
         };
       }
 
-      console.log(
-        `[responseWriter:${nextState}] action=${parsed.action} | tokens=${usage?.total_tokens}`,
-      );
+      console.log(`[responseWriter:${nextState}] action=${parsed.action} | tokens=${usage?.total_tokens} | specialists=${Object.keys(specialistContext).join(',') || 'none'}`);
       return { ...parsed, usage };
     } catch (err) {
-      console.error(`[responseWriter:${nextState}] Fetch error on attempt ${attempt + 1}:`, err);
+      console.error(`[responseWriter:${nextState}] Fetch error (attempt ${attempt + 1}):`, err);
       if (attempt === MAX_RETRIES) return FALLBACK_OUTPUT;
     }
   }
