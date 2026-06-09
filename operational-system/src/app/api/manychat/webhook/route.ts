@@ -45,6 +45,8 @@ function sanitizeOutgoing(text: string): string {
   while (s.startsWith('{') && s.endsWith('}')) {
     s = s.slice(1, -1).trim();
   }
+  // Remove lone leading { or trailing } not part of a matched pair
+  s = s.replace(/^\{+/, '').replace(/\}+$/, '').trim();
   return s;
 }
 
@@ -194,7 +196,12 @@ export async function POST(request: NextRequest) {
     }
 
     case 'questionnaire_completed': {
-      await runQuizIntakeAgent({ leadUuid });
+      const quizResult = await runQuizIntakeAgent({ leadUuid });
+      // Bridge quiz intake into bot state so the pipeline can use opening_hook + facts
+      await upsertBotState(leadUuid, 'initial', {
+        opening_hook: quizResult.opening_hook,
+        ...quizResult.pre_extracted_facts,
+      });
       await recordFunnelEvent(leadUuid, 'quiz_completed');
       if (eventId) await updateManyChatEventStatus(eventId, 'done');
       return ackResponse(leadUuid, eventType);
