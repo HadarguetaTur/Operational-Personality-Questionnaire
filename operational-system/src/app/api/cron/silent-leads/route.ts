@@ -13,16 +13,6 @@ const TERMINAL_STATES = new Set([
   'irrelevant',
 ]);
 
-/** Next morning at ~08:00 UTC (≈ 10–11am Israel), at least 6h out. */
-function nextMorning(from: Date): Date {
-  const d = new Date(from);
-  d.setUTCHours(8, 0, 0, 0);
-  if (d.getTime() <= from.getTime() + 6 * 60 * 60 * 1000) {
-    d.setUTCDate(d.getUTCDate() + 1);
-  }
-  return d;
-}
-
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET?.trim();
   const authHeader = request.headers.get('authorization') ?? '';
@@ -45,7 +35,8 @@ export async function GET(request: NextRequest) {
   let skipped = 0;
 
   for (const row of dueRows ?? []) {
-    const touch = (row.step as number) === 2 ? 2 : 1;
+    // Single follow-up policy: one nudge the morning after the lead went quiet.
+    const touch = 1;
 
     // Load state/context + check whether a meeting was already booked.
     const [botState, leadRow] = await Promise.all([
@@ -104,19 +95,11 @@ export async function GET(request: NextRequest) {
     }
 
     sent++;
-    if (touch === 1) {
-      // Advance to the second touch next morning.
-      await supabase
-        .from('pending_followups')
-        .update({ step: 2, remind_at: nextMorning(now).toISOString() })
-        .eq('id', row.id);
-    } else {
-      // Second (final) touch sent — close the sequence.
-      await supabase
-        .from('pending_followups')
-        .update({ step: 2, closed_at: now.toISOString() })
-        .eq('id', row.id);
-    }
+    // One and done — close the sequence after the single morning nudge.
+    await supabase
+      .from('pending_followups')
+      .update({ step: 1, closed_at: now.toISOString() })
+      .eq('id', row.id);
   }
 
   return NextResponse.json({

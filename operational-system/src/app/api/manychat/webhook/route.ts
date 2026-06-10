@@ -1005,11 +1005,14 @@ async function processLeadMessage(
   }
 }
 
-const FOLLOWUP_FIRST_TOUCH_MS = 3 * 60 * 60 * 1000; // 3h after the conversation went quiet
+// Eligibility buffer: don't nudge a lead who's still actively chatting. Each bot
+// reply refreshes this, so the single morning cron only catches genuinely-quiet
+// leads (remind_at in the past by the next daily 07:00 run = the morning after).
+const FOLLOWUP_FIRST_TOUCH_MS = 3 * 60 * 60 * 1000;
 
 /**
- * Schedules (or refreshes) the next follow-up touch for a lead.
- * step 1 = first nudge (~3h later); the cron advances to step 2 (next morning).
+ * Schedules (or refreshes) the single follow-up for a lead. One nudge only,
+ * sent by the daily cron the morning after the conversation went quiet.
  */
 async function scheduleFollowup(leadUuid: string, step: number, remindAt: Date): Promise<void> {
   const supabase = createServiceRoleClient();
@@ -1028,7 +1031,7 @@ async function scheduleFollowup(leadUuid: string, step: number, remindAt: Date):
   }
 }
 
-/** Schedules the first follow-up touch 3h out. */
+/** Schedules the single morning follow-up (eligible 3h after going quiet). */
 async function scheduleFirstFollowup(leadUuid: string): Promise<void> {
   await scheduleFollowup(leadUuid, 1, new Date(Date.now() + FOLLOWUP_FIRST_TOUCH_MS));
 }
