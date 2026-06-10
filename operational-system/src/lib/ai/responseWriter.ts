@@ -20,7 +20,7 @@ import type { ClassifierOutput } from './classifier';
 import type { SpecialistContext } from '@/lib/agents/specialists/types';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const WRITER_MODEL = 'anthropic/claude-sonnet-4-6';
+const WRITER_MODEL = 'anthropic/claude-sonnet-4.6';
 const MAX_RETRIES = 2;
 
 function parseWriterOutput(raw: string): AgentOutput | null {

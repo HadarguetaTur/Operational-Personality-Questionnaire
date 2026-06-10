@@ -10,7 +10,7 @@
  *              ├── Offer Framing Agent (LLM, vision/awaiting_confirmation)
  *              └── Objection Agent (LLM, objection)
  *   Stage 3: Strategic Guardrails — pre-writer loop detection (deterministic)
- *   Stage 4: Hebrew Writer Agent (claude-sonnet-4-6) — crafts the actual reply
+ *   Stage 4: Hebrew Writer Agent (claude-sonnet-4.6) — crafts the actual reply
  *   Stage 5: Strategic Guardrails — post-writer counter updates (deterministic)
  */
 
@@ -221,7 +221,7 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
   await recordAiRun({
     leadUuid,
     task: 'write',
-    model: 'anthropic/claude-sonnet-4-6',
+    model: 'anthropic/claude-sonnet-4.6',
     stateIn: currentState,
     stateOut: writerOutput.state,
     intent: classifierOutput.intent,
