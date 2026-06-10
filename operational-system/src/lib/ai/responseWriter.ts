@@ -23,9 +23,25 @@ const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const WRITER_MODEL = 'anthropic/claude-sonnet-4.6';
 const MAX_RETRIES = 2;
 
+/**
+ * Anthropic models via OpenRouter do not enforce response_format json_object —
+ * the JSON often arrives wrapped in a ```json fence, sometimes with prose
+ * before it. Extract the actual JSON object from whatever came back.
+ */
+function extractJsonBlock(raw: string): string {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('{')) return trimmed;
+  const fence = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fence) return fence[1].trim();
+  const first = trimmed.indexOf('{');
+  const last = trimmed.lastIndexOf('}');
+  if (first !== -1 && last > first) return trimmed.slice(first, last + 1);
+  return trimmed;
+}
+
 function parseWriterOutput(raw: string): AgentOutput | null {
   try {
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(extractJsonBlock(raw));
     if (typeof parsed.reply !== 'string' || typeof parsed.action !== 'string') return null;
 
     const validActions: AgentAction[] = [
@@ -168,9 +184,14 @@ function buildWriterSystemPrompt(
   const nudge = typeof context.nudge === 'string' ? `\n\n⚠️ ${context.nudge}` : '';
   const discAddendum = getDiscStyleAddendum(context.communication_style);
 
+  // Must be the LAST thing in the prompt — the FORMAT block inside stagePrompt
+  // gets buried under ~14K chars of KB/context and the model drifts to prose/fences.
+  const formatReminder =
+    '## תזכורת אחרונה — קריטי\nהחזר אך ורק אובייקט JSON תקין אחד. בלי ```, בלי טקסט לפני או אחרי ה-JSON.';
+
   return [stagePrompt, discAddendum, specialistSection, classifierSection, knowledgeBase, ...contextSection]
     .filter(Boolean)
-    .join('\n\n') + nudge;
+    .join('\n\n') + nudge + '\n\n' + formatReminder;
 }
 
 export async function runResponseWriter(input: {
