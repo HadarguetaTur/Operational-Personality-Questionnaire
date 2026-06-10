@@ -11,7 +11,7 @@
  */
 
 import { getSystemPrompt } from './prompts/salesAgentSystemPrompt';
-import { getPromptForState, getFallbackForState, getDiscStyleAddendum } from './prompts/stagePrompts';
+import { getPromptForState, getDiscStyleAddendum } from './prompts/stagePrompts';
 import { validateReply } from '@/lib/agents/strategicGuardrails';
 import { redactHistory } from './redact';
 import type { ConversationMessage } from '@/lib/db/conversationMessages';
@@ -22,6 +22,9 @@ import type { SpecialistContext } from '@/lib/agents/specialists/types';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const WRITER_MODEL = 'anthropic/claude-sonnet-4.6';
 const MAX_RETRIES = 2;
+
+// Shown when the AI call fails outright — honest, hands off to Hadar.
+export const BOT_UNAVAILABLE_MSG = 'סליחה, הבוט לא זמין כרגע. הדר תיצור איתך קשר בהקדם 🙏';
 
 /**
  * Anthropic models via OpenRouter do not enforce response_format json_object —
@@ -207,13 +210,16 @@ export async function runResponseWriter(input: {
   const { nextState, forcedAction } = input;
   const specialistContext = input.specialistContext ?? {};
 
-  const fallback = getFallbackForState(nextState);
+  // When the AI call genuinely can't produce a reply (no key / parse / validation
+  // / HTTP all failed), we do NOT fake a canned marketing question. We tell the
+  // truth and hand the lead to Hadar. `unavailable` is handled by the webhook.
   const FALLBACK_OUTPUT: AgentOutput = {
-    reply: fallback.reply,
-    action: forcedAction ?? 'continue',
-    state: fallback.state,
+    reply: BOT_UNAVAILABLE_MSG,
+    action: 'human_handoff',
+    state: nextState,
     extracted_facts: {},
     known_facts: [],
+    unavailable: true,
   };
 
   if (!apiKey) {

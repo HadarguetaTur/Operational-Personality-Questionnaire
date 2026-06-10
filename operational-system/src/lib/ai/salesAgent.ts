@@ -56,6 +56,8 @@ export interface AgentOutput {
   extracted_facts: ExtractedFacts;
   known_facts: string[];
   usage?: AgentUsage;
+  /** True when this is the "bot unavailable" message (AI call failed), not a real reply. */
+  unavailable?: boolean;
 }
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';

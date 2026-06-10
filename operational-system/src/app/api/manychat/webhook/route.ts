@@ -18,6 +18,7 @@ import {
 import { runAgentPipeline } from '@/lib/ai/agentPipeline';
 import { detectMeetingIntent } from '@/lib/agents/preCheck/detectMeetingIntent';
 import { detectMetaFrustration } from '@/lib/agents/preCheck/detectMetaFrustration';
+import { detectHumanRequest } from '@/lib/agents/preCheck/detectHumanRequest';
 import {
   detectNotFitAudience,
   AUDIENCE_DISQUALIFY_REPLY,
@@ -69,7 +70,8 @@ const BOOKING_HE: Record<BookingType, string> = {
 const EMAIL_RE = /[\w.+-]+@[\w-]+\.[\w.-]+/;
 const DECLINE_EMAIL_RE = /(לא צריך|לא צריכה|לא תודה|לא רוצה|בלי|דלגי|אין צורך|לא חשוב|לא משנה|לא נדרש|^\s*לא\s*$)/;
 // Strong cancel during the email step = abort the meeting, not just skip the invite.
-const STRONG_CANCEL_RE = /(ביטול|לבטל|בטלי|לא עכשיו|לא כרגע|נדבר אחר כך|נדבר בהמשך|בהמשך|עזבי)/;
+// NOTE: standalone "בהמשך" removed — it's ambiguous ("אשמח גם ל-X בהמשך" is NOT a cancel).
+const STRONG_CANCEL_RE = /(ביטול|לבטל|בטלי|לא עכשיו|לא כרגע|נדבר אחר כך|נדבר בהמשך|עזבי)/;
 
 function sanitizeOutgoing(text: string): string {
   let s = text.trim();
@@ -372,6 +374,18 @@ async function processLeadMessage(
       return;
     }
 
+    // ── Pre-check: explicit request for a human / Hadar (any state) ───────────
+    if (detectHumanRequest(userMessage)) {
+      const reply = await handleHandoff(leadUuid, subscriberId, 'human_requested', history);
+      await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+        action: 'human_handoff',
+        state: 'escalated',
+      });
+      await upsertBotState(leadUuid, 'escalated', undefined, subscriberId);
+      await finalize([{ type: 'text', text: reply }]);
+      return;
+    }
+
     // Seed asked_questions from DB history for leads that pre-date the memory system.
     if (
       !Array.isArray(conversationContext.asked_questions) ||
@@ -419,6 +433,7 @@ async function processLeadMessage(
           awaiting_daypart: true,
           offered_slots: null,
           booking_in_progress: false,
+          no_slots_attempts: 0,
         },
         subscriberId,
       );
@@ -539,8 +554,33 @@ async function processLeadMessage(
           slots = await getAvailableSlots(bookingType, { daypart, days: 21, max: 3 });
         }
         if (slots.length === 0) {
-          // Nothing in this part of the day — offer to try another.
-          const where = daypart ? `ב${DAYPART_HE[daypart]}` : 'בקרוב';
+          // Loop guard: if we already broadened to "any time" (daypart=null), or
+          // this is the 2nd empty attempt, the calendar is genuinely empty →
+          // hand off instead of re-asking daypart forever.
+          const attempts =
+            (typeof conversationContext.no_slots_attempts === 'number'
+              ? conversationContext.no_slots_attempts
+              : 0) + 1;
+          if (daypart === null || attempts >= 2) {
+            const reply =
+              'אין לי כרגע זמנים פנויים מתאימים ביומן 🙈 הדר תיצור איתך קשר ותתאם משהו אישית בהקדם 🙏';
+            await notifySlackHandoff({
+              leadUuid,
+              headline: 'אין זמינות ביומן',
+              summary: 'תיאום ה-Cal.com לא מצא זמנים פנויים, צריך תיאום ידני מול הדר.',
+              keyFacts: [],
+            });
+            await recordFunnelEvent(leadUuid, 'human_handoff_requested', { reason: 'no_availability' });
+            await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+              action: 'human_handoff',
+              state: 'escalated',
+            });
+            await upsertBotState(leadUuid, 'escalated', { booking_in_progress: false }, subscriberId);
+            await finalize([{ type: 'text', text: reply }]);
+            return;
+          }
+          // First empty attempt on a specific daypart — offer to try another.
+          const where = `ב${DAYPART_HE[daypart]}`;
           const reply = `אין כרגע זמנים פנויים ${where} 🙈 רוצה שאבדוק חלק אחר ביום? בוקר, צהריים או ערב?`;
           await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
             action: 'continue',
@@ -549,7 +589,7 @@ async function processLeadMessage(
           await upsertBotState(
             leadUuid,
             'scheduling',
-            { awaiting_daypart: true, daypart: null, offered_slots: null },
+            { awaiting_daypart: true, daypart: null, offered_slots: null, no_slots_attempts: attempts },
             subscriberId,
           );
           await finalize([{ type: 'text', text: reply }]);
@@ -576,11 +616,11 @@ async function processLeadMessage(
           const reply = 'סבבה לגמרי 🙏 כשיתאים לך נמשיך מאיפה שעצרנו.';
           await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
             action: 'continue',
-            state: 'pitching',
+            state: 'awaiting_confirmation',
           });
           await upsertBotState(
             leadUuid,
-            'pitching',
+            'awaiting_confirmation',
             { awaiting_daypart: false, offered_slots: null, booking_in_progress: false },
             subscriberId,
           );
@@ -629,11 +669,11 @@ async function processLeadMessage(
           const reply = 'סבבה לגמרי 🙏 כשיתאים לך נמשיך מאיפה שעצרנו.';
           await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
             action: 'continue',
-            state: 'pitching',
+            state: 'awaiting_confirmation',
           });
           await upsertBotState(
             leadUuid,
-            'pitching',
+            'awaiting_confirmation',
             { offered_slots: null, booking_in_progress: false, awaiting_email: false, selected_slot: null },
             subscriberId,
           );
@@ -671,11 +711,11 @@ async function processLeadMessage(
         const reply = 'סבבה לגמרי 🙏 כשיתאים לך נמשיך מאיפה שעצרנו.';
         await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
           action: 'continue',
-          state: 'pitching',
+          state: 'awaiting_confirmation',
         });
         await upsertBotState(
           leadUuid,
-          'pitching',
+          'awaiting_confirmation',
           { offered_slots: null, booking_in_progress: false, awaiting_email: false, selected_slot: null },
           subscriberId,
         );
@@ -818,6 +858,25 @@ async function processLeadMessage(
       leadUuid,
       subscriberId,
     });
+
+    // ── AI unavailable: the Writer couldn't produce a reply ───────────────────
+    // Be honest, hand off to Hadar, and KEEP the conversation state as-is so a
+    // transient blip resumes normally on the next turn. No further LLM calls.
+    if (agentOutput.unavailable) {
+      await saveMessage(leadUuid, subscriberId, 'assistant', agentOutput.reply, {
+        action: 'human_handoff',
+        state: currentState,
+      });
+      await notifySlackHandoff({
+        leadUuid,
+        headline: 'הבוט לא זמין',
+        summary: 'קריאת ה-AI נכשלה, הליד ממתין למענה אנושי מהדר.',
+        keyFacts: [],
+      });
+      await recordFunnelEvent(leadUuid, 'human_handoff_requested', { reason: 'bot_unavailable' });
+      await finalize([{ type: 'text', text: agentOutput.reply }]);
+      return;
+    }
 
     // Merge newly asked question into context patch
     const agentQuestion = extractQuestionFromReply(agentOutput.reply);

@@ -37,20 +37,24 @@ const NUMBER_EMOJI: Record<string, number> = {
   '4️⃣': 4,
 };
 
+// NOTE: no \b — in JS \b is ASCII-based and never matches a Hebrew-letter
+// boundary, so "השני" etc. would never match.
 const ORDINAL_HE: Array<[RegExp, number]> = [
-  [/\bהראשון|הראשונה\b/, 1],
-  [/\bהשני|השנייה|השניה\b/, 2],
-  [/\bהשלישי|השלישית\b/, 3],
-  [/\bהרביעי|הרביעית\b/, 4],
+  [/הראשון|הראשונה/, 1],
+  [/השני|השנייה|השניה/, 2],
+  [/השלישי|השלישית/, 3],
+  [/הרביעי|הרביעית/, 4],
 ];
 
 // Wants different / later times → re-fetch and show more.
 const OTHER_RE =
   /(זמן אחר|אופציה אחרת|אפשרות אחרת|יום אחר|שבוע הבא|בשבוע הבא|מאוחר יותר|לא מתאים|אחרת|עוד אפשרויות|עוד זמנים|בוקר|בערב|ערב|צהריי?ם|אחר הצהריי?ם)/;
 
-// Wants to stop scheduling for now.
+// Wants to stop scheduling for now. Only unambiguous cancels — "לא רוצה" and a
+// standalone "בהמשך" are intentionally NOT here: "לא רוצה את ה-10, אפשר אחר?"
+// means "different time" (handled by OTHER_RE), not "abort".
 const CANCEL_RE =
-  /(ביטול|לבטל|בטלי|לא עכשיו|לא רוצה|נדבר אחר כך|נדבר בהמשך|בהמשך|תודה לא|עזבי|לא כרגע)/;
+  /(ביטול|לבטל|בטלי|לא עכשיו|נדבר אחר כך|נדבר בהמשך|תודה לא|עזבי|לא כרגע)/;
 
 const BOOKING_LABELS: Record<BookingType, string> = {
   diagnostic: 'שיחת האפיון',
