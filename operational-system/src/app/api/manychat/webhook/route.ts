@@ -47,6 +47,9 @@ function sanitizeOutgoing(text: string): string {
   }
   // Remove lone leading { or trailing } not part of a matched pair
   s = s.replace(/^\{+/, '').replace(/\}+$/, '').trim();
+  // Hadar's rule: no dashes in phrasing. Convert em/en dashes used as a
+  // sentence connector to a comma so replies read conversational, not mechanical.
+  s = s.replace(/[ \t]*[—–][ \t]*/g, ', ').replace(/,\s*,/g, ',').replace(/[ \t]{2,}/g, ' ').trim();
   return s;
 }
 

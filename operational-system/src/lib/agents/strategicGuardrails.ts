@@ -236,7 +236,9 @@ export function validateReply(
     if (trimmed.includes(phrase)) return { valid: false, reason: 'blocklist' };
   }
 
-  if ((trimmed.match(/\?/g) ?? []).length > 1) {
+  // Allow up to 2 question marks: a warm clarifier pair ("מה זה אומר? מה קורה בפועל?")
+  // reads natural. 3+ is interrogation.
+  if ((trimmed.match(/\?/g) ?? []).length > 2) {
     return { valid: false, reason: 'multiple_questions' };
   }
 
