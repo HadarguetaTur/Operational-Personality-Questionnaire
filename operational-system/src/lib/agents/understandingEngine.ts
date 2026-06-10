@@ -65,37 +65,48 @@ export function computeClarityScore(ctx: UnderstandingContext): number {
 }
 
 /**
- * Returns true when the bot has enough clarity AND a specific bottleneck/process
- * to justify moving to the summary stage.
- *
- * Rule: clarity_score >= 80 AND (bottleneck OR process OR repeatability known)
+ * The bot "understands enough" once it knows the real challenge AND has a
+ * concrete handle on the process (a named bottleneck, a known flow, or that a
+ * repeatable process exists). This is what a human salesperson treats as
+ * "I get the picture" — NOT a full 5/5 clarity_score, which the classifier
+ * almost never sets and made the offer effectively unreachable.
  */
-export function isReadyToSummarize(ctx: UnderstandingContext): boolean {
-  const clarity = computeClarityScore(ctx);
-  if (clarity < 80) return false;
-  return (
+function knowsCoreProblem(ctx: UnderstandingContext): boolean {
+  const hasChallenge = ctx.main_challenge != null && ctx.main_challenge !== '';
+  const hasProcessHandle =
     (ctx.bottleneck_identified != null && ctx.bottleneck_identified !== '') ||
+    ctx.process_flow_known === true ||
     ctx.process_exists === true ||
-    ctx.has_repeatability === true
-  );
+    ctx.has_repeatability === true;
+  return hasChallenge && hasProcessHandle;
 }
 
 /**
- * Determines the recommended next step based on both scores.
- * Called after every classifier run; result stored in context.recommended_next_step.
+ * Returns true when the bot understands enough to summarize and recommend.
+ * No longer gated behind clarity_score >= 80 (unreachable in practice).
+ */
+export function isReadyToSummarize(ctx: UnderstandingContext): boolean {
+  if (ctx.problem_in_hadar_domain === false || ctx.active_business === false) return false;
+  return knowsCoreProblem(ctx);
+}
+
+/**
+ * Determines the recommended next step.
+ * Policy (Hadar): once the core problem is understood and the lead is a fit,
+ * always offer the FREE 20-min intro call first. Paid diagnostic is offered
+ * inside that call, not auto-pushed in chat.
  */
 export function getRecommendedNextStep(ctx: UnderstandingContext): RecommendedNextStep {
-  if (!isReadyToSummarize(ctx)) return 'continue_diagnostic';
-
-  // Hard disqualifiers first
+  // Hard disqualifiers
   if (ctx.problem_in_hadar_domain === false || ctx.active_business === false) {
     return 'D_NOT_RELEVANT';
   }
+  if (!knowsCoreProblem(ctx)) return 'continue_diagnostic';
 
+  // Genuinely weak fit (no real fit signals) → chaos-journal homework first.
   const fit = computeFitScore(ctx);
-  const clarity = computeClarityScore(ctx);
+  if (fit < 50) return 'C_HOMEWORK';
 
-  if (fit >= 75 && clarity >= 80 && ctx.open_to_guidance === true) return 'A_DIAGNOSTIC';
-  if (fit >= 50 && clarity >= 60) return 'B_INTRO_CALL';
-  return 'C_HOMEWORK';
+  // Understood + fits → free intro call.
+  return 'B_INTRO_CALL';
 }

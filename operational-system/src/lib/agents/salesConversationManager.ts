@@ -52,6 +52,7 @@ function computeNextState(
   intent: ClassifierIntent,
   shouldHandoff: boolean,
   isOptOut: boolean,
+  shouldOfferBooking: boolean,
   context: Record<string, unknown>,
 ): { nextState: string; forcedAction?: AgentAction; reason: string } {
   // Global overrides
@@ -69,6 +70,28 @@ function computeNextState(
   }
   if (TERMINAL_STATES.has(currentState)) {
     return { nextState: currentState, reason: 'terminal state — no transition' };
+  }
+
+  // ── Buying-signal fast lane ────────────────────────────────────────────────
+  // A clear readiness/interest signal (or explicit meeting request), once we
+  // already know the pain, jumps straight to offering the free intro — no need
+  // to grind through summary/vision. Stops the bot from over-interrogating a
+  // lead who is already sold.
+  const knowsChallenge =
+    typeof context.main_challenge === 'string' && context.main_challenge.length > 0;
+  const notDisqualified =
+    context.problem_in_hadar_domain !== false && context.active_business !== false;
+  if (
+    (shouldOfferBooking || intent === 'meeting_request') &&
+    knowsChallenge &&
+    notDisqualified &&
+    currentState !== 'awaiting_confirmation'
+  ) {
+    return {
+      nextState: 'awaiting_confirmation',
+      forcedAction: 'propose_intro_call',
+      reason: 'buying signal + pain known → propose intro',
+    };
   }
 
   switch (currentState) {
@@ -219,6 +242,7 @@ export async function runSalesConversationManager(input: ManagerInput): Promise<
     classifierOutput.intent,
     classifierOutput.should_handoff,
     classifierOutput.is_opt_out,
+    classifierOutput.should_offer_booking,
     context,
   );
 

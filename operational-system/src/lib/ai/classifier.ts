@@ -134,7 +134,9 @@ const CLASSIFIER_SYSTEM_PROMPT = `אתה מסווג שיחות לבוט אבחו
 
 8. should_handoff: true רק אם ביקשה אדם מפורשות, כאב חריג, או 2+ אי-הבנות
 
-9. should_offer_booking: false תמיד — ה-understandingEngine מחליט על booking, לא הclassifier
+9. should_offer_booking: true אם הלקוחה הביעה עניין ברור בפתרון או מוכנות להתקדם —
+   "אפשר?", "אשמח", "בא לי", "איך מתחילים", "נשמע טוב", "היית רוצה ש...", או שתיארה
+   במדויק מה היא רוצה שיקרה אוטומטית. false אם היא עדיין רק מתארת בעיה/תהליך בלי עניין מפורש בפתרון.
 
 10. is_opt_out: true אם בקשת הסרה מפורשת
 
