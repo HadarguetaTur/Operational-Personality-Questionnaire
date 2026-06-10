@@ -81,10 +81,11 @@ function buildBookingMessages(
   bookingType: 'diagnostic' | 'intro',
 ): Array<{ type: 'text'; text: string }> {
   const messages: Array<{ type: 'text'; text: string }> = [{ type: 'text', text: reply }];
+  const fallbackUrl = process.env.CALCOM_BOOKING_URL?.trim();
   const url =
     bookingType === 'diagnostic'
-      ? process.env.CALCOM_URL_DIAGNOSTIC?.trim()
-      : process.env.CALCOM_URL_INTRO?.trim();
+      ? (process.env.CALCOM_URL_DIAGNOSTIC?.trim() || fallbackUrl)
+      : (process.env.CALCOM_URL_INTRO?.trim() || fallbackUrl);
   if (url) {
     const label =
       bookingType === 'diagnostic'

@@ -56,6 +56,20 @@ export function runStateMachine(input: StateMachineInput): StateMachineOutput {
     return { nextState: 'irrelevant', forcedAction: 'mark_irrelevant', reason: 'not_relevant intent' };
   }
 
+  // ── Global override: explicit meeting/booking request ────────────────────
+  // If the customer explicitly asks to book from ANY non-terminal state,
+  // skip the diagnostic flow and go straight to awaiting_confirmation.
+  if (intent === 'meeting_request' && !TERMINAL_STATES.has(currentState)) {
+    const recommended = getRecommendedStep(context);
+    const bookingAction: AgentAction =
+      recommended === 'A_DIAGNOSTIC' ? 'propose_diagnostic_call' : 'propose_intro_call';
+    return {
+      nextState: 'awaiting_confirmation',
+      forcedAction: bookingAction,
+      reason: `meeting_request from ${currentState} → awaiting_confirmation`,
+    };
+  }
+
   // Don't transition out of terminal states
   if (TERMINAL_STATES.has(currentState)) {
     return { nextState: currentState, reason: 'terminal state — no transition' };
