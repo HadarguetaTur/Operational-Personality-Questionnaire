@@ -61,17 +61,18 @@ const BOOKING_LABELS: Record<BookingType, string> = {
   intro: 'שיחת ההיכרות',
 };
 
-const NUM_PREFIX = ['1️⃣', '2️⃣', '3️⃣', '4️⃣'];
-
 /** Builds the numbered slot list message shown in WhatsApp. */
-export function buildSlotsMessage(bookingType: BookingType, slots: CalSlot[]): string {
+export function buildSlotsMessage(
+  bookingType: BookingType,
+  slots: CalSlot[],
+  daypart?: Daypart | null,
+): string {
   const label = BOOKING_LABELS[bookingType];
-  const lines = slots.map((s, i) => `${NUM_PREFIX[i] ?? `${i + 1}.`} ${s.label}`);
-  return (
-    `מעולה 🙏 הנה הזמנים הקרובים של הדר ל${label}:\n` +
-    `${lines.join('\n')}\n` +
-    `איזה זמן מתאים לך? אפשר לבחור מספר, או לכתוב לי "זמן אחר" ואביא עוד אפשרויות.`
-  );
+  const lines = slots.map((s, i) => `${i + 1}. ${s.label}`);
+  const opener = daypart
+    ? `בהחלט, אלה הזמנים שפנויים ב${DAYPART_HE[daypart]}:`
+    : `בהחלט, אלה הזמנים הקרובים של הדר ל${label}:`;
+  return `${opener}\n${lines.join('\n')}\nתכתבי לי רק את המספר שמתאים לך 🙏`;
 }
 
 export type SlotChoice =

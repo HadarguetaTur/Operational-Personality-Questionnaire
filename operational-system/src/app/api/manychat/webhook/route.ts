@@ -73,6 +73,16 @@ const DECLINE_EMAIL_RE = /(לא צריך|לא צריכה|לא תודה|לא רו
 // NOTE: standalone "בהמשך" removed — it's ambiguous ("אשמח גם ל-X בהמשך" is NOT a cancel).
 const STRONG_CANCEL_RE = /(ביטול|לבטל|בטלי|לא עכשיו|לא כרגע|נדבר אחר כך|נדבר בהמשך|עזבי)/;
 
+/** Extracts a first name from a free-text reply ("קוראים לי מיכל" → "מיכל"). */
+function cleanName(message: string): string {
+  let s = message.trim().replace(/[.!?,]+$/g, '').trim();
+  s = s.replace(/^(היי+|שלום|היא?)\s+/i, '');
+  s = s.replace(/^(קוראים לי|שמי|השם שלי(?:\s+הוא)?|אני|זה|השם)\s+/, '').trim();
+  // Keep it short — a name, not a sentence.
+  if (s.length > 30) s = s.split(/\s+/).slice(0, 2).join(' ');
+  return s || message.trim().slice(0, 30);
+}
+
 function sanitizeOutgoing(text: string): string {
   let s = text.trim();
   while (s.startsWith('{') && s.endsWith('}')) {
@@ -418,8 +428,40 @@ async function processLeadMessage(
         return;
       }
 
-      // First ask the preferred part of the day; slots come after she answers.
-      const reply = 'מעולה 🙏 באיזה חלק ביום בדרך כלל נוח לך, בוקר, צהריים או ערב?';
+      await recordFunnelEvent(leadUuid, `${bookingType}_offered`, { in_chat: true });
+      // Keep a follow-up safety net in case she goes quiet mid-scheduling.
+      await scheduleFirstFollowup(leadUuid);
+
+      const knownName =
+        typeof conversationContext.name === 'string' && conversationContext.name.trim();
+
+      // We book under a real name — ask it first if we don't have one yet.
+      if (!knownName) {
+        const reply = 'בהחלט 🙏 איך קוראים לך?';
+        await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+          action: 'continue',
+          state: 'scheduling',
+        });
+        await upsertBotState(
+          leadUuid,
+          'scheduling',
+          {
+            ...contextPatch,
+            pending_booking_type: bookingType,
+            awaiting_name: true,
+            awaiting_daypart: false,
+            offered_slots: null,
+            booking_in_progress: false,
+            no_slots_attempts: 0,
+          },
+          subscriberId,
+        );
+        await finalize([{ type: 'text', text: reply }]);
+        return;
+      }
+
+      // Name known → ask the preferred part of the day; slots come after.
+      const reply = 'מעולה 🙏 מתי נוח לך יותר, בוקר, צהריים או ערב?';
       await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
         action: 'continue',
         state: 'scheduling',
@@ -430,6 +472,7 @@ async function processLeadMessage(
         {
           ...contextPatch,
           pending_booking_type: bookingType,
+          awaiting_name: false,
           awaiting_daypart: true,
           offered_slots: null,
           booking_in_progress: false,
@@ -437,9 +480,6 @@ async function processLeadMessage(
         },
         subscriberId,
       );
-      await recordFunnelEvent(leadUuid, `${bookingType}_offered`, { in_chat: true });
-      // Keep a follow-up safety net in case she goes quiet mid-scheduling.
-      await scheduleFirstFollowup(leadUuid);
       await finalize([{ type: 'text', text: reply }]);
     };
 
@@ -479,7 +519,13 @@ async function processLeadMessage(
         });
 
         if (result.ok) {
-          const reply = `סגרתי לך ✅ ${BOOKING_HE[bookingType]} עם הדר ב${slot.label}. ישלח אישור ותזכורת. מחכה לך 🙏`;
+          const emailReal = !email.endsWith('@leads.hadar.local');
+          const namePrefix = name && name !== 'לקוחה מוואטסאפ' ? `${name}, ` : '';
+          const lastLine = emailReal
+            ? 'שלחתי אלייך אישור למייל ותזכורת תישלח לפני השיחה 🙏'
+            : 'תזכורת תישלח לפני השיחה. מחכה לך 🙏';
+          const reply =
+            `סגרתי לך ✅\n${namePrefix}${BOOKING_HE[bookingType]} עם הדר נקבעה ל${slot.label}.\n${lastLine}`;
           await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
             action: bookingType === 'diagnostic' ? 'book_diagnostic_call' : 'book_intro_call',
             state: 'closed',
@@ -595,7 +641,7 @@ async function processLeadMessage(
           await finalize([{ type: 'text', text: reply }]);
           return;
         }
-        const listMsg = buildSlotsMessage(bookingType, slots);
+        const listMsg = buildSlotsMessage(bookingType, slots, daypart);
         await saveMessage(leadUuid, subscriberId, 'assistant', listMsg, {
           action: 'continue',
           state: 'scheduling',
@@ -609,6 +655,40 @@ async function processLeadMessage(
         await scheduleFirstFollowup(leadUuid);
         await finalize([{ type: 'text', text: listMsg }]);
       };
+
+      // ── Name sub-step: captured before we ask about times ────────────────
+      if (conversationContext.awaiting_name === true) {
+        if (STRONG_CANCEL_RE.test(userMessage)) {
+          const reply = 'סבבה לגמרי 🙏 כשיתאים לך נמשיך מאיפה שעצרנו.';
+          await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+            action: 'continue',
+            state: 'awaiting_confirmation',
+          });
+          await upsertBotState(
+            leadUuid,
+            'awaiting_confirmation',
+            { awaiting_name: false, booking_in_progress: false },
+            subscriberId,
+          );
+          await finalize([{ type: 'text', text: reply }]);
+          return;
+        }
+        const name = cleanName(userMessage);
+        await ensureLeadRow(leadUuid, { subscriberId, phone, name });
+        await upsertBotState(
+          leadUuid,
+          'scheduling',
+          { name, awaiting_name: false, awaiting_daypart: true },
+          subscriberId,
+        );
+        const reply = `נעים מאוד ${name} 🙏 מתי נוח לך יותר, בוקר, צהריים או ערב?`;
+        await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+          action: 'continue',
+          state: 'scheduling',
+        });
+        await finalize([{ type: 'text', text: reply }]);
+        return;
+      }
 
       // ── Daypart sub-step: morning / noon / evening ───────────────────────
       if (conversationContext.awaiting_daypart === true) {
@@ -697,7 +777,7 @@ async function processLeadMessage(
 
         // Unclear → re-ask the email question once.
         const reply =
-          'רק שאדע, אם בא לך שהפגישה תיכנס ליומן שלך כתבי לי את כתובת המייל, ואם לא כתבי "לא צריך" ואני סוגרת בלי 🙂';
+          'רק שאדע לאן לשלוח את האישור, מה כתובת המייל שלך? (ואם לא צריך, כתבי "לא צריך" ואני סוגרת) 🙂';
         await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
           action: 'continue',
           state: 'scheduling',
@@ -740,7 +820,7 @@ async function processLeadMessage(
           await finalize([{ type: 'text', text: reply }]);
           return;
         }
-        const listMsg = buildSlotsMessage(bookingType, slots);
+        const listMsg = buildSlotsMessage(bookingType, slots, daypart);
         await saveMessage(leadUuid, subscriberId, 'assistant', listMsg, {
           action: 'continue',
           state: 'scheduling',
@@ -766,9 +846,7 @@ async function processLeadMessage(
           { selected_slot: choice.slot, awaiting_email: true },
           subscriberId,
         );
-        const reply =
-          `מעולה, ${choice.slot.label} 🙏 רוצה שאוסיף לך את הפגישה ליומן? ` +
-          `אם כן כתבי לי את כתובת המייל, ואם לא כתבי "לא צריך" ואני סוגרת.`;
+        const reply = `מעולה, ${choice.slot.label} 🙏 לאיזה מייל לשלוח את האישור?`;
         await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
           action: 'continue',
           state: 'scheduling',

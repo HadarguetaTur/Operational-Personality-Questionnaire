@@ -67,7 +67,7 @@ export function formatSlotLabel(startISO: string): string {
   }).formatToParts(d);
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
   const wd = HE_WEEKDAYS[get('weekday')] ?? get('weekday');
-  return `${wd} ${get('day')}.${get('month')}, ${get('hour')}:${get('minute')}`;
+  return `${wd} ${get('day')}.${get('month')} ב־${get('hour')}:${get('minute')}`;
 }
 
 /** Picks up to `max` slots spread across distinct days (variety over consecutive times). */
