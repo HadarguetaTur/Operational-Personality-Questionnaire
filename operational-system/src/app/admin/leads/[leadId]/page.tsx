@@ -35,7 +35,7 @@ import { openLeadDocument } from '@/lib/admin/openLeadDocument';
 interface LeadDetail {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   phone: string | null;
   marketing_consent: boolean;
   created_at: string;
@@ -54,8 +54,17 @@ interface LeadDetail {
   meeting_booked_at: string | null;
   lead_status: string | null;
   lead_source: string | null;
+  conversation_state: string | null;
+  conversation_context: Record<string, unknown> | null;
   notes: string | null;
   tags: string[] | null;
+}
+
+interface ConversationMsg {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: string;
 }
 
 interface EmailLog {
@@ -98,6 +107,36 @@ const leadSourceLabels: Record<string, string> = {
   whatsapp: 'וואטסאפ',
 };
 
+const conversationStateLabels: Record<string, string> = {
+  initial: 'התחלה',
+  discovery: 'גילוי',
+  diagnostic: 'אבחון',
+  qualifying: 'הסמכה',
+  summary: 'סיכום',
+  vision: 'חזון',
+  pitching: 'הצעה',
+  objection: 'התנגדות',
+  awaiting_confirmation: 'ממתין לאישור',
+  scheduling: 'תיאום פגישה',
+  booking: 'קביעת פגישה',
+  closed: 'נסגר',
+  irrelevant: 'לא רלוונטי',
+  spam: 'ספאם',
+  escalated: 'הועבר לאדם',
+};
+
+// Extracted-fact keys worth surfacing, in display order.
+const contextFactLabels: Array<[string, string]> = [
+  ['business_type', 'סוג עסק'],
+  ['main_challenge', 'אתגר מרכזי'],
+  ['pain_category', 'קטגוריית כאב'],
+  ['temperature', 'חום הליד'],
+  ['reason_for_reaching_out', 'סיבת הפנייה'],
+  ['fit_score', 'ציון התאמה'],
+  ['clarity_score', 'ציון בהירות'],
+  ['recommended_next_step', 'צעד מומלץ'],
+];
+
 const UNKNOWN_SOURCE = 'unknown';
 
 export default function LeadDetailPage() {
@@ -109,6 +148,7 @@ export default function LeadDetailPage() {
   const [lead, setLead] = useState<LeadDetail | null>(null);
   const [emails, setEmails] = useState<EmailLog[]>([]);
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
+  const [messages, setMessages] = useState<ConversationMsg[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editNotes, setEditNotes] = useState('');
@@ -117,10 +157,11 @@ export default function LeadDetailPage() {
   const [editSource, setEditSource] = useState(UNKNOWN_SOURCE);
 
   const fetchData = useCallback(async () => {
-    const [leadRes, emailsRes, docsRes] = await Promise.all([
+    const [leadRes, emailsRes, docsRes, msgsRes] = await Promise.all([
       supabase.from('leads').select('*').eq('id', leadId).single(),
       supabase.from('email_logs').select('id, subject, status, sent_at, created_at').eq('lead_id', leadId).order('created_at', { ascending: false }),
       supabase.from('documents').select('id, file_name, file_url, storage_path, drive_url, uploaded_at').eq('lead_id', leadId).order('uploaded_at', { ascending: false }),
+      supabase.from('conversation_messages').select('id, role, content, created_at').eq('lead_uuid', leadId).in('role', ['user', 'assistant']).order('created_at', { ascending: true }),
     ]);
 
     if (leadRes.data) {
@@ -132,6 +173,7 @@ export default function LeadDetailPage() {
     }
     setEmails(emailsRes.data ?? []);
     setDocuments(docsRes.data ?? []);
+    setMessages((msgsRes.data ?? []) as ConversationMsg[]);
     setLoading(false);
   }, [supabase, leadId]);
 
@@ -203,7 +245,7 @@ export default function LeadDetailPage() {
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{lead.name}</h1>
-          <p className="text-gray-500 mt-1" dir="ltr">{lead.email} {lead.phone ? `| ${lead.phone}` : ''}</p>
+          <p className="text-gray-500 mt-1" dir="ltr">{[lead.email, lead.phone].filter(Boolean).join(' | ') || '-'}</p>
         </div>
         <div className="flex items-center gap-2">
           {lead.report_token && (
@@ -266,6 +308,68 @@ export default function LeadDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* WhatsApp conversation */}
+          {(messages.length > 0 || lead.conversation_state) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-green-600" />
+                  שיחת וואטסאפ
+                  {lead.conversation_state && (
+                    <Badge variant="secondary" className="mr-auto">
+                      {conversationStateLabels[lead.conversation_state] ?? lead.conversation_state}
+                    </Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Extracted facts */}
+                {(() => {
+                  const ctx = lead.conversation_context ?? {};
+                  const facts = contextFactLabels.filter(
+                    ([key]) => ctx[key] !== undefined && ctx[key] !== null && ctx[key] !== '',
+                  );
+                  if (facts.length === 0) return null;
+                  return (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm border-b border-gray-100 pb-4">
+                      {facts.map(([key, label]) => (
+                        <div key={key}>
+                          <span className="text-gray-500 block">{label}</span>
+                          <span className="font-medium">{String(ctx[key])}</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                {/* Message timeline */}
+                {messages.length === 0 ? (
+                  <p className="text-sm text-gray-400">אין הודעות עדיין</p>
+                ) : (
+                  <div className="space-y-3 max-h-[28rem] overflow-y-auto pl-1">
+                    {messages.map((m) => (
+                      <div
+                        key={m.id}
+                        className={`flex ${m.role === 'user' ? 'justify-start' : 'justify-end'}`}
+                      >
+                        <div
+                          className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap ${
+                            m.role === 'user'
+                              ? 'bg-gray-100 text-gray-900 rounded-bl-sm'
+                              : 'bg-green-50 text-gray-900 rounded-br-sm'
+                          }`}
+                        >
+                          <p>{m.content}</p>
+                          <p className="text-[10px] text-gray-400 mt-1">{formatDate(m.created_at)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Edit section */}
           <Card>

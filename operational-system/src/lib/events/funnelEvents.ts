@@ -7,6 +7,7 @@ export type FunnelEventType =
   | 'meeting_booked'
   | 'diagnostic_offered'
   | 'intro_offered'
+  | 'no_availability'
   | 'homework_assigned'
   | 'human_handoff_requested'
   | 'opt_out';

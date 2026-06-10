@@ -6,7 +6,7 @@
   "crons": [
     {
       "path": "/api/cron/silent-leads",
-      "schedule": "0 7 * * *"
+      "schedule": "0 * * * *"
     }
   ]
 }

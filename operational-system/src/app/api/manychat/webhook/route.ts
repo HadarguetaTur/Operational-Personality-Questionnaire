@@ -16,10 +16,7 @@ import {
   getRecentBotQuestions,
 } from '@/lib/db/conversationMessages';
 import { runAgentPipeline } from '@/lib/ai/agentPipeline';
-import {
-  detectMeetingIntent,
-  MEETING_BOOKING_REPLY,
-} from '@/lib/agents/preCheck/detectMeetingIntent';
+import { detectMeetingIntent } from '@/lib/agents/preCheck/detectMeetingIntent';
 import { detectMetaFrustration } from '@/lib/agents/preCheck/detectMetaFrustration';
 import {
   detectNotFitAudience,
@@ -29,6 +26,28 @@ import { notifySlackHandoff } from '@/lib/notifications/slackHandoff';
 import { runHandoffSummary } from '@/lib/agents/handoffSummaryAgent';
 import { recordFunnelEvent } from '@/lib/events/funnelEvents';
 import { runQuizIntakeAgent } from '@/lib/agents/quizIntakeAgent';
+import {
+  resolveLeadIdentity,
+  ensureLeadRow,
+  markLeadMeetingBooked,
+  PLACEHOLDER_LEAD_NAME,
+} from '@/lib/db/leadRegistry';
+import {
+  getAvailableSlots,
+  createBooking,
+  isCalcomConfigured,
+  type BookingType,
+  type CalSlot,
+  type Daypart,
+} from '@/lib/calcom/api';
+import {
+  buildSlotsMessage,
+  parseSlotChoice,
+  nextWindowFromISO,
+  parseDaypart,
+  isAnyDaypart,
+  DAYPART_HE,
+} from '@/lib/calcom/scheduling';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { pushManyChatReply } from '@/lib/manychat/sendApi';
 import type {
@@ -39,6 +58,18 @@ import type {
 
 // Opt-out keywords — if a user sends these, mark as irrelevant immediately.
 const OPT_OUT_REGEX = /^\s*(הסר|עצור|אל תשלח|stop|בטל|לא רוצה הודעות|unsubscribe|הפסיקי לשלוח)\s*$/i;
+
+// Hebrew meeting-type label for booking confirmations.
+const BOOKING_HE: Record<BookingType, string> = {
+  diagnostic: 'שיחת אפיון',
+  intro: 'שיחת היכרות',
+};
+
+// Email + "no thanks" detection for the in-chat "add to your calendar?" step.
+const EMAIL_RE = /[\w.+-]+@[\w-]+\.[\w.-]+/;
+const DECLINE_EMAIL_RE = /(לא צריך|לא צריכה|לא תודה|לא רוצה|בלי|דלגי|אין צורך|לא חשוב|לא משנה|לא נדרש|^\s*לא\s*$)/;
+// Strong cancel during the email step = abort the meeting, not just skip the invite.
+const STRONG_CANCEL_RE = /(ביטול|לבטל|בטלי|לא עכשיו|לא כרגע|נדבר אחר כך|נדבר בהמשך|בהמשך|עזבי)/;
 
 function sanitizeOutgoing(text: string): string {
   let s = text.trim();
@@ -194,8 +225,15 @@ export async function POST(request: NextRequest) {
         return ackResponse(leadUuid, eventType);
       }
 
+      // Resolve the canonical lead identity (dedup returning subscribers).
+      const { leadUuid: canonicalLeadUuid } = await resolveLeadIdentity({
+        subscriberId,
+        payloadLeadUuid: rawUuid,
+      });
+      const phone = typeof payload.phone === 'string' ? payload.phone.trim() : undefined;
+
       // Return immediately to ManyChat — LLM runs in background, reply pushed via Send API.
-      waitUntil(processLeadMessage(leadUuid, subscriberId, userMessage, eventId));
+      waitUntil(processLeadMessage(canonicalLeadUuid, subscriberId, userMessage, eventId, phone));
       return NextResponse.json({ version: 'v2', content: { messages: [] } });
     }
 
@@ -249,6 +287,7 @@ async function processLeadMessage(
   subscriberId: string | undefined,
   userMessage: string,
   eventId: string | null,
+  phone?: string,
 ): Promise<void> {
   const push = async (
     messages: Array<{ type: 'text'; text: string }>,
@@ -289,8 +328,12 @@ async function processLeadMessage(
 
   try {
     console.log('[ManyChat Webhook] processLeadMessage: started', { leadUuid, subscriberId, messageLen: userMessage.length });
+    // Document every inquiry as a lead (creates on first contact, dedup-safe).
+    await ensureLeadRow(leadUuid, { subscriberId, phone });
     await saveMessage(leadUuid, subscriberId, 'user', userMessage);
     await recordFunnelEvent(leadUuid, 'lead_arrived', { source: 'manychat' });
+    // The lead re-engaged — cancel any pending follow-up; non-terminal replies reschedule below.
+    await cancelFollowup(leadUuid);
 
     // ── Pre-check: opt-out ──────────────────────────────────────────────────
     if (OPT_OUT_REGEX.test(userMessage)) {
@@ -305,12 +348,21 @@ async function processLeadMessage(
       return;
     }
 
-    const userMsgCount = await countUserMessagesForLead(leadUuid);
+    const [userMsgCount, history, botStateData] = await Promise.all([
+      countUserMessagesForLead(leadUuid),
+      getConversationHistory(leadUuid),
+      getBotState(leadUuid),
+    ]);
+
+    const currentState = botStateData.state;
+    let conversationContext = botStateData.context;
 
     // ── Auto-escalate after 10 messages ────────────────────────────────────
-    if (userMsgCount >= 10) {
-      const escalationHistory = await getConversationHistory(leadUuid);
-      const escalationReply = await handleHandoff(leadUuid, subscriberId, 'message_limit', escalationHistory);
+    // Exempt active booking states — a lead picking a slot (or about to) must
+    // not be killed mid-close just because the conversation ran long.
+    const ESCALATE_EXEMPT = new Set(['scheduling', 'awaiting_confirmation', 'booking', 'closed']);
+    if (userMsgCount >= 10 && !ESCALATE_EXEMPT.has(currentState)) {
+      const escalationReply = await handleHandoff(leadUuid, subscriberId, 'message_limit', history);
       await saveMessage(leadUuid, subscriberId, 'assistant', escalationReply, {
         action: 'human_handoff',
         state: 'escalated',
@@ -319,14 +371,6 @@ async function processLeadMessage(
       await finalize([{ type: 'text', text: escalationReply }]);
       return;
     }
-
-    const [history, botStateData] = await Promise.all([
-      getConversationHistory(leadUuid),
-      getBotState(leadUuid),
-    ]);
-
-    const currentState = botStateData.state;
-    let conversationContext = botStateData.context;
 
     // Seed asked_questions from DB history for leads that pre-date the memory system.
     if (
@@ -337,6 +381,375 @@ async function processLeadMessage(
       if (seeded.length > 0) {
         conversationContext = { ...conversationContext, asked_questions: seeded.slice(-20) };
       }
+    }
+
+    // ── In-chat scheduling helpers (Cal.com) ───────────────────────────────
+    // Presents real availability as a numbered list; the lead never leaves chat.
+    const enterScheduling = async (
+      bookingType: BookingType,
+      contextPatch: Record<string, unknown>,
+    ): Promise<void> => {
+      // Fallback to a static link only if Cal.com isn't configured.
+      if (!isCalcomConfigured(bookingType)) {
+        const reply =
+          bookingType === 'diagnostic'
+            ? 'מעולה! שולחת לך קישור לקביעת שיחת האפיון עם הדר 🗓️'
+            : 'מעולה! שולחת לך קישור לקביעת שיחת ההיכרות עם הדר 🗓️';
+        await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+          action: bookingType === 'diagnostic' ? 'book_diagnostic_call' : 'book_intro_call',
+          state: 'booking',
+        });
+        await upsertBotState(leadUuid, 'booking', contextPatch, subscriberId);
+        await finalize(buildBookingMessages(leadUuid, reply, bookingType));
+        return;
+      }
+
+      // First ask the preferred part of the day; slots come after she answers.
+      const reply = 'מעולה 🙏 באיזה חלק ביום בדרך כלל נוח לך, בוקר, צהריים או ערב?';
+      await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+        action: 'continue',
+        state: 'scheduling',
+      });
+      await upsertBotState(
+        leadUuid,
+        'scheduling',
+        {
+          ...contextPatch,
+          pending_booking_type: bookingType,
+          awaiting_daypart: true,
+          offered_slots: null,
+          booking_in_progress: false,
+        },
+        subscriberId,
+      );
+      await recordFunnelEvent(leadUuid, `${bookingType}_offered`, { in_chat: true });
+      // Keep a follow-up safety net in case she goes quiet mid-scheduling.
+      await scheduleFirstFollowup(leadUuid);
+      await finalize([{ type: 'text', text: reply }]);
+    };
+
+    const handleSchedulingTurn = async (): Promise<void> => {
+      const offered = Array.isArray(conversationContext.offered_slots)
+        ? (conversationContext.offered_slots as CalSlot[])
+        : [];
+      const bookingType: BookingType =
+        conversationContext.pending_booking_type === 'intro' ? 'intro' : 'diagnostic';
+      const choice = parseSlotChoice(userMessage, offered);
+
+      // ── Books the chosen slot with the given attendee email, then closes ──
+      const executeBooking = async (slot: CalSlot, email: string): Promise<void> => {
+        const supa = createServiceRoleClient();
+        const { data: leadRow } = await supa
+          .from('leads')
+          .select('name, phone')
+          .eq('id', leadUuid)
+          .maybeSingle();
+
+        const ctxName =
+          typeof conversationContext.name === 'string' ? conversationContext.name.trim() : '';
+        const rowName = (leadRow?.name as string | null)?.trim();
+        const name =
+          ctxName ||
+          (rowName && rowName !== PLACEHOLDER_LEAD_NAME ? rowName : '') ||
+          'לקוחה מוואטסאפ';
+        const bookingPhone = phone || (leadRow?.phone as string | null) || undefined;
+
+        const result = await createBooking({
+          bookingType,
+          startISO: slot.startISO,
+          name,
+          email,
+          phone: bookingPhone,
+          leadUuid,
+        });
+
+        if (result.ok) {
+          const reply = `סגרתי לך ✅ ${BOOKING_HE[bookingType]} עם הדר ב${slot.label}. ישלח אישור ותזכורת. מחכה לך 🙏`;
+          await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+            action: bookingType === 'diagnostic' ? 'book_diagnostic_call' : 'book_intro_call',
+            state: 'closed',
+          });
+          await upsertBotState(
+            leadUuid,
+            'closed',
+            {
+              booking_in_progress: false,
+              awaiting_email: false,
+              selected_slot: null,
+              calcom_booking_uid: result.bookingUid ?? null,
+              booked_slot: slot.startISO,
+              offered_slots: null,
+            },
+            subscriberId,
+          );
+          await markLeadMeetingBooked(leadUuid);
+          await cancelFollowup(leadUuid);
+          await recordFunnelEvent(leadUuid, 'meeting_booked', {
+            source: 'in_chat',
+            booking_uid: result.bookingUid ?? null,
+            booking_type: bookingType,
+          });
+          await finalize([{ type: 'text', text: reply }]);
+          return;
+        }
+
+        if (result.conflict) {
+          const slots = await getAvailableSlots(bookingType, {});
+          const head = 'אופס, הזמן הזה בדיוק נתפס 🙈 ';
+          if (slots.length === 0) {
+            const reply = head + 'הדר תיצור איתך קשר לתיאום אישי 🙏';
+            await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+              action: 'human_handoff',
+              state: 'escalated',
+            });
+            await upsertBotState(leadUuid, 'escalated', { booking_in_progress: false }, subscriberId);
+            await finalize([{ type: 'text', text: reply }]);
+            return;
+          }
+          const listMsg = head + '\n' + buildSlotsMessage(bookingType, slots);
+          await saveMessage(leadUuid, subscriberId, 'assistant', listMsg, {
+            action: 'continue',
+            state: 'scheduling',
+          });
+          await upsertBotState(
+            leadUuid,
+            'scheduling',
+            { offered_slots: slots, booking_in_progress: false, awaiting_email: false, selected_slot: null },
+            subscriberId,
+          );
+          await finalize([{ type: 'text', text: listMsg }]);
+          return;
+        }
+
+        // Other API failure → hand off to Hadar.
+        const handoffReply = await handleHandoff(leadUuid, subscriberId, 'booking_api_failure', history);
+        const reply = handoffReply || 'נתקלתי בתקלה קטנה בקביעה, הדר תשלח לך קישור אישית לתיאום 🙏';
+        await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+          action: 'human_handoff',
+          state: 'escalated',
+        });
+        await upsertBotState(leadUuid, 'escalated', { booking_in_progress: false }, subscriberId);
+        await finalize([{ type: 'text', text: reply }]);
+      };
+
+      // ── Fetches + shows 3 slots for a daypart (null = any time) ──────────
+      const presentSlots = async (daypart: Daypart | null): Promise<void> => {
+        let slots = await getAvailableSlots(bookingType, { daypart, max: 3 });
+        if (slots.length === 0) {
+          slots = await getAvailableSlots(bookingType, { daypart, days: 21, max: 3 });
+        }
+        if (slots.length === 0) {
+          // Nothing in this part of the day — offer to try another.
+          const where = daypart ? `ב${DAYPART_HE[daypart]}` : 'בקרוב';
+          const reply = `אין כרגע זמנים פנויים ${where} 🙈 רוצה שאבדוק חלק אחר ביום? בוקר, צהריים או ערב?`;
+          await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+            action: 'continue',
+            state: 'scheduling',
+          });
+          await upsertBotState(
+            leadUuid,
+            'scheduling',
+            { awaiting_daypart: true, daypart: null, offered_slots: null },
+            subscriberId,
+          );
+          await finalize([{ type: 'text', text: reply }]);
+          return;
+        }
+        const listMsg = buildSlotsMessage(bookingType, slots);
+        await saveMessage(leadUuid, subscriberId, 'assistant', listMsg, {
+          action: 'continue',
+          state: 'scheduling',
+        });
+        await upsertBotState(
+          leadUuid,
+          'scheduling',
+          { offered_slots: slots, daypart, awaiting_daypart: false, booking_in_progress: false },
+          subscriberId,
+        );
+        await scheduleFirstFollowup(leadUuid);
+        await finalize([{ type: 'text', text: listMsg }]);
+      };
+
+      // ── Daypart sub-step: morning / noon / evening ───────────────────────
+      if (conversationContext.awaiting_daypart === true) {
+        if (STRONG_CANCEL_RE.test(userMessage)) {
+          const reply = 'סבבה לגמרי 🙏 כשיתאים לך נמשיך מאיפה שעצרנו.';
+          await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+            action: 'continue',
+            state: 'pitching',
+          });
+          await upsertBotState(
+            leadUuid,
+            'pitching',
+            { awaiting_daypart: false, offered_slots: null, booking_in_progress: false },
+            subscriberId,
+          );
+          await scheduleFirstFollowup(leadUuid);
+          await finalize([{ type: 'text', text: reply }]);
+          return;
+        }
+        if (isAnyDaypart(userMessage)) {
+          await presentSlots(null);
+          return;
+        }
+        const dp = parseDaypart(userMessage);
+        if (!dp) {
+          const reply = 'רק שאדע מה הכי נוח לך, בוקר, צהריים או ערב? (אפשר גם לכתוב "לא משנה")';
+          await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+            action: 'continue',
+            state: 'scheduling',
+          });
+          await finalize([{ type: 'text', text: reply }]);
+          return;
+        }
+        await presentSlots(dp);
+        return;
+      }
+
+      // ── Email sub-step: "do you want it in your calendar?" answer ─────────
+      // Checked BEFORE the generic cancel branch, because "לא רוצה" here means
+      // "skip the invite" (book with placeholder), not "abort the meeting".
+      if (conversationContext.awaiting_email === true && conversationContext.selected_slot) {
+        const slot = conversationContext.selected_slot as CalSlot;
+        const emailMatch = userMessage.match(EMAIL_RE);
+
+        if (emailMatch) {
+          await upsertBotState(
+            leadUuid,
+            'scheduling',
+            { awaiting_email: false, booking_in_progress: true },
+            subscriberId,
+          );
+          await executeBooking(slot, emailMatch[0].trim());
+          return;
+        }
+
+        // Explicit abort → leave scheduling without booking.
+        if (STRONG_CANCEL_RE.test(userMessage)) {
+          const reply = 'סבבה לגמרי 🙏 כשיתאים לך נמשיך מאיפה שעצרנו.';
+          await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+            action: 'continue',
+            state: 'pitching',
+          });
+          await upsertBotState(
+            leadUuid,
+            'pitching',
+            { offered_slots: null, booking_in_progress: false, awaiting_email: false, selected_slot: null },
+            subscriberId,
+          );
+          await scheduleFirstFollowup(leadUuid);
+          await finalize([{ type: 'text', text: reply }]);
+          return;
+        }
+
+        if (DECLINE_EMAIL_RE.test(userMessage)) {
+          // No calendar invite — book with a stable placeholder address.
+          const placeholder = `wa-${subscriberId ?? leadUuid}@leads.hadar.local`;
+          await upsertBotState(
+            leadUuid,
+            'scheduling',
+            { awaiting_email: false, booking_in_progress: true },
+            subscriberId,
+          );
+          await executeBooking(slot, placeholder);
+          return;
+        }
+
+        // Unclear → re-ask the email question once.
+        const reply =
+          'רק שאדע, אם בא לך שהפגישה תיכנס ליומן שלך כתבי לי את כתובת המייל, ואם לא כתבי "לא צריך" ואני סוגרת בלי 🙂';
+        await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+          action: 'continue',
+          state: 'scheduling',
+        });
+        await finalize([{ type: 'text', text: reply }]);
+        return;
+      }
+
+      // ── Cancel: leave scheduling, keep the door open ─────────────────────
+      if (choice.kind === 'cancel') {
+        const reply = 'סבבה לגמרי 🙏 כשיתאים לך נמשיך מאיפה שעצרנו.';
+        await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+          action: 'continue',
+          state: 'pitching',
+        });
+        await upsertBotState(
+          leadUuid,
+          'pitching',
+          { offered_slots: null, booking_in_progress: false, awaiting_email: false, selected_slot: null },
+          subscriberId,
+        );
+        await scheduleFirstFollowup(leadUuid);
+        await finalize([{ type: 'text', text: reply }]);
+        return;
+      }
+
+      // ── Wants other times (or we have nothing offered): re-fetch ─────────
+      if (choice.kind === 'other' || offered.length === 0) {
+        const daypart = (conversationContext.daypart as Daypart | null) ?? null;
+        const fromISO = choice.kind === 'other' ? nextWindowFromISO(offered) : undefined;
+        let slots = await getAvailableSlots(bookingType, { fromISO, daypart, max: 3 });
+        if (slots.length === 0 && fromISO) slots = await getAvailableSlots(bookingType, { daypart, max: 3 });
+        if (slots.length === 0) {
+          const reply = 'אין כרגע זמנים פנויים נוספים ביומן, הדר תיצור איתך קשר אישית 🙏';
+          await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+            action: 'human_handoff',
+            state: 'escalated',
+          });
+          await upsertBotState(leadUuid, 'escalated', undefined, subscriberId);
+          await finalize([{ type: 'text', text: reply }]);
+          return;
+        }
+        const listMsg = buildSlotsMessage(bookingType, slots);
+        await saveMessage(leadUuid, subscriberId, 'assistant', listMsg, {
+          action: 'continue',
+          state: 'scheduling',
+        });
+        await upsertBotState(
+          leadUuid,
+          'scheduling',
+          { offered_slots: slots, booking_in_progress: false },
+          subscriberId,
+        );
+        await scheduleFirstFollowup(leadUuid);
+        await finalize([{ type: 'text', text: listMsg }]);
+        return;
+      }
+
+      // ── A slot was picked → ask about the calendar invite before booking ─
+      if (choice.kind === 'select') {
+        // Idempotency: ignore a duplicate choice while a booking is in flight.
+        if (conversationContext.booking_in_progress === true) return;
+        await upsertBotState(
+          leadUuid,
+          'scheduling',
+          { selected_slot: choice.slot, awaiting_email: true },
+          subscriberId,
+        );
+        const reply =
+          `מעולה, ${choice.slot.label} 🙏 רוצה שאוסיף לך את הפגישה ליומן? ` +
+          `אם כן כתבי לי את כתובת המייל, ואם לא כתבי "לא צריך" ואני סוגרת.`;
+        await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+          action: 'continue',
+          state: 'scheduling',
+        });
+        await finalize([{ type: 'text', text: reply }]);
+        return;
+      }
+
+      // ── Unknown reply → gently re-prompt ─────────────────────────────────
+      const reply = 'אפשר לבחור מספר מהזמנים שלמעלה, או לכתוב לי "זמן אחר" ואביא עוד אפשרויות 🙏';
+      await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+        action: 'continue',
+        state: 'scheduling',
+      });
+      await finalize([{ type: 'text', text: reply }]);
+    };
+
+    // ── In-chat scheduling turn: handle the lead's slot choice ─────────────
+    if (currentState === 'scheduling') {
+      await handleSchedulingTurn();
+      return;
     }
 
     // ── Pre-check: audience filter (first message only) ────────────────────
@@ -360,6 +773,7 @@ async function processLeadMessage(
       });
       await upsertBotState(leadUuid, 'discovery', {}, subscriberId);
       await recordFunnelEvent(leadUuid, 'lead_arrived', { source: 'manychat', msg: 'opening_sent' });
+      await scheduleFirstFollowup(leadUuid);
       await finalize([{ type: 'text', text: FIXED_OPENING }]);
       return;
     }
@@ -369,24 +783,13 @@ async function processLeadMessage(
     // (antiLoopGuard AL-1 is also state-aware). Bypassing the pipeline here
     // for any other state would skip scoring and understanding checks.
     if (currentState === 'awaiting_confirmation' && detectMeetingIntent(userMessage)) {
-      const bookingType =
+      const bookingType: BookingType =
         conversationContext.pending_booking_type === 'intro' ? 'intro' : 'diagnostic';
-      const bookingAction =
-        bookingType === 'diagnostic' ? 'book_diagnostic_call' : 'book_intro_call';
-      const bookingReply =
-        bookingType === 'diagnostic'
-          ? 'מעולה! שולחת לך עכשיו את הקישור לשיחת האפיון עם הדר 🗓️'
-          : 'מעולה! שולחת לך עכשיו את הקישור לזום ההיכרות עם הדר 🗓️';
-      await saveMessage(leadUuid, subscriberId, 'assistant', bookingReply, {
-        action: bookingAction,
-        state: 'booking',
-      });
       const bookingPatch = {
         offered_booking_count: ((conversationContext.offered_booking_count as number) ?? 0) + 1,
       };
-      await upsertBotState(leadUuid, 'booking', bookingPatch, subscriberId);
-      await recordFunnelEvent(leadUuid, `${bookingType}_offered`, { trigger: 'regex' });
-      await finalize(buildBookingMessages(leadUuid, bookingReply, bookingType));
+      // In-chat scheduling: show real availability instead of a raw link.
+      await enterScheduling(bookingType, bookingPatch);
       return;
     }
 
@@ -424,6 +827,15 @@ async function processLeadMessage(
       ...contextPatch,
       ...(questionPatch ?? {}),
     };
+
+    // Sync a newly-extracted name onto the lead row (best-effort).
+    const extractedName =
+      (typeof fullContextPatch.name === 'string' && fullContextPatch.name.trim()) ||
+      (typeof conversationContext.name === 'string' && conversationContext.name.trim()) ||
+      '';
+    if (extractedName) {
+      await ensureLeadRow(leadUuid, { subscriberId, phone, name: extractedName });
+    }
 
     // ── Handle agent output ────────────────────────────────────────────────
 
@@ -465,7 +877,7 @@ async function processLeadMessage(
         state: agentOutput.state,
       });
       await upsertBotState(leadUuid, agentOutput.state, fullContextPatch, subscriberId);
-      await scheduleFollowup(leadUuid);
+      await scheduleFirstFollowup(leadUuid);
       await finalize([{ type: 'text', text: reply }]);
       return;
     }
@@ -483,6 +895,8 @@ async function processLeadMessage(
     });
 
     await upsertBotState(leadUuid, agentOutput.state, fullContextPatch, subscriberId);
+    // Non-terminal reply — nudge in 3h if the lead goes quiet without booking.
+    await scheduleFirstFollowup(leadUuid);
 
     // ── Booking proposals: set pending type, send reply only (no link yet) ───
     if (agentOutput.action === 'propose_diagnostic_call') {
@@ -507,16 +921,14 @@ async function processLeadMessage(
       return;
     }
 
-    // ── Booking confirmations: send reply + booking link ──────────────────
+    // ── Booking confirmations: in-chat scheduling (real availability) ─────
     if (agentOutput.action === 'book_diagnostic_call') {
-      await recordFunnelEvent(leadUuid, 'diagnostic_offered', { trigger: 'agent' });
-      await finalize(buildBookingMessages(leadUuid, agentOutput.reply, 'diagnostic'));
+      await enterScheduling('diagnostic', {});
       return;
     }
 
     if (agentOutput.action === 'book_intro_call') {
-      await recordFunnelEvent(leadUuid, 'intro_offered', { trigger: 'agent' });
-      await finalize(buildBookingMessages(leadUuid, agentOutput.reply, 'intro'));
+      await enterScheduling('intro', {});
       return;
     }
 
@@ -534,13 +946,19 @@ async function processLeadMessage(
   }
 }
 
-async function scheduleFollowup(leadUuid: string): Promise<void> {
+const FOLLOWUP_FIRST_TOUCH_MS = 3 * 60 * 60 * 1000; // 3h after the conversation went quiet
+
+/**
+ * Schedules (or refreshes) the next follow-up touch for a lead.
+ * step 1 = first nudge (~3h later); the cron advances to step 2 (next morning).
+ */
+async function scheduleFollowup(leadUuid: string, step: number, remindAt: Date): Promise<void> {
   const supabase = createServiceRoleClient();
-  const remindAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const { error } = await supabase.from('pending_followups').upsert(
     {
       lead_uuid: leadUuid,
       remind_at: remindAt.toISOString(),
+      step,
       reminder_sent: false,
       closed_at: null,
     },
@@ -548,5 +966,23 @@ async function scheduleFollowup(leadUuid: string): Promise<void> {
   );
   if (error) {
     console.warn('[webhook] scheduleFollowup failed (non-fatal):', error.message);
+  }
+}
+
+/** Schedules the first follow-up touch 3h out. */
+async function scheduleFirstFollowup(leadUuid: string): Promise<void> {
+  await scheduleFollowup(leadUuid, 1, new Date(Date.now() + FOLLOWUP_FIRST_TOUCH_MS));
+}
+
+/** Cancels any open follow-up — the conversation resumed or reached a terminal state. */
+async function cancelFollowup(leadUuid: string): Promise<void> {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from('pending_followups')
+    .update({ closed_at: new Date().toISOString() })
+    .eq('lead_uuid', leadUuid)
+    .is('closed_at', null);
+  if (error) {
+    console.warn('[webhook] cancelFollowup failed (non-fatal):', error.message);
   }
 }
