@@ -115,6 +115,7 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
 
   const facts = classifierOutput.new_facts;
   const enrichedContext: Record<string, unknown> = { ...conversationContext };
+  if (facts.name)                            enrichedContext.name = facts.name;
   if (facts.reason_for_reaching_out)         enrichedContext.reason_for_reaching_out = facts.reason_for_reaching_out;
   if (facts.business_type)                   enrichedContext.business_type = facts.business_type;
   if (facts.main_challenge)                  enrichedContext.main_challenge = facts.main_challenge;
@@ -241,6 +242,7 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
   const newFactsPatch: Record<string, unknown> = {};
 
   // Standard facts
+  if (facts.name)           newFactsPatch.name = facts.name;
   if (facts.business_type)  newFactsPatch.business_type = facts.business_type;
   if (facts.main_challenge) newFactsPatch.main_challenge = facts.main_challenge;
   if (facts.pain_category)  newFactsPatch.pain_category = facts.pain_category;

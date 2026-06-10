@@ -50,6 +50,7 @@ export interface ClassifierOutput {
   objection_type?: ObjectionType;
   communication_style: CommunicationStyle | null;
   new_facts: {
+    name?: string;
     business_type?: string;
     main_challenge?: string;
     pain_category?: string;
@@ -110,6 +111,7 @@ const CLASSIFIER_SYSTEM_PROMPT = `אתה מסווג שיחות לבוט אבחו
 
 6. new_facts: מידע חדש שנאמר בהודעה זו בלבד (לא מה שכבר ידוע מה-context).
    קיים:
+   - name: השם הפרטי שלה אם הציגה את עצמה ("אני הדר", "קוראים לי...")
    - business_type: סוג העסק (טיפולי, עיצוב, הדרכה, ייעוץ, קייטרינג...)
    - main_challenge: הכאב שנאמר מפורשות
    - pain_category: leads_followup | scheduling | overload | conversion | process | trust | other
