@@ -16,7 +16,7 @@ import {
   getRecentBotQuestions,
 } from '@/lib/db/conversationMessages';
 import { runAgentPipeline } from '@/lib/ai/agentPipeline';
-import { detectMeetingIntent } from '@/lib/agents/preCheck/detectMeetingIntent';
+import { detectMeetingIntent, detectLinkRequest } from '@/lib/agents/preCheck/detectMeetingIntent';
 import { detectMetaFrustration } from '@/lib/agents/preCheck/detectMetaFrustration';
 import { detectHumanRequest } from '@/lib/agents/preCheck/detectHumanRequest';
 import {
@@ -121,17 +121,20 @@ function dynamicBlockResponse(
   return NextResponse.json(block);
 }
 
+function resolveBookingUrl(bookingType: 'diagnostic' | 'intro'): string | undefined {
+  const fallbackUrl = process.env.CALCOM_BOOKING_URL?.trim();
+  return bookingType === 'diagnostic'
+    ? (process.env.CALCOM_URL_DIAGNOSTIC?.trim() || fallbackUrl)
+    : (process.env.CALCOM_URL_INTRO?.trim() || fallbackUrl);
+}
+
 function buildBookingMessages(
   leadUuid: string,
   reply: string,
   bookingType: 'diagnostic' | 'intro',
 ): Array<{ type: 'text'; text: string }> {
   const messages: Array<{ type: 'text'; text: string }> = [{ type: 'text', text: reply }];
-  const fallbackUrl = process.env.CALCOM_BOOKING_URL?.trim();
-  const url =
-    bookingType === 'diagnostic'
-      ? (process.env.CALCOM_URL_DIAGNOSTIC?.trim() || fallbackUrl)
-      : (process.env.CALCOM_URL_INTRO?.trim() || fallbackUrl);
+  const url = resolveBookingUrl(bookingType);
   if (url) {
     const label =
       bookingType === 'diagnostic'
@@ -140,6 +143,24 @@ function buildBookingMessages(
     messages.push({ type: 'text', text: label });
   }
   return messages;
+}
+
+const IN_CHAT_OFFER_LINE =
+  'אם תרצי שאני אתאם לך את הפגישה, כתבי לי רק מתי את מעדיפה: בוקר, צהריים או ערב 🙏';
+
+/**
+ * The bubble appended to every booking proposal: the self-service link plus an
+ * invitation to schedule right here in chat — so the lead never has to know to
+ * ask "את יכולה לקבוע לי?" on her own.
+ */
+function buildProposalOffer(bookingType: 'diagnostic' | 'intro'): string | null {
+  const url = resolveBookingUrl(bookingType);
+  const linkLine = url ? `אפשר לקבוע את הפגישה בקישור הזה: ${url}` : null;
+  const inChat = isCalcomConfigured(bookingType);
+  if (linkLine && inChat) return `${linkLine}\nו${IN_CHAT_OFFER_LINE}`;
+  if (linkLine) return linkLine;
+  if (inChat) return IN_CHAT_OFFER_LINE;
+  return null;
 }
 
 async function handleHandoff(
@@ -408,10 +429,83 @@ async function processLeadMessage(
     }
 
     // ── In-chat scheduling helpers (Cal.com) ───────────────────────────────
+    // ── Fetches + shows 3 slots for a daypart (null = any time) ────────────
+    // Shared by the scheduling turn and by direct entry (a daypart answer to
+    // the proposal bubble). `prefix` lets the caller greet first ("נעים מאוד X").
+    const presentSlots = async (
+      bookingType: BookingType,
+      daypart: Daypart | null,
+      prefix = '',
+    ): Promise<void> => {
+      let slots = await getAvailableSlots(bookingType, { daypart, max: 3 });
+      if (slots.length === 0) {
+        slots = await getAvailableSlots(bookingType, { daypart, days: 21, max: 3 });
+      }
+      if (slots.length === 0) {
+        // Loop guard: if we already broadened to "any time" (daypart=null), or
+        // this is the 2nd empty attempt, the calendar is genuinely empty →
+        // hand off instead of re-asking daypart forever.
+        const attempts =
+          (typeof conversationContext.no_slots_attempts === 'number'
+            ? conversationContext.no_slots_attempts
+            : 0) + 1;
+        if (daypart === null || attempts >= 2) {
+          const reply =
+            prefix +
+            'אין לי כרגע זמנים פנויים מתאימים ביומן 🙈 הדר תיצור איתך קשר ותתאם משהו אישית בהקדם 🙏';
+          await notifySlackHandoff({
+            leadUuid,
+            headline: 'אין זמינות ביומן',
+            summary: 'תיאום ה-Cal.com לא מצא זמנים פנויים, צריך תיאום ידני מול הדר.',
+            keyFacts: [],
+          });
+          await recordFunnelEvent(leadUuid, 'human_handoff_requested', { reason: 'no_availability' });
+          await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+            action: 'human_handoff',
+            state: 'escalated',
+          });
+          await upsertBotState(leadUuid, 'escalated', { booking_in_progress: false }, subscriberId);
+          await finalize([{ type: 'text', text: reply }]);
+          return;
+        }
+        // First empty attempt on a specific daypart — offer to try another.
+        const where = `ב${DAYPART_HE[daypart]}`;
+        const reply = `${prefix}אין כרגע זמנים פנויים ${where} 🙈 רוצה שאבדוק חלק אחר ביום? בוקר, צהריים או ערב?`;
+        await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+          action: 'continue',
+          state: 'scheduling',
+        });
+        await upsertBotState(
+          leadUuid,
+          'scheduling',
+          { awaiting_daypart: true, daypart: null, offered_slots: null, no_slots_attempts: attempts },
+          subscriberId,
+        );
+        await finalize([{ type: 'text', text: reply }]);
+        return;
+      }
+      const listMsg = prefix + buildSlotsMessage(bookingType, slots, daypart);
+      await saveMessage(leadUuid, subscriberId, 'assistant', listMsg, {
+        action: 'continue',
+        state: 'scheduling',
+      });
+      await upsertBotState(
+        leadUuid,
+        'scheduling',
+        { offered_slots: slots, daypart, awaiting_daypart: false, booking_in_progress: false },
+        subscriberId,
+      );
+      await scheduleFirstFollowup(leadUuid);
+      await finalize([{ type: 'text', text: listMsg }]);
+    };
+
     // Presents real availability as a numbered list; the lead never leaves chat.
+    // `opts.daypartKnown` = the lead already answered morning/noon/evening (e.g.
+    // straight off the proposal bubble) — skip the daypart question entirely.
     const enterScheduling = async (
       bookingType: BookingType,
       contextPatch: Record<string, unknown>,
+      opts?: { daypart?: Daypart | null; daypartKnown?: boolean },
     ): Promise<void> => {
       // Fallback to a static link only if Cal.com isn't configured.
       if (!isCalcomConfigured(bookingType)) {
@@ -434,8 +528,10 @@ async function processLeadMessage(
 
       const knownName =
         typeof conversationContext.name === 'string' && conversationContext.name.trim();
+      const daypartKnown = opts?.daypartKnown === true;
 
       // We book under a real name — ask it first if we don't have one yet.
+      // A daypart she already gave is kept so we skip that question after the name.
       if (!knownName) {
         const reply = 'בהחלט 🙏 איך קוראים לך?';
         await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
@@ -453,10 +549,31 @@ async function processLeadMessage(
             offered_slots: null,
             booking_in_progress: false,
             no_slots_attempts: 0,
+            ...(daypartKnown ? { daypart: opts?.daypart ?? null, daypart_known: true } : {}),
           },
           subscriberId,
         );
         await finalize([{ type: 'text', text: reply }]);
+        return;
+      }
+
+      // Name + daypart known → straight to the slot list, no redundant question.
+      if (daypartKnown) {
+        await upsertBotState(
+          leadUuid,
+          'scheduling',
+          {
+            ...contextPatch,
+            pending_booking_type: bookingType,
+            awaiting_name: false,
+            awaiting_daypart: false,
+            offered_slots: null,
+            booking_in_progress: false,
+            no_slots_attempts: 0,
+          },
+          subscriberId,
+        );
+        await presentSlots(bookingType, opts?.daypart ?? null);
         return;
       }
 
@@ -593,69 +710,6 @@ async function processLeadMessage(
         await finalize([{ type: 'text', text: reply }]);
       };
 
-      // ── Fetches + shows 3 slots for a daypart (null = any time) ──────────
-      const presentSlots = async (daypart: Daypart | null): Promise<void> => {
-        let slots = await getAvailableSlots(bookingType, { daypart, max: 3 });
-        if (slots.length === 0) {
-          slots = await getAvailableSlots(bookingType, { daypart, days: 21, max: 3 });
-        }
-        if (slots.length === 0) {
-          // Loop guard: if we already broadened to "any time" (daypart=null), or
-          // this is the 2nd empty attempt, the calendar is genuinely empty →
-          // hand off instead of re-asking daypart forever.
-          const attempts =
-            (typeof conversationContext.no_slots_attempts === 'number'
-              ? conversationContext.no_slots_attempts
-              : 0) + 1;
-          if (daypart === null || attempts >= 2) {
-            const reply =
-              'אין לי כרגע זמנים פנויים מתאימים ביומן 🙈 הדר תיצור איתך קשר ותתאם משהו אישית בהקדם 🙏';
-            await notifySlackHandoff({
-              leadUuid,
-              headline: 'אין זמינות ביומן',
-              summary: 'תיאום ה-Cal.com לא מצא זמנים פנויים, צריך תיאום ידני מול הדר.',
-              keyFacts: [],
-            });
-            await recordFunnelEvent(leadUuid, 'human_handoff_requested', { reason: 'no_availability' });
-            await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
-              action: 'human_handoff',
-              state: 'escalated',
-            });
-            await upsertBotState(leadUuid, 'escalated', { booking_in_progress: false }, subscriberId);
-            await finalize([{ type: 'text', text: reply }]);
-            return;
-          }
-          // First empty attempt on a specific daypart — offer to try another.
-          const where = `ב${DAYPART_HE[daypart]}`;
-          const reply = `אין כרגע זמנים פנויים ${where} 🙈 רוצה שאבדוק חלק אחר ביום? בוקר, צהריים או ערב?`;
-          await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
-            action: 'continue',
-            state: 'scheduling',
-          });
-          await upsertBotState(
-            leadUuid,
-            'scheduling',
-            { awaiting_daypart: true, daypart: null, offered_slots: null, no_slots_attempts: attempts },
-            subscriberId,
-          );
-          await finalize([{ type: 'text', text: reply }]);
-          return;
-        }
-        const listMsg = buildSlotsMessage(bookingType, slots, daypart);
-        await saveMessage(leadUuid, subscriberId, 'assistant', listMsg, {
-          action: 'continue',
-          state: 'scheduling',
-        });
-        await upsertBotState(
-          leadUuid,
-          'scheduling',
-          { offered_slots: slots, daypart, awaiting_daypart: false, booking_in_progress: false },
-          subscriberId,
-        );
-        await scheduleFirstFollowup(leadUuid);
-        await finalize([{ type: 'text', text: listMsg }]);
-      };
-
       // ── Name sub-step: captured before we ask about times ────────────────
       if (conversationContext.awaiting_name === true) {
         if (STRONG_CANCEL_RE.test(userMessage)) {
@@ -675,6 +729,26 @@ async function processLeadMessage(
         }
         const name = cleanName(userMessage);
         await ensureLeadRow(leadUuid, { subscriberId, phone, name });
+
+        // She already told us morning/noon/evening at the proposal → go straight
+        // to the slot list instead of asking again.
+        if (conversationContext.daypart_known === true) {
+          const dp =
+            conversationContext.daypart === 'morning' ||
+            conversationContext.daypart === 'noon' ||
+            conversationContext.daypart === 'evening'
+              ? (conversationContext.daypart as Daypart)
+              : null;
+          await upsertBotState(
+            leadUuid,
+            'scheduling',
+            { name, awaiting_name: false, awaiting_daypart: false },
+            subscriberId,
+          );
+          await presentSlots(bookingType, dp, `נעים מאוד ${name} 🙏 `);
+          return;
+        }
+
         await upsertBotState(
           leadUuid,
           'scheduling',
@@ -709,7 +783,7 @@ async function processLeadMessage(
           return;
         }
         if (isAnyDaypart(userMessage)) {
-          await presentSlots(null);
+          await presentSlots(bookingType, null);
           return;
         }
         const dp = parseDaypart(userMessage);
@@ -722,7 +796,7 @@ async function processLeadMessage(
           await finalize([{ type: 'text', text: reply }]);
           return;
         }
-        await presentSlots(dp);
+        await presentSlots(bookingType, dp);
         return;
       }
 
@@ -896,19 +970,45 @@ async function processLeadMessage(
       return;
     }
 
-    // ── Pre-check: meeting intent — only fires in awaiting_confirmation ───────
+    // ── Pre-checks scoped to awaiting_confirmation ─────────────────────────
+    // The proposal bubble already carried the link + "כתבי בוקר/צהריים/ערב".
     // In other states, meeting-intent detection is handled by the pipeline
     // (antiLoopGuard AL-1 is also state-aware). Bypassing the pipeline here
     // for any other state would skip scoring and understanding checks.
-    if (currentState === 'awaiting_confirmation' && detectMeetingIntent(userMessage)) {
+    if (currentState === 'awaiting_confirmation') {
       const bookingType: BookingType =
         conversationContext.pending_booking_type === 'intro' ? 'intro' : 'diagnostic';
       const bookingPatch = {
         offered_booking_count: ((conversationContext.offered_booking_count as number) ?? 0) + 1,
       };
+
+      // Asked for the link itself → resend it; don't drag her into the in-chat flow.
+      if (detectLinkRequest(userMessage) && resolveBookingUrl(bookingType)) {
+        const reply = 'בכיף 🙏 הנה הקישור:';
+        await saveMessage(leadUuid, subscriberId, 'assistant', reply, {
+          action: 'continue',
+          state: 'awaiting_confirmation',
+        });
+        await finalize(buildBookingMessages(leadUuid, reply, bookingType));
+        return;
+      }
+
+      // Answered the proposal with a daypart → straight into in-chat scheduling
+      // with that daypart, skipping the "מתי נוח לך" question.
+      const proposalDaypart = parseDaypart(userMessage);
+      if (proposalDaypart || isAnyDaypart(userMessage)) {
+        await enterScheduling(bookingType, bookingPatch, {
+          daypart: proposalDaypart,
+          daypartKnown: true,
+        });
+        return;
+      }
+
       // In-chat scheduling: show real availability instead of a raw link.
-      await enterScheduling(bookingType, bookingPatch);
-      return;
+      if (detectMeetingIntent(userMessage)) {
+        await enterScheduling(bookingType, bookingPatch);
+        return;
+      }
     }
 
     // ── Pre-check: meta frustration → human_handoff only ──────────────────
@@ -1035,26 +1135,32 @@ async function processLeadMessage(
     // Non-terminal reply — nudge in 3h if the lead goes quiet without booking.
     await scheduleFirstFollowup(leadUuid);
 
-    // ── Booking proposals: set pending type, send reply only (no link yet) ───
-    if (agentOutput.action === 'propose_diagnostic_call') {
+    // ── Booking proposals: reply + appended link & in-chat scheduling offer ──
+    if (
+      agentOutput.action === 'propose_diagnostic_call' ||
+      agentOutput.action === 'propose_intro_call'
+    ) {
+      const proposedType: BookingType =
+        agentOutput.action === 'propose_intro_call' ? 'intro' : 'diagnostic';
       await upsertBotState(
         leadUuid,
         'awaiting_confirmation',
-        { ...fullContextPatch, pending_booking_type: 'diagnostic' },
+        { ...fullContextPatch, pending_booking_type: proposedType },
         subscriberId,
       );
-      await finalize([{ type: 'text', text: agentOutput.reply }]);
-      return;
-    }
-
-    if (agentOutput.action === 'propose_intro_call') {
-      await upsertBotState(
-        leadUuid,
-        'awaiting_confirmation',
-        { ...fullContextPatch, pending_booking_type: 'intro' },
-        subscriberId,
-      );
-      await finalize([{ type: 'text', text: agentOutput.reply }]);
+      const messages: Array<{ type: 'text'; text: string }> = [
+        { type: 'text', text: agentOutput.reply },
+      ];
+      const offer = buildProposalOffer(proposedType);
+      if (offer) {
+        // Saved too, so the LLM's history shows the lead already got the link.
+        await saveMessage(leadUuid, subscriberId, 'assistant', offer, {
+          action: agentOutput.action,
+          state: 'awaiting_confirmation',
+        });
+        messages.push({ type: 'text', text: offer });
+      }
+      await finalize(messages);
       return;
     }
 
