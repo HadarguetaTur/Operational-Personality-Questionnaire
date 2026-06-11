@@ -6,6 +6,7 @@ export interface SaveManyChatEventInput {
   subscriber_id: string | undefined;
   event_type: string;
   payload: ManyChatWebhookPayload;
+  channel?: string;
 }
 
 export interface SaveManyChatEventResult {
@@ -32,6 +33,7 @@ export async function saveManyChatEvent(
       subscriber_id: input.subscriber_id ?? null,
       event_type: input.event_type,
       payload: input.payload as Record<string, unknown>,
+      channel: input.channel ?? null,
       process_status: 'pending',
       received_at: new Date().toISOString(),
     })

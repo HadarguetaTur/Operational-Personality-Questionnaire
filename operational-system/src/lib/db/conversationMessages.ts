@@ -1,4 +1,5 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { parseChannel, type Channel } from '@/lib/channels/types';
 
 export interface ConversationMessage {
   role: 'user' | 'assistant';
@@ -9,6 +10,7 @@ export interface BotConversationState {
   state: string;
   context: Record<string, unknown>;
   subscriber_id?: string;
+  channel: Channel;
 }
 
 // ─── conversation_messages helpers ────────────────────────────────────────────
@@ -19,6 +21,7 @@ export async function saveMessage(
   role: 'user' | 'assistant',
   content: string,
   metadata?: Record<string, unknown>,
+  channel?: Channel,
 ): Promise<string | null> {
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
@@ -29,6 +32,7 @@ export async function saveMessage(
       role,
       content,
       metadata: metadata ?? null,
+      channel: channel ?? null,
     })
     .select('id')
     .single();
@@ -133,7 +137,7 @@ export async function getBotState(leadUuid: string): Promise<BotConversationStat
 
   const { data, error } = await supabase
     .from('bot_conversation_state')
-    .select('state, context, subscriber_id')
+    .select('state, context, subscriber_id, channel')
     .eq('lead_uuid', leadUuid)
     .maybeSingle();
 
@@ -149,6 +153,7 @@ export async function getBotState(leadUuid: string): Promise<BotConversationStat
           ? (data.context as Record<string, unknown>)
           : {},
       subscriber_id: data.subscriber_id ?? undefined,
+      channel: parseChannel(data.channel),
     };
   }
 
@@ -167,7 +172,29 @@ export async function getBotState(leadUuid: string): Promise<BotConversationStat
       ? ((lastMsg!.metadata as Record<string, unknown>).state as string)
       : 'initial';
 
-  return { state: stateFromMsg, context: {} };
+  return { state: stateFromMsg, context: {}, channel: 'whatsapp' };
+}
+
+/**
+ * Timestamp of the lead's most recent message — used to enforce Meta's 24h
+ * messaging window before any proactive IG/FB send.
+ */
+export async function getLastUserMessageAt(leadUuid: string): Promise<Date | null> {
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from('conversation_messages')
+    .select('created_at')
+    .eq('lead_uuid', leadUuid)
+    .eq('role', 'user')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.warn('[conversationMessages] getLastUserMessageAt failed:', error.message);
+    return null;
+  }
+  return data?.created_at ? new Date(data.created_at as string) : null;
 }
 
 /**
@@ -180,6 +207,7 @@ export async function upsertBotState(
   state: string,
   contextPatch?: Record<string, unknown>,
   subscriberId?: string,
+  channel?: Channel,
 ): Promise<void> {
   const supabase = createServiceRoleClient();
 
@@ -208,6 +236,7 @@ export async function upsertBotState(
       state,
       context: mergedContext,
       ...(subscriberId ? { subscriber_id: subscriberId } : {}),
+      ...(channel ? { channel } : {}),
     },
     { onConflict: 'lead_uuid' },
   );

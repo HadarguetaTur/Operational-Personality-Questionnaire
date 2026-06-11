@@ -21,6 +21,8 @@ export interface ManyChatWebhookPayload {
   lead_uuid?: string;
   /** Phone number in any format (e.g. "+972501234567") */
   phone?: string;
+  /** Originating channel set by the ManyChat flow: whatsapp | instagram | facebook */
+  channel?: string;
   /** Any additional fields ManyChat passes through */
   [key: string]: unknown;
 }

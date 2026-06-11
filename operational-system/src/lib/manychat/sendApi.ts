@@ -12,7 +12,23 @@
  * @see https://api.manychat.com
  */
 
+import type { Channel } from '@/lib/channels/types';
+
 const MANYCHAT_API_BASE = 'https://api.manychat.com';
+
+/**
+ * Per-channel "Bot Reply Sender" flow namespace. Each ManyChat channel (WA/IG/FB)
+ * has its own duplicated flow with a channel-specific Send Message step.
+ */
+function resolveSendFlowNs(channel: Channel): { flowNs?: string; envVar: string } {
+  const envVar =
+    channel === 'instagram'
+      ? 'MANYCHAT_SEND_FLOW_NS_IG'
+      : channel === 'facebook'
+        ? 'MANYCHAT_SEND_FLOW_NS_FB'
+        : 'MANYCHAT_SEND_FLOW_NS';
+  return { flowNs: process.env[envVar]?.trim() || undefined, envVar };
+}
 
 function getApiToken(): string {
   const token = process.env.MANYCHAT_API_TOKEN?.trim();
@@ -126,6 +142,7 @@ export async function pushManyChatReply(
   subscriberId: string,
   messages: Array<{ type: 'text'; text: string }>,
   leadUuid: string,
+  channel: Channel = 'whatsapp',
 ): Promise<{ success: boolean; error?: string }> {
   const token = getApiToken();
   const filtered = messages.filter((m) => m.text.trim().length > 0);
@@ -145,12 +162,13 @@ export async function pushManyChatReply(
     console.warn('[ManyChatSendApi] pushManyChatReply: setCustomField(lead_uuid) failed (non-fatal):', uuidResult.error);
   }
 
-  // Step 3: trigger the "Bot Reply Sender" flow via /fb/sending/sendFlow.
-  // The flow contains a single WhatsApp Send Message step with {{response}}.
-  // Using sendFlow instead of sendContent bypasses the 24h window check.
-  const flowNs = process.env.MANYCHAT_SEND_FLOW_NS?.trim();
+  // Step 3: trigger the channel's "Bot Reply Sender" flow via /fb/sending/sendFlow.
+  // The flow contains a single Send Message step with {{response}}.
+  // For WhatsApp, sendFlow with a template bypasses the 24h window check;
+  // IG/FB have no bypass — interactive replies are always inside the window.
+  const { flowNs, envVar } = resolveSendFlowNs(channel);
   if (!flowNs) {
-    return { success: false, error: 'MANYCHAT_SEND_FLOW_NS env var not set' };
+    return { success: false, error: `${envVar} env var not set` };
   }
   const body = {
     subscriber_id: subscriberId,
