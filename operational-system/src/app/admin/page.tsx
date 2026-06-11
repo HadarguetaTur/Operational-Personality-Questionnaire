@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, GitBranch, Mail, FileText, TrendingUp, Clock, Plus, Send, ArrowLeft, Instagram, Facebook, MessageCircle, Globe } from 'lucide-react';
+import { Users, GitBranch, Mail, FileText, TrendingUp, Clock, Plus, Send, ArrowLeft, Instagram, Facebook, MessageCircle, Globe, Bell, CalendarX } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
   BarChart,
@@ -48,6 +48,18 @@ interface SourceCard {
   bg: string;
 }
 
+interface AttentionLead {
+  id: string;
+  name: string;
+  meeting_at: string | null;
+  meeting_type: string | null;
+}
+
+const MEETING_TYPE_HE: Record<string, string> = {
+  intro: 'שיחת היכרות',
+  diagnostic: 'שיחת אפיון',
+};
+
 const PIE_COLORS = ['#10b981', '#f59e0b', '#6b7280', '#ef4444'];
 
 const SOURCE_META: Array<{ key: string; label: string; icon: React.ElementType; color: string; bg: string }> = [
@@ -77,6 +89,8 @@ export default function AdminDashboard() {
   const [dailyLeads, setDailyLeads] = useState<DailyLeadCount[]>([]);
   const [paymentBreakdown, setPaymentBreakdown] = useState<PaymentBreakdown[]>([]);
   const [sourceCards, setSourceCards] = useState<SourceCard[]>([]);
+  const [pendingMeetings, setPendingMeetings] = useState<AttentionLead[]>([]);
+  const [recentCancellations, setRecentCancellations] = useState<AttentionLead[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
@@ -153,6 +167,29 @@ export default function AdminDashboard() {
           sourceMap[s] = (sourceMap[s] ?? 0) + 1;
         });
         setSourceCards(SOURCE_META.map((m) => ({ ...m, value: sourceMap[m.key] ?? 0 })));
+
+        // Needs attention: meetings whose time passed without a status update,
+        // and meetings the bot cancelled recently (replaces Slack alerts).
+        const twoWeeksAgo = new Date();
+        twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+        const [pendingRes, cancelledRes] = await Promise.all([
+          supabase
+            .from('leads')
+            .select('id, name, meeting_at, meeting_type')
+            .eq('meeting_status', 'scheduled')
+            .lt('meeting_at', new Date().toISOString())
+            .order('meeting_at', { ascending: false })
+            .limit(10),
+          supabase
+            .from('leads')
+            .select('id, name, meeting_at, meeting_type')
+            .eq('meeting_status', 'cancelled')
+            .gte('meeting_at', twoWeeksAgo.toISOString())
+            .order('meeting_at', { ascending: false })
+            .limit(10),
+        ]);
+        setPendingMeetings((pendingRes.data ?? []) as AttentionLead[]);
+        setRecentCancellations((cancelledRes.data ?? []) as AttentionLead[]);
       } catch (err) {
         console.error('Error fetching dashboard stats:', err);
       } finally {
@@ -210,6 +247,61 @@ export default function AdminDashboard() {
           </Link>
         </div>
       </div>
+
+      {/* Needs attention */}
+      {(pendingMeetings.length > 0 || recentCancellations.length > 0) && (
+        <Card className="border-amber-200 bg-amber-50/50">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Bell className="w-5 h-5 text-amber-600" />
+              דורש טיפול
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {pendingMeetings.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  פגישות שעברו בלי עדכון סטטוס ({pendingMeetings.length}) — עדכני אם התקיימו והוסיפי סיכום:
+                </p>
+                <div className="space-y-1.5">
+                  {pendingMeetings.map((l) => (
+                    <div key={l.id} className="flex items-center justify-between text-sm bg-white rounded-lg px-3 py-2 border border-amber-100">
+                      <Link href={`/admin/leads/${l.id}`} className="font-medium text-blue-600 hover:underline">
+                        {l.name}
+                      </Link>
+                      <span className="text-gray-500">
+                        {l.meeting_type ? `${MEETING_TYPE_HE[l.meeting_type] ?? l.meeting_type} · ` : ''}
+                        {l.meeting_at ? new Date(l.meeting_at).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' }) : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {recentCancellations.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
+                  <CalendarX className="w-4 h-4 text-red-500" />
+                  פגישות שבוטלו לאחרונה ({recentCancellations.length}):
+                </p>
+                <div className="space-y-1.5">
+                  {recentCancellations.map((l) => (
+                    <div key={l.id} className="flex items-center justify-between text-sm bg-white rounded-lg px-3 py-2 border border-amber-100">
+                      <Link href={`/admin/leads/${l.id}`} className="font-medium text-blue-600 hover:underline">
+                        {l.name}
+                      </Link>
+                      <span className="text-gray-500">
+                        {l.meeting_type ? `${MEETING_TYPE_HE[l.meeting_type] ?? l.meeting_type} · ` : ''}
+                        {l.meeting_at ? new Date(l.meeting_at).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' }) : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">

@@ -52,6 +52,11 @@ interface LeadDetail {
   drive_folder_url: string | null;
   followup_submitted_at: string | null;
   meeting_booked_at: string | null;
+  meeting_at: string | null;
+  meeting_type: string | null;
+  meeting_calcom_uid: string | null;
+  meeting_status: string | null;
+  meeting_summary: string | null;
   lead_status: string | null;
   lead_source: string | null;
   conversation_state: string | null;
@@ -91,6 +96,22 @@ const leadStatusLabels: Record<string, string> = {
   paid: 'שילם',
   followup_sent: 'טופס נשלח',
   meeting_booked: 'פגישה נקבעה',
+  meeting_completed: 'פגישה התקיימה',
+  awaiting_quote: 'מחכה להצעת מחיר',
+  awaiting_diagnostic: 'מחכה לאפיון',
+  meeting_cancelled: 'פגישה בוטלה',
+};
+
+const meetingStatusLabels: Record<string, string> = {
+  scheduled: 'קבועה',
+  completed: 'התקיימה',
+  no_show: 'לא התקיימה',
+  cancelled: 'בוטלה',
+};
+
+const meetingTypeLabels: Record<string, string> = {
+  intro: 'שיחת היכרות (20 דק׳)',
+  diagnostic: 'שיחת אפיון (60 דק׳)',
 };
 
 const paymentStatusLabels: Record<string, string> = {
@@ -155,6 +176,9 @@ export default function LeadDetailPage() {
   const [editStatus, setEditStatus] = useState('');
   const [editTags, setEditTags] = useState('');
   const [editSource, setEditSource] = useState(UNKNOWN_SOURCE);
+  const [savingMeeting, setSavingMeeting] = useState(false);
+  const [editMeetingStatus, setEditMeetingStatus] = useState('scheduled');
+  const [editMeetingSummary, setEditMeetingSummary] = useState('');
 
   const fetchData = useCallback(async () => {
     const [leadRes, emailsRes, docsRes, msgsRes] = await Promise.all([
@@ -170,6 +194,8 @@ export default function LeadDetailPage() {
       setEditStatus(leadRes.data.lead_status ?? 'new');
       setEditTags((leadRes.data.tags ?? []).join(', '));
       setEditSource(leadRes.data.lead_source ?? UNKNOWN_SOURCE);
+      setEditMeetingStatus(leadRes.data.meeting_status ?? 'scheduled');
+      setEditMeetingSummary(leadRes.data.meeting_summary ?? '');
     }
     setEmails(emailsRes.data ?? []);
     setDocuments(docsRes.data ?? []);
@@ -194,6 +220,24 @@ export default function LeadDetailPage() {
       .eq('id', leadId);
     setSaving(false);
     toast.success('הליד עודכן');
+    fetchData();
+  };
+
+  const handleSaveMeeting = async () => {
+    setSavingMeeting(true);
+    const { error } = await supabase
+      .from('leads')
+      .update({
+        meeting_status: editMeetingStatus,
+        meeting_summary: editMeetingSummary || null,
+      })
+      .eq('id', leadId);
+    setSavingMeeting(false);
+    if (error) {
+      toast.error('שמירת הפגישה נכשלה');
+      return;
+    }
+    toast.success('פרטי הפגישה עודכנו');
     fetchData();
   };
 
@@ -227,6 +271,7 @@ export default function LeadDetailPage() {
   if (lead.payment_date) timeline.push({ date: lead.payment_date, icon: CreditCard, label: 'ביצע תשלום', color: 'text-emerald-500' });
   if (lead.followup_submitted_at) timeline.push({ date: lead.followup_submitted_at, icon: FileText, label: 'הגיש טופס המשך', color: 'text-orange-500' });
   if (lead.meeting_booked_at) timeline.push({ date: lead.meeting_booked_at, icon: Calendar, label: 'קבע פגישה', color: 'text-teal-500' });
+  if (lead.meeting_at) timeline.push({ date: lead.meeting_at, icon: Calendar, label: `מועד הפגישה${lead.meeting_status ? ` (${meetingStatusLabels[lead.meeting_status] ?? lead.meeting_status})` : ''}`, color: 'text-indigo-500' });
   emails.forEach((e) => {
     if (e.sent_at) timeline.push({ date: e.sent_at, icon: Mail, label: `מייל: ${e.subject ?? 'ללא נושא'}`, color: 'text-pink-500' });
   });
@@ -367,6 +412,72 @@ export default function LeadDetailPage() {
                     ))}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Meeting */}
+          {lead.meeting_at && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-indigo-600" />
+                  פגישה
+                  {lead.meeting_status && (
+                    <Badge
+                      variant={lead.meeting_status === 'completed' ? 'success' : 'secondary'}
+                      className="mr-auto"
+                    >
+                      {meetingStatusLabels[lead.meeting_status] ?? lead.meeting_status}
+                    </Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-500 block">סוג</span>
+                    <span className="font-medium">
+                      {lead.meeting_type ? (meetingTypeLabels[lead.meeting_type] ?? lead.meeting_type) : '-'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 block">מועד</span>
+                    <span className="font-medium">{formatDate(lead.meeting_at)}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 block">נקבעה בתאריך</span>
+                    <span className="font-medium">{formatDate(lead.meeting_booked_at)}</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>סטטוס פגישה</Label>
+                    <Select value={editMeetingStatus} onValueChange={setEditMeetingStatus}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(meetingStatusLabels).map(([val, label]) => (
+                          <SelectItem key={val} value={val}>{label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>סיכום פגישה</Label>
+                  <Textarea
+                    value={editMeetingSummary}
+                    onChange={(e) => setEditMeetingSummary(e.target.value)}
+                    placeholder="מה דובר, מה הוסכם, צעדים הבאים..."
+                    rows={4}
+                  />
+                </div>
+                <Button onClick={handleSaveMeeting} disabled={savingMeeting} className="gap-2">
+                  <Save className="w-4 h-4" />
+                  {savingMeeting ? 'שומר...' : 'שמור פגישה'}
+                </Button>
               </CardContent>
             </Card>
           )}

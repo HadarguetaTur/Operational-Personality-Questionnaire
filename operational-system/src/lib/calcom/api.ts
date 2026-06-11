@@ -209,3 +209,37 @@ export async function createBooking(input: {
     return { ok: false, error: String(err) };
   }
 }
+
+/**
+ * Cancels an existing booking by its uid. Used when a lead asks the bot to
+ * cancel or reschedule. Returns ok:false on any failure (caller must not
+ * promise the lead it was cancelled).
+ */
+export async function cancelBooking(
+  uid: string,
+  reason?: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const key = getKey();
+  if (!key) return { ok: false, error: 'calcom_not_configured' };
+
+  try {
+    const res = await fetch(`${CAL_API_BASE}/bookings/${encodeURIComponent(uid)}/cancel`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${key}`,
+        'Content-Type': 'application/json',
+        'cal-api-version': '2024-08-13',
+      },
+      body: JSON.stringify({ cancellationReason: reason || 'Cancelled by lead via WhatsApp bot' }),
+    });
+    if (!res.ok) {
+      const json = await res.json().catch(() => null);
+      console.warn('[calcom] cancelBooking error', res.status, JSON.stringify(json)?.slice(0, 300));
+      return { ok: false, error: `HTTP ${res.status}` };
+    }
+    return { ok: true };
+  } catch (err) {
+    console.warn('[calcom] cancelBooking fetch error:', err);
+    return { ok: false, error: String(err) };
+  }
+}

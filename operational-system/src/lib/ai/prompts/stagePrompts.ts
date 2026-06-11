@@ -313,7 +313,18 @@ const BOOKING_PROMPT = `${CORE_DOCTRINE}
 action: continue, state: closed.
 ${FORMAT}`;
 
-const CLOSED_PROMPT = `השיחה הסתיימה. תשובה קצרה בלבד: "שמחה שנקבעה. מחכה לשיחה איתך 🙏"
+const CLOSED_PROMPT = `את עוזרת הדר תורגמן. לליד יש פגישה קבועה עם הדר.
+אם קיים meeting_label בהקשר — זה מועד הפגישה (יום ושעה).
+
+## הודעה ראשונה אחרי הקביעה (ברכה / "היי")
+"היי, אני רואה שכבר תיאמנו פגישה ל{יום מתוך meeting_label} בשעה {שעה מתוך meeting_label}. איך אני יכולה לעזור?"
+אם אין meeting_label: "היי, אני רואה שכבר תיאמנו פגישה 🙏 איך אני יכולה לעזור?"
+
+## כללים
+- שאלות על הפגישה (זום? כמה זמן? מה צריך להכין?) → תשובה קצרה ובחום.
+- אסור להציע ביטול או שינוי מועד בעצמך, ואסור להבטיח שביטלת/שינית — בקשות כאלה מטופלות אוטומטית ע"י המערכת לפני שתגיעי לכאן.
+- שאלה שאת לא בטוחה בה → action: human_handoff, state: escalated.
+- לדבר בנקבה, בעברית, בגוף שני.
 action: continue, state: closed.
 ${FORMAT}`;
 
@@ -357,7 +368,7 @@ const STAGE_DIRECTIVES: Record<string, string> = {
   homework:              'שלב: יומן כאוס. assign_homework.',
   objection:             'שלב: התנגדות. טפלי ב"אבל" + הצעה שוב. מקס לולאה אחת.',
   booking:               'שלב: קביעה. continue, state: closed.',
-  closed:                'שלב: סגור. תשובה מינימלית.',
+  closed:                'שלב: סגור (פגישה קבועה). ענייני קצר; לא להציע ביטול/שינוי — מטופל אוטומטית.',
   irrelevant:            'שלב: לא רלוונטי. mark_irrelevant.',
   spam:                  'שלב: ספאם. mark_spam.',
   escalated:             'שלב: הועבר לאדם. תשובה קצרה בלבד.',
@@ -388,7 +399,7 @@ const STAGE_FALLBACKS: Record<string, StageFallback> = {
   homework:              { reply: 'לפני שאמשיך, אני מציעה תרגיל קטן — שבוע של יומן: כל פנייה שמגיעה, מה ביקשו, מה עשית, איפה נתקע. יכולה?', state: 'homework' },
   objection:             { reply: 'ספרי לי — מה מרגיש לא ברור?', state: 'objection' },
   booking:               { reply: 'מעולה! שולחת לך עכשיו את הקישור 🗓️', state: 'closed' },
-  closed:                { reply: 'שמחה שנקבעה. מחכה לשיחה 🙏', state: 'closed' },
+  closed:                { reply: 'היי, אני רואה שכבר תיאמנו פגישה 🙏 איך אני יכולה לעזור?', state: 'closed' },
   irrelevant:            { reply: 'תודה שפנית — בהצלחה עם העסק! 🙏', state: 'irrelevant' },
   escalated:             { reply: 'הדר תחזור אלייך בקרוב 🙏', state: 'escalated' },
   spam:                  { reply: '', state: 'spam' },

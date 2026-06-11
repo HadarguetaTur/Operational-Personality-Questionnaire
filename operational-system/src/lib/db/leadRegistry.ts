@@ -115,18 +115,67 @@ export async function ensureLeadRow(
 
 /**
  * Marks a lead as having booked a meeting — closes the tracking loop directly
- * (no dependency on the Calendly/utm_content webhook).
+ * (no dependency on the Calendly/utm_content webhook). Meeting details are
+ * stored on the lead row so the admin and the bot can track the meeting status.
  */
-export async function markLeadMeetingBooked(leadUuid: string): Promise<void> {
+export async function markLeadMeetingBooked(
+  leadUuid: string,
+  meeting?: { meetingAt: string; meetingType: 'intro' | 'diagnostic'; calcomUid?: string | null },
+): Promise<void> {
   const supabase = createServiceRoleClient();
   const { error } = await supabase
     .from('leads')
     .update({
       meeting_booked_at: new Date().toISOString(),
       lead_status: 'meeting_booked',
+      ...(meeting
+        ? {
+            meeting_at: meeting.meetingAt,
+            meeting_type: meeting.meetingType,
+            meeting_calcom_uid: meeting.calcomUid ?? null,
+            meeting_status: 'scheduled',
+          }
+        : {}),
     })
     .eq('id', leadUuid);
   if (error) {
     console.warn('[leadRegistry] markLeadMeetingBooked failed (non-fatal):', error.message);
+  }
+}
+
+export type MeetingStatus = 'scheduled' | 'completed' | 'no_show' | 'cancelled';
+
+export interface LeadMeeting {
+  meeting_at: string | null;
+  meeting_type: 'intro' | 'diagnostic' | null;
+  meeting_calcom_uid: string | null;
+  meeting_status: MeetingStatus | null;
+}
+
+/** Reads the meeting fields off the lead row (null row → all-null meeting). */
+export async function getLeadMeeting(leadUuid: string): Promise<LeadMeeting> {
+  const supabase = createServiceRoleClient();
+  const { data } = await supabase
+    .from('leads')
+    .select('meeting_at, meeting_type, meeting_calcom_uid, meeting_status')
+    .eq('id', leadUuid)
+    .maybeSingle();
+  return {
+    meeting_at: (data?.meeting_at as string | null) ?? null,
+    meeting_type: (data?.meeting_type as 'intro' | 'diagnostic' | null) ?? null,
+    meeting_calcom_uid: (data?.meeting_calcom_uid as string | null) ?? null,
+    meeting_status: (data?.meeting_status as MeetingStatus | null) ?? null,
+  };
+}
+
+/** Bot-side meeting updates (e.g. cancellation). */
+export async function updateLeadMeeting(
+  leadUuid: string,
+  patch: { meeting_status?: MeetingStatus; lead_status?: string },
+): Promise<void> {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.from('leads').update(patch).eq('id', leadUuid);
+  if (error) {
+    console.warn('[leadRegistry] updateLeadMeeting failed (non-fatal):', error.message);
   }
 }

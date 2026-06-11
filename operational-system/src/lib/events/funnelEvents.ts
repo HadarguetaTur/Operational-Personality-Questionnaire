@@ -10,7 +10,12 @@ export type FunnelEventType =
   | 'no_availability'
   | 'homework_assigned'
   | 'human_handoff_requested'
-  | 'opt_out';
+  | 'followup_skipped'
+  | 'opt_out'
+  | 'meeting_cancelled'
+  | 'meeting_rescheduled'
+  | 'post_meeting_message'
+  | 'meeting_status_unknown';
 
 export async function recordFunnelEvent(
   leadUuid: string,

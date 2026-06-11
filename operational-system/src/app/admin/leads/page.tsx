@@ -48,6 +48,10 @@ const leadStatusLabels: Record<string, string> = {
   paid: 'שילם',
   followup_sent: 'טופס נשלח',
   meeting_booked: 'פגישה נקבעה',
+  meeting_completed: 'פגישה התקיימה',
+  awaiting_quote: 'מחכה להצעת מחיר',
+  awaiting_diagnostic: 'מחכה לאפיון',
+  meeting_cancelled: 'פגישה בוטלה',
 };
 
 const leadSourceLabels: Record<string, string> = {
