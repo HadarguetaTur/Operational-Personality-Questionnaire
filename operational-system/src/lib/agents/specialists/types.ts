@@ -21,7 +21,7 @@ export interface FitAssessment {
 // Output of Offer Framing Agent
 export interface OfferFrame {
   pain_mirror: string;                       // שיקוף הכאב במילות הלקוחה
-  transformation: string;                    // תיאור החיים אחרי הפתרון
+  mechanism: string;                         // מה האוטומציה עושה אצלה בפועל
   call_type: 'diagnostic' | 'intro' | null;
   why_now: string;                           // מדוע כדאי לה עכשיו
 }
