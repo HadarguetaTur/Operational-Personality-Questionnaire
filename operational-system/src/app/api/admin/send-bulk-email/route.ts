@@ -3,6 +3,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/requireAdmin';
 import { bulkEmailSchema } from '@/lib/validation/schemas';
 import { buildReportLink } from '@/lib/quiz/buildReportLink';
+import { buildWhatsappUrl } from '@/lib/mailing/completionEmail';
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
           pattern: lead.result_pattern ?? '',
           report_url: lead.report_token ? buildReportLink(lead.report_token) : '',
           form_url: `${appUrl}/followup/${lead.id}`,
-          meeting_url: process.env.NEXT_PUBLIC_CALCOM_URL || '',
+          meeting_url: buildWhatsappUrl(process.env.NEXT_PUBLIC_BUSINESS_PHONE?.trim() ?? ''),
         };
 
         Object.entries(vars).forEach(([key, value]) => {

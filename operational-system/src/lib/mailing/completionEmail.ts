@@ -54,43 +54,34 @@ function buildRoiSummaryHtml(roi: RoiEmailData): string {
 }
 
 /** Converts an Israeli mobile number like "050-434-3547" → "972504343547". */
-function buildWhatsappUrl(phone: string): string {
+export function buildWhatsappUrl(phone: string): string {
   const digits = phone.replace(/\D/g, '');
   if (!digits) return '';
   const international = digits.startsWith('0') ? `972${digits.slice(1)}` : digits;
   return `https://wa.me/${international}`;
 }
 
-function ctaBlockHtml(calcomUrl: string, whatsappUrl: string): string {
-  const hasCalcom = !!calcomUrl.trim();
+// No self-service Cal.com button anymore — every meeting is booked through the
+// WhatsApp bot so Hadar has full tracking per lead. WhatsApp is the single CTA.
+function ctaBlockHtml(whatsappUrl: string): string {
   const hasWhatsapp = !!whatsappUrl.trim();
-  if (!hasCalcom && !hasWhatsapp) return '';
+  if (!hasWhatsapp) return '';
 
-  const calcomBtn = hasCalcom
-    ? `<a href="${calcomUrl.trim()}"
-         style="display:inline-block; background:#14b8a6; color:white; padding:12px 22px;
-                border-radius:8px; text-decoration:none; font-weight:700; font-size:15px; margin: 0 6px 10px 6px;">
-         📅 קביעת מועד לשיחה
-       </a>`
-    : '';
-
-  const waBtn = hasWhatsapp
-    ? `<a href="${whatsappUrl}"
+  const waBtn = `<a href="${whatsappUrl}"
          style="display:inline-block; background:#25D366; color:white; padding:12px 22px;
                 border-radius:8px; text-decoration:none; font-weight:700; font-size:15px; margin: 0 6px 10px 6px;">
-         💬 שלחי לי הודעה בוואטסאפ
-       </a>`
-    : '';
+         💬 לתיאום שיחה בוואטסאפ
+       </a>`;
 
   return `
     <div style="margin: 32px 0; padding: 24px; background: #f1f5f9; border-radius: 10px; text-align: center;">
       <p style="color: #334155; font-size: 16px; line-height: 1.7; margin: 0 0 18px 0; font-weight: 600;">
-        מוכנה לעבור על הדוח יחד?
+        רוצה לעבור על הדוח יחד?
       </p>
       <p style="color: #475569; font-size: 14px; margin: 0 0 18px 0;">
-        אפשר לקבוע שיחת בהירות של כ־30 דקות, או פשוט לכתוב לי בוואטסאפ.
+        אפשר לכתוב לי בוואטסאפ ונתאם שיחה קצרה ישירות שם.
       </p>
-      ${calcomBtn}${waBtn}
+      ${waBtn}
     </div>`;
 }
 
@@ -124,7 +115,7 @@ export function getDefaultQuizCompletionHtmlTemplate(): string {
       הקישור שמור עבורך, אפשר לחזור אליו בכל עת.
     </p>
 
-    <h2 style="color: #1e293b; font-size: 18px; margin: 24px 0 12px 0;">מה תמצאי בהערכה המלאה</h2>
+    <h2 style="color: #1e293b; font-size: 18px; margin: 24px 0 12px 0;">מה כוללת ההערכה המלאה</h2>
     <ul style="color: #475569; font-size: 15px; line-height: 1.75; margin: 0; padding: 0 24px 0 0;">
       <li style="margin-bottom: 8px;">פירוט שלושת רכיבי העלות, עם ההנחה שמאחורי כל מספר</li>
       <li style="margin-bottom: 8px;">פוטנציאל התייעלות ראשוני בטווח שמרני</li>
@@ -169,7 +160,6 @@ export interface QuizCompletionVariableInput {
  */
 export function buildQuizCompletionVariables(input: QuizCompletionVariableInput): Record<string, string> {
   const base = getSiteUrlString().replace(/\/$/, '');
-  const calRaw = process.env.NEXT_PUBLIC_CALCOM_URL?.trim() ?? '';
   const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL?.trim() ?? '';
   const supportPhone = process.env.NEXT_PUBLIC_BUSINESS_PHONE?.trim() ?? '';
   const businessAddress = process.env.NEXT_PUBLIC_BUSINESS_ADDRESS?.trim() ?? '';
@@ -180,9 +170,11 @@ export function buildQuizCompletionVariables(input: QuizCompletionVariableInput)
     pattern: input.pattern || '',
     report_url: input.reportUrl,
     roi_block: input.roiData ? buildRoiSummaryHtml(input.roiData) : '',
-    calcom_url: calRaw,
+    // Backwards-compat: templates that still reference {{calcom_url}} now get
+    // the WhatsApp chat URL — booking happens only through the bot.
+    calcom_url: whatsappUrl,
     whatsapp_url: whatsappUrl,
-    cta_block: ctaBlockHtml(calRaw, whatsappUrl),
+    cta_block: ctaBlockHtml(whatsappUrl),
     support_email: supportEmail,
     support_phone: supportPhone,
     business_address: businessAddress,

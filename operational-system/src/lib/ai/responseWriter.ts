@@ -119,7 +119,7 @@ function buildSpecialistSection(specialistContext: SpecialistContext): string {
     const lines = [
       `## מסגרת הצעה — תדריך לכותב`,
       `שיקוף כאב (השתמשי בניסוח הזה): ${o.pain_mirror}`,
-      `טרנספורמציה: ${o.transformation}`,
+      `מה האוטומציה עושה אצלה בפועל (הבסיס לפיץ'): ${o.mechanism}`,
       `סוג שיחה מוצעת: ${o.call_type ?? 'לא הוחלט'}`,
     ];
     if (o.why_now) lines.push(`למה עכשיו: ${o.why_now}`);
@@ -186,15 +186,40 @@ function buildWriterSystemPrompt(
 
   const nudge = typeof context.nudge === 'string' ? `\n\n⚠️ ${context.nudge}` : '';
   const discAddendum = getDiscStyleAddendum(context.communication_style);
+  const genderDirective = buildGenderDirective(context.lead_gender);
 
   // Must be the LAST thing in the prompt — the FORMAT block inside stagePrompt
   // gets buried under ~14K chars of KB/context and the model drifts to prose/fences.
   const formatReminder =
     '## תזכורת אחרונה — קריטי\nהחזר אך ורק אובייקט JSON תקין אחד. בלי ```, בלי טקסט לפני או אחרי ה-JSON.';
 
-  return [stagePrompt, discAddendum, specialistSection, classifierSection, knowledgeBase, ...contextSection]
+  return [stagePrompt, genderDirective, discAddendum, specialistSection, classifierSection, knowledgeBase, ...contextSection]
     .filter(Boolean)
     .join('\n\n') + nudge + '\n\n' + formatReminder;
+}
+
+/**
+ * How to address the lead: gendered only once we KNOW, neutral otherwise.
+ * The bot's own persona (Hadar's assistant) always speaks about herself in
+ * feminine — only the address to the lead changes.
+ */
+function buildGenderDirective(leadGender: unknown): string {
+  const base = '## לשון הפנייה לליד';
+  const persona =
+    'על עצמך את תמיד מדברת בלשון נקבה ("אני שמחה", "אני מעבירה") — זו זהות הבוט.';
+  if (leadGender === 'male') {
+    return `${base}\nהליד הוא גבר — לפנות אליו בלשון זכר ("ספר לי", "תרצה", "אתה").\n${persona}`;
+  }
+  if (leadGender === 'female') {
+    return `${base}\nהלידה היא אישה — לפנות אליה בלשון נקבה ("ספרי לי", "תרצי", "את").\n${persona}`;
+  }
+  return (
+    `${base}\nמגדר הליד עוד לא ידוע — חובה לנסח בלשון ניטרלית מגדרית:\n` +
+    `- שם פועל במקום ציווי: "אפשר לכתוב לי", "רק לספר לי" (לא "כתבי/כתוב", "ספרי/ספר").\n` +
+    `- צורות זהות לשני המינים: "רוצה", "נוח לך", "מתאים לך", "לך", "שלך".\n` +
+    `- להימנע מצורות מסומנות: תרצי/תרצה, יכולה/יכול (כפנייה), חושבת/חושב, אלייך/אליך, את/אתה.\n` +
+    persona
+  );
 }
 
 export async function runResponseWriter(input: {

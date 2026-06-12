@@ -93,7 +93,7 @@ export function runAntiLoopGuard(params: LoopContext): AntiLoopOverride | null {
   if (offeredBookingCount >= 3 && !TERMINAL_STATES.has(state)) {
     return {
       forced_action: 'human_handoff',
-      forced_reply: 'מבינה — אעביר את הפרטים שלך להדר ותחזור אלייך ישירות 🙏',
+      forced_reply: 'מבינה — אעביר את הפרטים שלך להדר והיא תחזור ישירות 🙏',
       reason: `AL-3: offered_booking_count=${offeredBookingCount}`,
     };
   }
@@ -105,7 +105,7 @@ export function runAntiLoopGuard(params: LoopContext): AntiLoopOverride | null {
       : '';
     return {
       forced_action: 'request_followup',
-      forced_reply: `מבינה${challenge}. אם בעתיד תרצי לחזור ולבדוק — אני פה 🙏`,
+      forced_reply: `מבינה${challenge}. אם בעתיד זה יהיה רלוונטי שוב — אני פה 🙏`,
       reason: `AL-4: objection_count=${objectionCount} in objection state`,
     };
   }
@@ -122,7 +122,7 @@ export function runAntiLoopGuard(params: LoopContext): AntiLoopOverride | null {
     return {
       forced_action: 'assign_homework',
       forced_reply:
-        `לפני שאמשיך${bizContext}, אני רוצה לבקש ממך תרגיל קטן — שבוע אחד של יומן: כל פנייה שמגיעה, רשמי מה ביקשו, מה עשית, איפה זה נתקע. אחרי שבוע יהיה לנו הרבה יותר ברור מה לעשות. יכולה לעשות את זה?`,
+        `לפני שאמשיך${bizContext}, אני רוצה לבקש ממך תרגיל קטן — שבוע אחד של יומן: כל פנייה שמגיעה, לרשום מה ביקשו, מה נעשה, איפה זה נתקע. אחרי שבוע יהיה לנו הרבה יותר ברור מה לעשות. מתאים לך לנסות?`,
       reason: `AL-7a: diagnostic_turn_count=${diagnosticTurnCount}, clarity_score=${clarityScore} < 40`,
     };
   }
@@ -154,7 +154,7 @@ export function runAntiLoopGuard(params: LoopContext): AntiLoopOverride | null {
     return {
       forced_action: 'assign_homework',
       forced_reply:
-        `מה שאני שומעת${challengeRef} הוא שכל מקרה שונה ואין עדיין שיטה קבועה. לפני שממליצה על משהו, אני מציעה לרשום יומן שבועי — כל פנייה שמגיעה: מה ביקשו, מה עשית, מה קרה. אחרי שבוע יהיה לנו תמונה הרבה יותר ברורה. יכולה?`,
+        `מה שאני שומעת${challengeRef} הוא שכל מקרה שונה ואין עדיין שיטה קבועה. לפני שממליצה על משהו, אני מציעה לרשום יומן שבועי — כל פנייה שמגיעה: מה ביקשו, מה נעשה, מה קרה. אחרי שבוע יהיה לנו תמונה הרבה יותר ברורה. מתאים לך לנסות?`,
       reason: 'AL-7c: process_exists=false AND has_repeatability=false',
     };
   }

@@ -34,7 +34,7 @@ export interface ReplyValidationResult {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const MEETING_KEYWORDS =
-  /פגישה|לקבוע|תשלחי קישור|שלחי לינק|רוצה להתקדם|נקבע|אשמח לקבוע|בואי נקבע|רוצה לקבוע/i;
+  /פגישה|לקבוע|תשלחי? קישור|שלחי? לינק|רוצה להתקדם|נקבע|אשמח לקבוע|בואי? נקבע|רוצה לקבוע/i;
 
 const TERMINAL_STATES = new Set(['booking', 'closed', 'escalated', 'irrelevant', 'spam', 'homework']);
 
@@ -126,8 +126,8 @@ export function runGuardrailsCheck(params: GuardrailsContext): GuardrailsOverrid
       context.pending_booking_type === 'intro' ? 'book_intro_call' : 'book_diagnostic_call';
     const reply =
       context.pending_booking_type === 'intro'
-        ? 'מעולה! שולחת לך עכשיו את הקישור לזום ההיכרות עם הדר 🗓️'
-        : 'מעולה! שולחת לך עכשיו את הקישור לשיחת האפיון עם הדר 🗓️';
+        ? 'מעולה! מתאמת לך עכשיו את שיחת ההיכרות עם הדר כאן בצ\'אט 🗓️'
+        : 'מעולה! מתאמת לך עכשיו את שיחת האפיון עם הדר כאן בצ\'אט 🗓️';
     return { forced_action: bookingAction, forced_reply: reply, reason: 'AL-1: meeting request in awaiting_confirmation' };
   }
 
@@ -144,7 +144,7 @@ export function runGuardrailsCheck(params: GuardrailsContext): GuardrailsOverrid
   if (offeredBookingCount >= 3 && !TERMINAL_STATES.has(state)) {
     return {
       forced_action: 'human_handoff',
-      forced_reply: 'מבינה — אעביר את הפרטים שלך להדר ותחזור אלייך ישירות 🙏',
+      forced_reply: 'מבינה — אעביר את הפרטים שלך להדר והיא תחזור ישירות 🙏',
       reason: `AL-3: offered_booking_count=${offeredBookingCount}`,
     };
   }
@@ -155,7 +155,7 @@ export function runGuardrailsCheck(params: GuardrailsContext): GuardrailsOverrid
       ? ` לגבי ${context.main_challenge}` : '';
     return {
       forced_action: 'request_followup',
-      forced_reply: `מבינה${challenge}. אם בעתיד תרצי לחזור ולבדוק — אני פה 🙏`,
+      forced_reply: `מבינה${challenge}. אם בעתיד זה יהיה רלוונטי שוב — אני פה 🙏`,
       reason: `AL-4: objection_count=${objectionCount}`,
     };
   }
@@ -166,7 +166,7 @@ export function runGuardrailsCheck(params: GuardrailsContext): GuardrailsOverrid
       ? ` בעסק ב${context.business_type}` : '';
     return {
       forced_action: 'assign_homework',
-      forced_reply: `לפני שאמשיך${bizContext}, אני רוצה לבקש ממך תרגיל קטן — שבוע אחד של יומן: כל פנייה שמגיעה, רשמי מה ביקשו, מה עשית, איפה זה נתקע. אחרי שבוע יהיה לנו הרבה יותר ברור מה לעשות. יכולה לעשות את זה?`,
+      forced_reply: `לפני שאמשיך${bizContext}, אני רוצה לבקש ממך תרגיל קטן — שבוע אחד של יומן: כל פנייה שמגיעה, לרשום מה ביקשו, מה נעשה, איפה זה נתקע. אחרי שבוע יהיה לנו הרבה יותר ברור מה לעשות. מתאים לך לנסות?`,
       reason: `AL-7a: diagnostic_turn_count=${diagnosticTurnCount}, clarity_score=${clarityScore}`,
     };
   }
@@ -196,7 +196,7 @@ export function runGuardrailsCheck(params: GuardrailsContext): GuardrailsOverrid
       ? ` עם ${context.main_challenge}` : '';
     return {
       forced_action: 'assign_homework',
-      forced_reply: `מה שאני שומעת${challengeRef} הוא שכל מקרה שונה ואין עדיין שיטה קבועה. לפני שממליצה על משהו, אני מציעה לרשום יומן שבועי — כל פנייה שמגיעה: מה ביקשו, מה עשית, מה קרה. אחרי שבוע יהיה לנו תמונה הרבה יותר ברורה. יכולה?`,
+      forced_reply: `מה שאני שומעת${challengeRef} הוא שכל מקרה שונה ואין עדיין שיטה קבועה. לפני שממליצה על משהו, אני מציעה לרשום יומן שבועי — כל פנייה שמגיעה: מה ביקשו, מה נעשה, מה קרה. אחרי שבוע יהיה לנו תמונה הרבה יותר ברורה. מתאים לך לנסות?`,
       reason: 'AL-7c: process_exists=false AND has_repeatability=false',
     };
   }

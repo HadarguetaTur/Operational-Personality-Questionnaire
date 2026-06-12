@@ -6,7 +6,7 @@ export interface QuizIntakeResult {
 }
 
 const FALLBACK: QuizIntakeResult = {
-  opening_hook: 'ראיתי שסיימת את השאלון — ספרי לי, מה הכי דחוף לך עכשיו בעסק?',
+  opening_hook: 'ראיתי שסיימת את השאלון — מה הכי דחוף לך עכשיו בעסק?',
   pre_extracted_facts: {},
 };
 

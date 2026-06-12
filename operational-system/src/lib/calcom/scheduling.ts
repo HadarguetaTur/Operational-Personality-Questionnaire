@@ -72,7 +72,7 @@ export function buildSlotsMessage(
   const opener = daypart
     ? `בהחלט, אלה הזמנים שפנויים ב${DAYPART_HE[daypart]}:`
     : `בהחלט, אלה הזמנים הקרובים של הדר ל${label}:`;
-  return `${opener}\n${lines.join('\n')}\nתכתבי לי רק את המספר שמתאים לך 🙏`;
+  return `${opener}\n${lines.join('\n')}\nרק לכתוב לי את המספר שמתאים 🙏`;
 }
 
 export type SlotChoice =

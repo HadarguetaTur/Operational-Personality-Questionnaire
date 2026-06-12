@@ -38,7 +38,10 @@ export async function sendStageEmail(context: MailingContext): Promise<{ sent: b
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const calComUrl = process.env.NEXT_PUBLIC_CALCOM_URL || '';
+  // No self-service booking link — {{meeting_url}} routes to the WhatsApp chat
+  // where the bot books the meeting (full tracking per lead).
+  const { buildWhatsappUrl } = await import('@/lib/mailing/completionEmail');
+  const meetingUrl = buildWhatsappUrl(process.env.NEXT_PUBLIC_BUSINESS_PHONE?.trim() ?? '');
 
   const variables: Record<string, string> = {
     name: context.name || '',
@@ -46,7 +49,7 @@ export async function sendStageEmail(context: MailingContext): Promise<{ sent: b
     pattern: context.pattern || '',
     report_url: context.reportToken ? buildReportLink(context.reportToken) : '',
     form_url: `${appUrl}/followup/${context.leadId}`,
-    meeting_url: calComUrl,
+    meeting_url: meetingUrl,
     ...context.customVariables,
   };
 

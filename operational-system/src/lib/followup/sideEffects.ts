@@ -75,7 +75,10 @@ export async function runFollowupNotifications(leadId: string): Promise<{
   whatsapp: boolean;
 }> {
   const supabase = createServiceRoleClient();
-  const calComUrl = process.env.NEXT_PUBLIC_CALCOM_URL || process.env.CALCOM_URL;
+  // Booking happens only through the WhatsApp bot (no self-service link) —
+  // the email CTA points at the WhatsApp chat.
+  const { buildWhatsappUrl } = await import('@/lib/mailing/completionEmail');
+  const whatsappUrl = buildWhatsappUrl(process.env.NEXT_PUBLIC_BUSINESS_PHONE?.trim() ?? '');
   const results = { email: false, whatsapp: false };
 
   const { data: lead } = await supabase
@@ -91,7 +94,7 @@ export async function runFollowupNotifications(leadId: string): Promise<{
     process.env.GOOGLE_CLIENT_SECRET &&
     process.env.GOOGLE_REFRESH_TOKEN;
 
-  if (hasGmail && calComUrl && lead.email) {
+  if (hasGmail && whatsappUrl && lead.email) {
     try {
       const { sendEmail, injectTemplateVariables } = await import('@/lib/google/gmail');
       const { data: template } = await supabase
@@ -111,11 +114,11 @@ export async function runFollowupNotifications(leadId: string): Promise<{
       תודה שמילאת את כל הפרטים! קיבלתי הכל ואני מתחילה להתכונן.
     </p>
     <p style="color: #475569; font-size: 16px; line-height: 1.7;">
-      השלב הבא: בואי נקבע את הפגישה שלנו.
+      השלב הבא: לתאם את הפגישה שלנו, ישירות בוואטסאפ.
     </p>
     <div style="text-align: center; margin: 32px 0;">
-      <a href="{{meeting_url}}" style="background: #14b8a6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
-        קבעי פגישה עכשיו
+      <a href="{{meeting_url}}" style="background: #25D366; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
+        💬 לתיאום הפגישה בוואטסאפ
       </a>
     </div>
     <p style="color: #94a3b8; font-size: 14px; text-align: center; margin-top: 32px;">
@@ -131,7 +134,7 @@ export async function runFollowupNotifications(leadId: string): Promise<{
       const variables: Record<string, string> = {
         name: lead.name || '',
         email: lead.email || '',
-        meeting_url: calComUrl || '',
+        meeting_url: whatsappUrl,
       };
 
       await sendEmail({
@@ -159,7 +162,7 @@ export async function runFollowupNotifications(leadId: string): Promise<{
   if (lead.phone) {
     try {
       const { sendWhatsAppMessage } = await import('@/lib/notifications/whatsapp');
-      const msg = `שלום ${lead.name ?? ''}, תודה שמילאת את הטופס! לקביעת פגישה: ${calComUrl ?? '(קישור יישלח במייל)'}`;
+      const msg = `שלום ${lead.name ?? ''}, תודה שמילאת את הטופס! לתיאום הפגישה אפשר פשוט לכתוב לי כאן בוואטסאפ ואתאם לך ישירות בצ'אט 🙂`;
       const wa = await sendWhatsAppMessage(lead.phone, msg);
       await supabase.from('notification_logs').insert({
         lead_id: leadId,

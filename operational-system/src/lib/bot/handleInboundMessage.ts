@@ -17,6 +17,7 @@ import {
 } from '@/lib/db/conversationMessages';
 import { runAgentPipeline } from '@/lib/ai/agentPipeline';
 import { detectMeetingIntent, detectLinkRequest } from '@/lib/agents/preCheck/detectMeetingIntent';
+import { detectGenderSignal } from '@/lib/agents/preCheck/detectGender';
 import { detectMetaFrustration } from '@/lib/agents/preCheck/detectMetaFrustration';
 import { detectHumanRequest } from '@/lib/agents/preCheck/detectHumanRequest';
 import {
@@ -64,7 +65,7 @@ import {
 // Bare "עזבי" is deliberately NOT here — during scheduling it means "cancel the
 // booking" (STRONG_CANCEL_RE), not "never write to me again".
 const OPT_OUT_REGEX =
-  /^\s*(הסר|הסירי אותי|עצור|עצרי|אל תשלח|אל תשלחי|stop|בטל|לא רוצה הודעות|unsubscribe|הפסיקי לשלוח|תפסיקי|תפסיקו|תפסיק|די|עזבי אותי|תעזבי אותי|לא מעוניין|לא מעוניינת)\s*$/i;
+  /^\s*(הסר|הסירי אותי|הסר אותי|עצור|עצרי|אל תשלח|אל תשלחי|stop|בטל|לא רוצה הודעות|unsubscribe|הפסיקי לשלוח|הפסק לשלוח|תפסיקי|תפסיקו|תפסיק|די|עזבי אותי|תעזבי אותי|עזוב אותי|תעזוב אותי|לא מעוניין|לא מעוניינת)\s*$/i;
 
 // Hebrew meeting-type label for booking confirmations.
 const BOOKING_HE: Record<BookingType, string> = {
@@ -77,10 +78,10 @@ const EMAIL_RE = /[\w.+-]+@[\w-]+\.[\w.-]+/;
 const DECLINE_EMAIL_RE = /(לא צריך|לא צריכה|לא תודה|לא רוצה|בלי|דלגי|אין צורך|לא חשוב|לא משנה|לא נדרש|^\s*לא\s*$)/;
 // Strong cancel during the email step = abort the meeting, not just skip the invite.
 // NOTE: standalone "בהמשך" removed — it's ambiguous ("אשמח גם ל-X בהמשך" is NOT a cancel).
-const STRONG_CANCEL_RE = /(ביטול|לבטל|בטלי|לא עכשיו|לא כרגע|נדבר אחר כך|נדבר בהמשך|עזבי)/;
+const STRONG_CANCEL_RE = /(ביטול|לבטל|בטלי|בטל את|לא עכשיו|לא כרגע|נדבר אחר כך|נדבר בהמשך|עזבי|עזוב)/;
 
 // A lead with an already-booked meeting (state=closed) asking to cancel or move it.
-const CANCEL_MEETING_RE = /(לבטל|ביטול|תבטלי|אי אפשר להגיע|לא אגיע|לא אוכל להגיע)/;
+const CANCEL_MEETING_RE = /(לבטל|ביטול|תבטלי|תבטל|אי אפשר להגיע|לא אגיע|לא אוכל להגיע)/;
 const RESCHEDULE_MEETING_RE =
   /(לשנות|להזיז|לדחות|זמן אחר|יום אחר|מועד אחר|שעה אחרת|להחליף|להקדים|לאחר את)/;
 
@@ -90,10 +91,10 @@ const MEETING_OVER_BUFFER_MS = 90 * 60 * 1000;
 
 // Channel-aware lead labels (replaces the hardcoded WhatsApp wording).
 const CHANNEL_FALLBACK_NAME: Record<Channel, string> = {
-  whatsapp: 'לקוחה מוואטסאפ',
-  instagram: 'לקוחה מאינסטגרם',
-  facebook: 'לקוחה מפייסבוק',
-  web: 'לקוחה מהאתר',
+  whatsapp: 'ליד מוואטסאפ',
+  instagram: 'ליד מאינסטגרם',
+  facebook: 'ליד מפייסבוק',
+  web: 'ליד מהאתר',
 };
 const CHANNEL_EMAIL_PREFIX: Record<Channel, string> = {
   whatsapp: 'wa',
@@ -125,42 +126,15 @@ function sanitizeOutgoing(text: string): string {
   return s;
 }
 
-function resolveBookingUrl(bookingType: BookingType): string | undefined {
-  const fallbackUrl = process.env.CALCOM_BOOKING_URL?.trim();
-  return bookingType === 'diagnostic'
-    ? (process.env.CALCOM_URL_DIAGNOSTIC?.trim() || fallbackUrl)
-    : (process.env.CALCOM_URL_INTRO?.trim() || fallbackUrl);
-}
-
-function buildBookingMessages(reply: string, bookingType: BookingType): OutboundMessage[] {
-  const messages: OutboundMessage[] = [{ type: 'text', text: reply }];
-  const url = resolveBookingUrl(bookingType);
-  if (url) {
-    const label =
-      bookingType === 'diagnostic'
-        ? `לקביעת שיחת האפיון עם הדר (60 דקות, 350₪): ${url}`
-        : `לקביעת זום ההיכרות עם הדר (20 דקות, חינם): ${url}`;
-    messages.push({ type: 'text', text: label });
-  }
-  return messages;
-}
-
-const IN_CHAT_OFFER_LINE =
-  'אם תרצי שאני אתאם לך את הפגישה, כתבי לי רק מתי את מעדיפה: בוקר, צהריים או ערב 🙏';
-
 /**
- * The bubble appended to every booking proposal: the self-service link plus an
- * invitation to schedule right here in chat — so the lead never has to know to
- * ask "את יכולה לקבוע לי?" on her own.
+ * The bubble appended to every booking proposal: an invitation to schedule
+ * right here in chat — so the lead never has to know to ask for it. There is
+ * deliberately NO self-service booking link anywhere: every booking goes
+ * through the bot so Hadar has full tracking per lead.
  */
 function buildProposalOffer(bookingType: BookingType): string | null {
-  const url = resolveBookingUrl(bookingType);
-  const linkLine = url ? `אפשר לקבוע את הפגישה בקישור הזה: ${url}` : null;
-  const inChat = isCalcomConfigured(bookingType);
-  if (linkLine && inChat) return `${linkLine}\nו${IN_CHAT_OFFER_LINE}`;
-  if (linkLine) return linkLine;
-  if (inChat) return IN_CHAT_OFFER_LINE;
-  return null;
+  if (!isCalcomConfigured(bookingType)) return null;
+  return 'אני יכולה לתאם לך את הפגישה כאן בצ\'אט, רק לכתוב לי מתי נוח: בוקר, צהריים או ערב 🙏';
 }
 
 /**
@@ -355,7 +329,7 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
       await finalize([
         {
           type: 'text',
-          text: 'איפוס בוצע ✅ השיחה התאפסה לגמרי. כתבי הודעה חדשה כדי להתחיל תרחיש בדיקה מההתחלה.',
+          text: 'איפוס בוצע ✅ השיחה התאפסה לגמרי. אפשר לכתוב הודעה חדשה כדי להתחיל תרחיש בדיקה מההתחלה.',
         },
       ]);
       return;
@@ -402,21 +376,6 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
       return summary.customer_reply;
     };
 
-    // ── Auto-escalate after 10 messages ────────────────────────────────────
-    // Exempt active booking states — a lead picking a slot (or about to) must
-    // not be killed mid-close just because the conversation ran long.
-    const ESCALATE_EXEMPT = new Set(['scheduling', 'awaiting_confirmation', 'booking', 'closed']);
-    if (userMsgCount >= 10 && !ESCALATE_EXEMPT.has(currentState)) {
-      const escalationReply = await handleHandoff('message_limit');
-      await save('assistant', escalationReply, {
-        action: 'human_handoff',
-        state: 'escalated',
-      });
-      await setState('escalated');
-      await finalize([{ type: 'text', text: escalationReply }]);
-      return;
-    }
-
     // ── Pre-check: explicit request for a human / Hadar (any state) ───────────
     if (detectHumanRequest(userMessage)) {
       const reply = await handleHandoff('human_requested');
@@ -437,6 +396,17 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
       const seeded = await getRecentBotQuestions(leadUuid);
       if (seeded.length > 0) {
         conversationContext = { ...conversationContext, asked_questions: seeded.slice(-20) };
+      }
+    }
+
+    // ── Gender detection: neutral by default, gendered once we're sure ──────
+    // First-person Hebrew ("אני צריך" / "אני צריכה") is the reliable signal.
+    // Persisted immediately so deterministic paths benefit on later turns too.
+    if (!conversationContext.lead_gender) {
+      const genderSignal = detectGenderSignal(userMessage);
+      if (genderSignal) {
+        conversationContext = { ...conversationContext, lead_gender: genderSignal };
+        await upsertBotState(leadUuid, currentState, { lead_gender: genderSignal }, subscriberId);
       }
     }
 
@@ -519,18 +489,13 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
       contextPatch: Record<string, unknown>,
       opts?: { daypart?: Daypart | null; daypartKnown?: boolean },
     ): Promise<void> => {
-      // Fallback to a static link only if Cal.com isn't configured.
+      // No self-service link exists anymore — if Cal.com isn't configured the
+      // bot can't book at all, so hand off to Hadar instead of improvising.
       if (!isCalcomConfigured(bookingType)) {
-        const reply =
-          bookingType === 'diagnostic'
-            ? 'מעולה! שולחת לך קישור לקביעת שיחת האפיון עם הדר 🗓️'
-            : 'מעולה! שולחת לך קישור לקביעת שיחת ההיכרות עם הדר 🗓️';
-        await save('assistant', reply, {
-          action: bookingType === 'diagnostic' ? 'book_diagnostic_call' : 'book_intro_call',
-          state: 'booking',
-        });
-        await setState('booking', contextPatch);
-        await finalize(buildBookingMessages(reply, bookingType));
+        const reply = await handleHandoff('calcom_not_configured');
+        await save('assistant', reply, { action: 'human_handoff', state: 'escalated' });
+        await setState('escalated', contextPatch);
+        await finalize([{ type: 'text', text: reply }]);
         return;
       }
 
@@ -657,7 +622,7 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
           const emailReal = !email.endsWith('@leads.hadar.local');
           const namePrefix = name && name !== fallbackName ? `${name}, ` : '';
           const lastLine = emailReal
-            ? 'שלחתי אלייך אישור למייל ותזכורת תישלח לפני השיחה 🙏'
+            ? 'שלחתי אישור למייל ותזכורת תישלח לפני השיחה 🙏'
             : 'תזכורת תישלח לפני השיחה. מחכה לך 🙏';
           const reply =
             `סגרתי לך ✅\n${namePrefix}${BOOKING_HE[bookingType]} עם הדר נקבעה ל${slot.label}.\n${lastLine}`;
@@ -719,7 +684,7 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
 
         // Other API failure → hand off to Hadar.
         const handoffReply = await handleHandoff('booking_api_failure');
-        const reply = handoffReply || 'נתקלתי בתקלה קטנה בקביעה, הדר תשלח לך קישור אישית לתיאום 🙏';
+        const reply = handoffReply || 'נתקלתי בתקלה קטנה בקביעה, הדר תיצור קשר ותתאם אישית 🙏';
         await save('assistant', reply, {
           action: 'human_handoff',
           state: 'escalated',
@@ -846,7 +811,7 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
 
         // Unclear → re-ask the email question once.
         const reply =
-          'רק שאדע לאן לשלוח את האישור, מה כתובת המייל שלך? (ואם לא צריך, כתבי "לא צריך" ואני סוגרת) 🙂';
+          'רק שאדע לאן לשלוח את האישור, מה כתובת המייל שלך? (ואם לא צריך, אפשר לכתוב "לא צריך" ואני סוגרת) 🙂';
         await save('assistant', reply, {
           action: 'continue',
           state: 'scheduling',
@@ -956,7 +921,7 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
     }
 
     // ── Pre-checks scoped to awaiting_confirmation ─────────────────────────
-    // The proposal bubble already carried the link + "כתבי בוקר/צהריים/ערב".
+    // The proposal bubble already carried "כתבי בוקר/צהריים/ערב".
     // In other states, meeting-intent detection is handled by the pipeline
     // (antiLoopGuard AL-1 is also state-aware). Bypassing the pipeline here
     // for any other state would skip scoring and understanding checks.
@@ -967,14 +932,16 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
         offered_booking_count: ((conversationContext.offered_booking_count as number) ?? 0) + 1,
       };
 
-      // Asked for the link itself → resend it; don't drag her into the in-chat flow.
-      if (detectLinkRequest(userMessage) && resolveBookingUrl(bookingType)) {
-        const reply = 'בכיף 🙏 הנה הקישור:';
+      // Asked for a booking link → there is none (by design); explain that the
+      // bot books right here so every meeting is tracked.
+      if (detectLinkRequest(userMessage)) {
+        const reply =
+          'אין צורך בקישור 🙂 אני קובעת את הפגישה ישירות כאן בצ\'אט, רק לכתוב לי מתי נוח: בוקר, צהריים או ערב';
         await save('assistant', reply, {
           action: 'continue',
           state: 'awaiting_confirmation',
         });
-        await finalize(buildBookingMessages(reply, bookingType));
+        await finalize([{ type: 'text', text: reply }]);
         return;
       }
 
@@ -1063,7 +1030,7 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
             }
 
             const reply =
-              'ביטלתי את הפגישה 🙏 אם תרצי לקבוע זמן חדש, כתבי לי מתי נוח לך, בוקר, צהריים או ערב';
+              'ביטלתי את הפגישה 🙏 אפשר לקבוע זמן חדש בכל רגע, רק לכתוב לי מתי נוח: בוקר, צהריים או ערב';
             await save('assistant', reply, { action: 'continue', state: 'awaiting_confirmation' });
             await setState('awaiting_confirmation', clearMeetingCtx);
             await finalize([{ type: 'text', text: reply }]);
@@ -1085,7 +1052,7 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
               await enterScheduling(meetingType, clearMeetingCtx, { daypart: dp, daypartKnown: true });
               return;
             }
-            const reply = 'רוצה שנקבע זמן חדש? כתבי לי מתי נוח לך, בוקר, צהריים או ערב 🙏';
+            const reply = 'רוצה שנקבע זמן חדש? רק לכתוב לי מתי נוח: בוקר, צהריים או ערב 🙏';
             await save('assistant', reply, { action: 'continue', state: 'awaiting_confirmation' });
             await setState('awaiting_confirmation', clearMeetingCtx);
             await finalize([{ type: 'text', text: reply }]);
@@ -1093,7 +1060,7 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
           }
 
           if (status === 'completed') {
-            const reply = 'שמחה שהשיחה התקיימה 🙏 מעבירה את ההודעה להדר והיא תחזור אלייך אישית';
+            const reply = 'שמחה שהשיחה התקיימה 🙏 מעבירה את ההודעה להדר והיא תחזור אישית בהקדם';
             await recordFunnelEvent(leadUuid, 'post_meeting_message', {
               channel,
               message: userMessage.slice(0, 300),
@@ -1107,7 +1074,7 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
           // status === 'scheduled' — Hadar hasn't updated whether it took place.
           // The bot can't know, so it passes the message on and flags the lead
           // in the dashboard ("פגישות שעברו בלי עדכון סטטוס").
-          const reply = 'מעבירה את ההודעה להדר והיא תחזור אלייך בהקדם 🙏';
+          const reply = 'מעבירה את ההודעה להדר והיא תחזור בהקדם 🙏';
           await recordFunnelEvent(leadUuid, 'meeting_status_unknown', {
             channel,
             meeting_at: bookedSlot,
@@ -1226,7 +1193,7 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
     }
 
     if (agentOutput.action === 'request_followup') {
-      const reply = agentOutput.reply.trim() || 'מעולה, אחזור אלייך כשיהיה נכון יותר :)';
+      const reply = agentOutput.reply.trim() || 'מעולה, אחזור לבדוק שוב כשיהיה נכון יותר :)';
       await save('assistant', reply, {
         action: 'request_followup',
         state: agentOutput.state,
@@ -1253,7 +1220,7 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
     // Non-terminal reply — nudge in 3h if the lead goes quiet without booking.
     await scheduleFirstFollowup(leadUuid);
 
-    // ── Booking proposals: reply + appended link & in-chat scheduling offer ──
+    // ── Booking proposals: reply + appended in-chat scheduling offer ─────────
     if (
       agentOutput.action === 'propose_diagnostic_call' ||
       agentOutput.action === 'propose_intro_call'
@@ -1267,7 +1234,7 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
       const messages: OutboundMessage[] = [{ type: 'text', text: agentOutput.reply }];
       const offer = buildProposalOffer(proposedType);
       if (offer) {
-        // Saved too, so the LLM's history shows the lead already got the link.
+        // Saved too, so the LLM's history shows the offer was already made.
         await save('assistant', offer, {
           action: agentOutput.action,
           state: 'awaiting_confirmation',

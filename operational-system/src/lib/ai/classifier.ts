@@ -67,6 +67,8 @@ export interface ClassifierOutput {
     process_flow_known?: boolean;
     gap_identified?: boolean;
     feelings_only?: boolean;
+    // gender — only when unambiguous from name or self-reference
+    lead_gender?: 'male' | 'female';
   };
   missing_slots: string[];
   should_handoff: boolean;
@@ -96,7 +98,7 @@ const CLASSIFIER_SYSTEM_PROMPT = `אתה מסווג שיחות לבוט אבחו
    - info_request: שאלה על המוצר/שירות של הדר
    - frustration: תסכול מהשיחה / מהבוט
    - opt_out: "הסר", "עצור", "STOP", "לא רוצה הודעות"
-   - not_relevant: לא קהל יעד, גבר, חו"ל, עסק לא שירותי
+   - not_relevant: לא קהל יעד, חו"ל, עסק לא שירותי (גברים הם קהל לגיטימי — לא לפסול לפי מגדר)
    - spam: פרסום, דיוג, תוכן פוגעני
    - affirmative: הסכמה — "כן", "בדיוק", "נכון", "מדויק", "נשמע טוב"
    - other: כל שאר
@@ -128,6 +130,7 @@ const CLASSIFIER_SYSTEM_PROMPT = `אתה מסווג שיחות לבוט אבחו
    - process_flow_known: true אם תיארה גם איך מתחיל וגם איך נגמר התהליך
    - gap_identified: true אם ציינה גם מצב קיים וגם מצב רצוי (הפער ברור)
    - feelings_only: true אם ההודעה כוללת תחושה בלבד ללא נתון תהליכי ממשי
+   - lead_gender: "male" או "female" — רק אם זה חד-משמעי מהשם שהליד מסר או מאיך שהליד מדבר על עצמו ("אני צריך" / "אני צריכה"). בספק — אל תחזיר את השדה בכלל.
 
 7. missing_slots: מה חסר כדי להתקדם (רק מה שלא ידוע):
    - "reason_for_reaching_out", "business_type", "main_challenge", "process_flow_known", "gap_identified"

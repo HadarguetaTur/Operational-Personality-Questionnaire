@@ -127,6 +127,11 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
   if (facts.bottleneck_identified)           enrichedContext.bottleneck_identified = facts.bottleneck_identified;
   if (facts.process_flow_known != null)      enrichedContext.process_flow_known = facts.process_flow_known;
   if (facts.gap_identified != null)          enrichedContext.gap_identified = facts.gap_identified;
+  // Deterministic gender detection (in the inbound handler) wins; the
+  // classifier only fills the gap when nothing was detected yet.
+  if (facts.lead_gender && !enrichedContext.lead_gender) {
+    enrichedContext.lead_gender = facts.lead_gender;
+  }
 
   type ScoringCtx = Parameters<typeof computeFitScore>[0];
   const fitScore = computeFitScore(enrichedContext as ScoringCtx);
@@ -261,6 +266,11 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
   if (facts.process_flow_known != null) newFactsPatch.process_flow_known = facts.process_flow_known;
   if (facts.gap_identified != null)     newFactsPatch.gap_identified = facts.gap_identified;
   if (facts.feelings_only != null)      newFactsPatch.feelings_only = facts.feelings_only;
+
+  // Gender — deterministic detection (inbound handler) wins over the classifier.
+  if (facts.lead_gender && !conversationContext.lead_gender) {
+    newFactsPatch.lead_gender = facts.lead_gender;
+  }
 
   // Understanding engine scores
   newFactsPatch.fit_score = fitScore;

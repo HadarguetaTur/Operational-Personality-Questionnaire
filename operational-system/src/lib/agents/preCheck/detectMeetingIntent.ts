@@ -6,7 +6,7 @@ const MEETING_PATTERNS = [
   /בואי?\s+נקבע/,
   /ביקשתי\s+פגישה/,
   /תשלחי?\s+קישור/,
-  /תקבעו?\s+לי/,
+  /תקבע[וי]?\s+לי/,
   /מתי\s+אפשר\s+להיפגש/,
   /שלחי?\s+לינק/,
   /^פגישה$/,
@@ -25,9 +25,9 @@ export function detectMeetingIntent(message: string): boolean {
   return MEETING_PATTERNS.some((pattern) => pattern.test(normalized));
 }
 
-// Specifically asking for the self-service link (vs. asking us to book for her).
-// After the proposal bubble the link was already sent — resend it instead of
-// dragging her into the in-chat flow she didn't ask for.
+// Specifically asking for a self-service booking link. There is no such link
+// anymore (every booking goes through the bot for tracking) — the caller
+// replies with an explanation and offers to book right here in chat.
 const LINK_REQUEST_PATTERNS = [
   /תשלחי?\s+(לי\s+)?(את\s+ה)?(קישור|לינק)/,
   /שלחי?\s+(לי\s+)?(את\s+ה)?(קישור|לינק)/,
@@ -41,5 +41,3 @@ export function detectLinkRequest(message: string): boolean {
   if (!normalized) return false;
   return LINK_REQUEST_PATTERNS.some((pattern) => pattern.test(normalized));
 }
-
-export const MEETING_BOOKING_REPLY = 'מעולה! שולחת לך עכשיו את הקישור לשיחת ההיכרות עם הדר 🗓️';
