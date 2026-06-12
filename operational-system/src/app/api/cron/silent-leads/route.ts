@@ -4,6 +4,7 @@ import {
   getBotState,
   getConversationHistory,
   getLastUserMessageAt,
+  saveMessage,
 } from '@/lib/db/conversationMessages';
 import { runFollowupWriter } from '@/lib/ai/followupWriter';
 import { recordFunnelEvent } from '@/lib/events/funnelEvents';
@@ -125,10 +126,20 @@ export async function GET(request: NextRequest) {
     if (!result.success) {
       failed++;
       console.warn(`[cron/silent-leads] push failed for ${row.lead_uuid}:`, result.error);
+      await recordFunnelEvent(row.lead_uuid, 'followup_failed', {
+        reason: result.error ?? 'send_failed',
+        channel,
+      });
       continue; // leave row open — retry on the next run
     }
 
     sent++;
+    // Persist the nudge so conversation history (and the writer's context on
+    // the lead's next reply) includes it.
+    await saveMessage(row.lead_uuid, subscriberId, 'assistant', message, {
+      action: 'followup_touch',
+      touch,
+    }, channel);
     // One and done — close the sequence after the single morning nudge.
     await supabase
       .from('pending_followups')

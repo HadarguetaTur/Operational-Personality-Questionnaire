@@ -11,6 +11,7 @@ export type FunnelEventType =
   | 'homework_assigned'
   | 'human_handoff_requested'
   | 'followup_skipped'
+  | 'followup_failed'
   | 'opt_out'
   | 'meeting_cancelled'
   | 'meeting_rescheduled'
