@@ -4,7 +4,10 @@ import * as React from 'react';
 import * as TabsPrimitive from '@radix-ui/react-tabs';
 import { cn } from '@/lib/utils';
 
-const Tabs = TabsPrimitive.Root;
+// Radix reads direction from the `dir` prop (not from <html dir>), so default to RTL
+const Tabs = (props: React.ComponentProps<typeof TabsPrimitive.Root>) => (
+  <TabsPrimitive.Root dir="rtl" {...props} />
+);
 
 const TabsList = React.forwardRef<React.ElementRef<typeof TabsPrimitive.List>, React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>>(
   ({ className, ...props }, ref) => (

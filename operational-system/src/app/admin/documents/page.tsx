@@ -83,10 +83,10 @@ export default function DocumentsPage() {
               <p>אין מסמכים עדיין</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="admin-table-wrap">
+              <table className="admin-table">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50">
+                  <tr>
                     <th className="text-right py-3 px-4 font-medium text-gray-500">קובץ</th>
                     <th className="text-right py-3 px-4 font-medium text-gray-500">ליד</th>
                     <th className="text-right py-3 px-4 font-medium text-gray-500">סוג</th>
@@ -99,7 +99,7 @@ export default function DocumentsPage() {
                   {filtered.map((doc) => {
                     const leadData = doc.leads as { name: string; email: string } | null;
                     return (
-                      <tr key={doc.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <tr key={doc.id}>
                         <td className="py-3 px-4 font-medium">{doc.file_name}</td>
                         <td className="py-3 px-4 text-gray-600">{leadData?.name ?? doc.lead_id.slice(0, 8)}</td>
                         <td className="py-3 px-4 text-gray-500">{doc.mime_type ?? '-'}</td>

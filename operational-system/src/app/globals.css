@@ -8,26 +8,38 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* "Studio" palette — warm ivory surfaces, deep-teal brand, petrol ink */
+    --background: 40 30% 98%;
+    --foreground: 198 28% 14%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 198 28% 14%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    --popover-foreground: 198 28% 14%;
+    --primary: 175 65% 26%;
+    --primary-foreground: 40 30% 98%;
+    --secondary: 170 22% 93%;
+    --secondary-foreground: 176 45% 18%;
+    --muted: 40 16% 93%;
+    --muted-foreground: 200 12% 42%;
+    --accent: 170 30% 92%;
+    --accent-foreground: 176 50% 17%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 40 14% 88%;
+    --input: 40 12% 84%;
+    --ring: 175 60% 32%;
+    --radius: 0.625rem;
+
+    /* Admin sidebar — petrol ink */
+    --sidebar: 197 45% 11%;
+    --sidebar-foreground: 180 18% 88%;
+    --sidebar-muted: 196 16% 58%;
+    --sidebar-accent: 172 58% 45%;
+    --sidebar-border: 196 35% 19%;
+  }
+
+  * {
+    @apply border-border;
   }
 }
 
@@ -96,16 +108,109 @@
   --report-card-soft: rgba(255,255,255,0.6);
 
   /* Admin dashboard */
-  --admin-bg: #f8fafc;
+  --admin-bg: #faf9f6;
   --admin-surface: #ffffff;
-  --admin-sidebar: #1e293b;
-  --admin-sidebar-text: #e2e8f0;
-  --admin-primary: #3b82f6;
-  --admin-primary-hover: #2563eb;
+  --admin-sidebar: #0f2129;
+  --admin-sidebar-text: #d7e2e2;
+  --admin-primary: #177268;
+  --admin-primary-hover: #115c54;
   --admin-success: #10b981;
   --admin-warning: #f59e0b;
   --admin-danger: #ef4444;
-  --admin-border: #e2e8f0;
+  --admin-border: #e8e4dc;
+}
+
+/* ============================
+   Admin shell — editorial workspace
+   ============================ */
+
+.admin-shell {
+  background-color: hsl(var(--background));
+  background-image:
+    radial-gradient(1200px 500px at 85% -10%, hsla(172, 58%, 45%, 0.06), transparent 60%),
+    radial-gradient(900px 400px at 0% 110%, hsla(40, 60%, 80%, 0.12), transparent 55%);
+}
+
+.admin-shell h1 {
+  font-family: 'Frank Ruhl Libre', 'Heebo', serif;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: hsl(var(--foreground));
+}
+
+.admin-page-enter {
+  animation: adminPageEnter 360ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes adminPageEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Thin, calm scrollbars inside the admin */
+.admin-shell *::-webkit-scrollbar { width: 8px; height: 8px; }
+.admin-shell *::-webkit-scrollbar-track { background: transparent; }
+.admin-shell *::-webkit-scrollbar-thumb {
+  background: hsl(200 12% 42% / 0.25);
+  border-radius: 9999px;
+}
+.admin-shell *::-webkit-scrollbar-thumb:hover { background: hsl(200 12% 42% / 0.4); }
+
+.admin-shell ::selection {
+  background: hsl(172 58% 45% / 0.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-page-enter { animation: none; }
+}
+
+/* ============================
+   Admin tables — sticky header, soft stripes
+   ============================ */
+
+.admin-table-wrap {
+  overflow: auto;
+  max-height: 70vh;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-table {
+  width: 100%;
+  font-size: 0.875rem;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.admin-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: hsl(var(--card));
+  box-shadow: inset 0 -1px 0 hsl(var(--border));
+  white-space: nowrap;
+}
+/* zero-specificity defaults — utility classes on th still win */
+:where(.admin-table thead th) {
+  text-align: right;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+}
+
+.admin-table tbody td {
+  border-bottom: 1px solid hsl(var(--border) / 0.55);
+}
+.admin-table tbody tr:last-child td { border-bottom: none; }
+
+.admin-table tbody tr {
+  transition: background-color 120ms ease;
+}
+.admin-table tbody tr:nth-child(even) {
+  background: hsl(var(--muted) / 0.35);
+}
+.admin-table tbody tr:hover {
+  background: hsl(var(--accent) / 0.55);
+}
+.admin-table tbody tr[data-selected='true'] {
+  background: hsl(var(--accent));
 }
 
 /* 2026 Dark theme for quiz */

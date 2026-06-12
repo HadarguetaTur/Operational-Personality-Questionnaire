@@ -14,10 +14,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50" dir="rtl">
+    <div className="admin-shell flex min-h-screen" dir="rtl">
       <Sidebar />
       <main className="flex-1 p-4 pt-16 md:pt-8 md:p-8 overflow-auto min-w-0">
-        {children}
+        <div className="admin-page-enter mx-auto max-w-7xl">
+          {children}
+        </div>
       </main>
       <Toaster position="top-center" richColors dir="rtl" />
     </div>

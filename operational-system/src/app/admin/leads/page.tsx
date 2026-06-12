@@ -268,12 +268,42 @@ export default function LeadsPage() {
           ) : leads.length === 0 ? (
             <div className="py-16 text-center text-gray-500">לא נמצאו לידים</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <>
+            {/* Mobile card list */}
+            <div className="md:hidden divide-y divide-border/60">
+              {leads.map((lead) => {
+                const ps = paymentStatusLabels[lead.payment_status ?? 'unpaid'] ?? paymentStatusLabels.unpaid;
+                return (
+                  <Link
+                    key={lead.id}
+                    href={`/admin/leads/${lead.id}`}
+                    className="block px-4 py-3 active:bg-accent/60 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium">{lead.name}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${ps.cls}`}>{ps.text}</span>
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground truncate" dir="ltr">
+                      {lead.phone ?? lead.email}
+                    </div>
+                    <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{leadStatusLabels[lead.lead_status ?? 'new'] ?? lead.lead_status ?? '-'}</span>
+                      <span>·</span>
+                      <span>{lead.lead_source ? (leadSourceLabels[lead.lead_source] ?? lead.lead_source) : 'מקור לא ידוע'}</span>
+                      <span className="ms-auto">{new Date(lead.created_at).toLocaleDateString('he-IL')}</span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Desktop table */}
+            <div className="admin-table-wrap hidden md:block">
+              <table className="admin-table">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50">
+                  <tr>
                     <th className="py-3 px-3 w-10">
-                      <button onClick={toggleSelectAll} className={`w-5 h-5 rounded border-2 flex items-center justify-center ${selectedIds.size === leads.length ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
+                      <button onClick={toggleSelectAll} className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${selectedIds.size === leads.length ? 'bg-primary border-primary' : 'border-input'}`}>
                         {selectedIds.size === leads.length && <CheckCircle className="w-3.5 h-3.5 text-white" />}
                       </button>
                     </th>
@@ -301,11 +331,11 @@ export default function LeadsPage() {
                     const ps = paymentStatusLabels[lead.payment_status ?? 'unpaid'] ?? paymentStatusLabels.unpaid;
                     const isSelected = selectedIds.has(lead.id);
                     return (
-                      <tr key={lead.id} className={`border-b border-gray-100 transition-colors ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                      <tr key={lead.id} data-selected={isSelected}>
                         <td className="py-3 px-3">
                           <button
                             onClick={() => toggleSelect(lead.id)}
-                            className={`w-5 h-5 rounded border-2 flex items-center justify-center ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}
+                            className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${isSelected ? 'bg-primary border-primary' : 'border-input'}`}
                           >
                             {isSelected && <CheckCircle className="w-3.5 h-3.5 text-white" />}
                           </button>
@@ -342,6 +372,7 @@ export default function LeadsPage() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </CardContent>
       </Card>

@@ -237,7 +237,7 @@ export default function AnalyticsPage() {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={daily} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-                  <CartesianGrid stroke="#f3f4f6" vertical={false} />
+                  <CartesianGrid stroke="#ece8e0" vertical={false} />
                   <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                   <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                   <Tooltip
@@ -247,7 +247,7 @@ export default function AnalyticsPage() {
                   <Legend />
                   <Bar dataKey="page_views" name="צפיות"     fill="#0d9488" />
                   <Bar dataKey="cta_clicks" name="לחיצות"   fill="#f59e0b" />
-                  <Bar dataKey="quiz_starts" name="התחלו שאלון" fill="#7c3aed" />
+                  <Bar dataKey="quiz_starts" name="התחלו שאלון" fill="#155e75" />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -271,10 +271,10 @@ export default function AnalyticsPage() {
             ) : bySource.length === 0 ? (
               <p className="text-sm text-gray-500 py-8 text-center">אין נתונים בטווח שנבחר.</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <div className="admin-table-wrap">
+                <table className="admin-table">
                   <thead>
-                    <tr className="text-right border-b border-gray-200 text-gray-600">
+                    <tr>
                       <th className="py-2 px-2 font-medium">מקור</th>
                       <th className="py-2 px-2 font-medium">קמפיין</th>
                       <th className="py-2 px-2 font-medium text-left tabular-nums">צפיות</th>
@@ -284,7 +284,7 @@ export default function AnalyticsPage() {
                   </thead>
                   <tbody>
                     {bySource.map((row, i) => (
-                      <tr key={i} className="border-b border-gray-100 last:border-0">
+                      <tr key={i}>
                         <td className="py-2 px-2">
                           <div className="font-medium text-gray-900">{row.source}</div>
                           <div className="text-xs text-gray-500">{row.medium}</div>

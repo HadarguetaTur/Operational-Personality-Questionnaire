@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 export default function AdminLoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100"><p className="text-gray-400">טוען...</p></div>}>
+    <Suspense fallback={<div className="admin-shell min-h-screen flex items-center justify-center"><p className="text-muted-foreground">טוען...</p></div>}>
       <LoginContent />
     </Suspense>
   );
@@ -64,16 +64,16 @@ function LoginContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4" dir="rtl">
-      <Card className="w-full max-w-md shadow-xl border-0">
+    <div className="admin-shell min-h-screen flex items-center justify-center px-4 admin-page-enter" dir="rtl">
+      <Card className="w-full max-w-md shadow-card-hover">
         <CardHeader className="text-center pb-2">
-          <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center">
-            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-700 shadow-[0_8px_24px_rgba(20,184,166,0.35)] flex items-center justify-center">
+            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
-          <CardTitle className="text-2xl">כניסה לניהול</CardTitle>
-          <CardDescription>הזיני את פרטי ההתחברות כדי להיכנס לדאשבורד</CardDescription>
+          <CardTitle className="font-display text-3xl font-bold">הדר אוטומציות</CardTitle>
+          <CardDescription>הזיני את פרטי ההתחברות כדי להיכנס למערכת הניהול</CardDescription>
         </CardHeader>
 
         <CardContent>
@@ -132,14 +132,14 @@ function LoginContent() {
             </Button>
           </form>
 
-          <div className="mt-6 pt-4 border-t border-gray-100 text-center space-y-2">
-            <p className="text-xs text-gray-500">
+          <div className="mt-6 pt-4 border-t border-border/70 text-center space-y-2">
+            <p className="text-xs text-muted-foreground">
               אין לך חשבון? קבלת גישה רק בהזמנה ממנהלת המערכת.
             </p>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-muted-foreground/70">
               שכחת סיסמה? פני למנהלת המערכת לאיפוס.
             </p>
-            <a href="/" className="block text-sm text-gray-400 hover:text-gray-600 transition-colors mt-3">
+            <a href="/" className="block text-sm text-muted-foreground/70 hover:text-primary transition-colors mt-3">
               חזרה לאתר הראשי
             </a>
           </div>

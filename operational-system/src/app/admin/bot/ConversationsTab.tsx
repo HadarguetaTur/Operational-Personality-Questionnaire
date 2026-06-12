@@ -392,10 +392,10 @@ export default function ConversationsTab() {
               אין שיחות עדיין. כשליד ישלח הודעה ב-WhatsApp היא תופיע כאן.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="admin-table-wrap">
+              <table className="admin-table">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50 text-right text-gray-600">
+                  <tr>
                     <th className="py-3 px-4 font-medium whitespace-nowrap">התחלה</th>
                     <th className="py-3 px-4 font-medium whitespace-nowrap">Lead</th>
                     <th className="py-3 px-4 font-medium whitespace-nowrap">הודעות</th>
@@ -409,10 +409,7 @@ export default function ConversationsTab() {
                   {conversations.map((conv) => {
                     const facts = conv.conversation_context;
                     return (
-                      <tr
-                        key={conv.lead_uuid}
-                        className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
-                      >
+                      <tr key={conv.lead_uuid}>
                         <td className="py-3 px-4 text-gray-500 whitespace-nowrap tabular-nums text-xs">
                           {formatDate(conv.started_at)}
                         </td>

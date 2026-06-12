@@ -60,7 +60,7 @@ const MEETING_TYPE_HE: Record<string, string> = {
   diagnostic: 'שיחת אפיון',
 };
 
-const PIE_COLORS = ['#10b981', '#f59e0b', '#6b7280', '#ef4444'];
+const PIE_COLORS = ['#0d9488', '#f59e0b', '#a8a29e', '#e11d48'];
 
 const SOURCE_META: Array<{ key: string; label: string; icon: React.ElementType; color: string; bg: string }> = [
   { key: 'landing_page', label: 'דף נחיתה', icon: Globe, color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -361,13 +361,14 @@ export default function AdminDashboard() {
             {dailyLeads.length > 0 ? (
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={dailyLeads}>
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#6b7264' }} axisLine={{ stroke: '#e8e4dc' }} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#6b7264' }} axisLine={false} tickLine={false} />
                   <Tooltip
                     formatter={(value) => [String(value), 'לידים']}
-                    contentStyle={{ direction: 'rtl', textAlign: 'right' }}
+                    contentStyle={{ direction: 'rtl', textAlign: 'right', borderRadius: 10, border: '1px solid #e8e4dc', boxShadow: '0 4px 16px -8px rgba(18,38,46,0.15)' }}
+                    cursor={{ fill: 'rgba(13, 148, 136, 0.06)' }}
                   />
-                  <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="count" fill="#0d9488" radius={[5, 5, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -433,22 +434,22 @@ export default function AdminDashboard() {
           {recentLeads.length === 0 ? (
             <p className="text-gray-500 text-center py-8">אין לידים עדיין</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="admin-table-wrap">
+              <table className="admin-table">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-right py-3 px-2 font-medium text-gray-500">שם</th>
-                    <th className="text-right py-3 px-2 font-medium text-gray-500">אימייל</th>
-                    <th className="text-right py-3 px-2 font-medium text-gray-500">דפוס</th>
-                    <th className="text-right py-3 px-2 font-medium text-gray-500">תשלום</th>
-                    <th className="text-right py-3 px-2 font-medium text-gray-500">תאריך</th>
+                  <tr>
+                    <th className="py-3 px-2">שם</th>
+                    <th className="py-3 px-2">אימייל</th>
+                    <th className="py-3 px-2">דפוס</th>
+                    <th className="py-3 px-2">תשלום</th>
+                    <th className="py-3 px-2">תאריך</th>
                   </tr>
                 </thead>
                 <tbody>
                   {recentLeads.map((lead) => {
                     const paymentStatus = getStatusLabel(lead.payment_status);
                     return (
-                      <tr key={lead.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <tr key={lead.id}>
                         <td className="py-3 px-2">
                           <Link href={`/admin/leads/${lead.id}`} className="font-medium text-blue-600 hover:underline">
                             {lead.name}

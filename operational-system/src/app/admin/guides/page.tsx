@@ -350,10 +350,10 @@ export default function GuidesPage() {
               <p>אין מדריכים עדיין. הוסיפי את הראשון למעלה.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="admin-table-wrap">
+              <table className="admin-table">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50 text-gray-500 font-medium">
+                  <tr>
                     <th className="text-right py-3 px-4">שם</th>
                     <th className="text-right py-3 px-4">קישור לשיתוף</th>
                     <th className="text-right py-3 px-4 tabular-nums">סה״כ</th>
@@ -365,10 +365,7 @@ export default function GuidesPage() {
                 </thead>
                 <tbody>
                   {guides.map((guide) => (
-                    <tr
-                      key={guide.id}
-                      className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                    >
+                    <tr key={guide.id}>
                       <td className="py-3 px-4">
                         <div className="font-medium text-gray-900">{guide.name}</div>
                         <div className="flex items-center gap-2 mt-0.5">

@@ -175,10 +175,10 @@ export default function BotEventsPage() {
                     אין אירועים עדיין. בדקי שה-Webhook מחובר ב-ManyChat.
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
                       <thead>
-                        <tr className="border-b border-gray-200 bg-gray-50 text-right text-gray-600">
+                        <tr>
                           <th className="py-3 px-4 font-medium whitespace-nowrap">זמן</th>
                           <th className="py-3 px-4 font-medium whitespace-nowrap">סוג אירוע</th>
                           <th className="py-3 px-4 font-medium whitespace-nowrap">subscriber_id</th>
@@ -189,10 +189,7 @@ export default function BotEventsPage() {
                       </thead>
                       <tbody>
                         {events.map((ev) => (
-                          <tr
-                            key={ev.id}
-                            className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
-                          >
+                          <tr key={ev.id}>
                             <td className="py-3 px-4 text-gray-500 whitespace-nowrap tabular-nums">
                               {formatTime(ev.received_at)}
                             </td>

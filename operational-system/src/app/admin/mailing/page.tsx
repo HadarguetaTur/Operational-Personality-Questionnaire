@@ -245,25 +245,26 @@ export default function MailingPage() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="max-h-[500px] overflow-y-auto">
-                <table className="w-full text-sm">
-                  <thead className="sticky top-0 bg-gray-50">
-                    <tr className="border-b">
-                      <th className="py-2 px-4 text-right w-10"></th>
-                      <th className="py-2 px-4 text-right font-medium text-gray-500">שם</th>
-                      <th className="py-2 px-4 text-right font-medium text-gray-500">אימייל</th>
-                      <th className="py-2 px-4 text-right font-medium text-gray-500">סטטוס</th>
+              <div className="admin-table-wrap max-h-[500px]">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th className="py-2 px-4 w-10"></th>
+                      <th className="py-2 px-4">שם</th>
+                      <th className="py-2 px-4">אימייל</th>
+                      <th className="py-2 px-4">סטטוס</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredLeads.map((lead) => (
                       <tr
                         key={lead.id}
-                        className={`border-b border-gray-50 cursor-pointer transition-colors ${selectedLeadIds.has(lead.id) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                        data-selected={selectedLeadIds.has(lead.id)}
+                        className="cursor-pointer"
                         onClick={() => toggleLead(lead.id)}
                       >
                         <td className="py-2 px-4">
-                          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${selectedLeadIds.has(lead.id) ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
+                          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${selectedLeadIds.has(lead.id) ? 'bg-primary border-primary' : 'border-input'}`}>
                             {selectedLeadIds.has(lead.id) && <CheckCircle className="w-3.5 h-3.5 text-white" />}
                           </div>
                         </td>
