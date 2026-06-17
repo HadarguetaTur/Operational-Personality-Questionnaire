@@ -10,7 +10,7 @@ import { AssistantChat } from '@/components/quiz/AssistantChat';
 export const metadata: Metadata = {
   title: 'שיחת היכרות | הדר אוטומציות',
   description:
-    'שיחת היכרות קצרה, בלי עלות, להבין איפה הכסף נוזל בין פנייה לסגירה ומה הצעד הנכון לפני שבונים מערכת.',
+    'שיחת היכרות קצרה, ללא עלות, להבין איפה הכסף נוזל בין פנייה לסגירה ומה הצעד הנכון לפני שבונים מערכת.',
 };
 
 // The bot's WhatsApp number (ManyChat). NOT Hadar's private line.
@@ -32,7 +32,7 @@ export default async function MeetingPage({
     >
       <div className="max-w-[600px] mx-auto text-right">
         <span className="inline-block text-[13px] font-semibold px-3 py-1 rounded-full border border-[var(--qa-accent)] bg-[var(--qa-accent-soft)] text-[var(--qa-accent)] mb-4">
-          שיחת היכרות, בלי עלות
+          שיחת היכרות, ללא עלות
         </span>
 
         <h1 className="text-[28px] md:text-[34px] font-bold leading-snug mb-4">
@@ -42,7 +42,7 @@ export default async function MeetingPage({
         <p className="text-[17px] text-[var(--qa-text-secondary)] leading-relaxed mb-8">
           זו לא שיחת מכירה. זו שיחה קצרה שבה אנחנו מסתכלות ביחד על מה שעלה לך
           בבדיקה, מבינות אם ואיך אני יכולה לעזור, ומחליטות מה הדבר הראשון שכדאי
-          לסדר. בלי עלות ובלי מחויבות להמשך.
+          לסדר. ללא עלות ובלי מחויבות להמשך.
         </p>
 
         {/* Live assistant chat — the primary way to take the next step */}

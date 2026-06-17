@@ -155,7 +155,7 @@ export function ShortQuizResultView({
             href={`${MEETING_PATH}?p=${resultType.toLowerCase()}${token ? `&token=${token}` : ''}`}
             className="flex items-center justify-center gap-2 w-full py-4 px-6 rounded-[12px] bg-[var(--qa-accent)] text-white text-[17px] font-semibold hover:opacity-90 active:scale-[0.99] transition-all duration-150"
           >
-            לתיאום שיחת היכרות, בלי עלות ←
+            לתיאום שיחת היכרות, ללא עלות ←
           </Link>
 
           <div className="mt-4 text-center">

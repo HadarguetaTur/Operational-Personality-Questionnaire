@@ -29,10 +29,6 @@ export function AssistantChat({ token }: AssistantChatProps) {
   const [status, setStatus] = useState<'connecting' | 'ready' | 'error'>('connecting');
 
   const lastTsRef = useRef<string>('');
-  // Guards against a duplicate POST /start (React StrictMode double-mount in dev,
-  // or a fast remount) which would race the opening-seed guard and produce two
-  // greeting bubbles. Persists across StrictMode's simulated remount of this instance.
-  const startedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -70,8 +66,6 @@ export function AssistantChat({ token }: AssistantChatProps) {
 
   // Start the session.
   useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
     let cancelled = false;
     (async () => {
       try {
