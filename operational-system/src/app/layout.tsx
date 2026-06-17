@@ -5,7 +5,7 @@ import { getSiteUrl } from '@/lib/site';
 
 const ogTitle = 'איפה הכסף? – הדר תורג׳מן';
 const ogDescription =
-  'המחשבון שבודק כמה זמן וכסף הולכים על הניהול הידני של העסק שלך — ואיפה הכי נכון להתחיל לעשות סדר.';
+  'בדיקה קצרה שמראה איפה הכסף והזמן נוזלים בניהול הידני של העסק שלך, ואיפה הכי נכון להתחיל לעשות סדר.';
 const ogImage =
   'https://res.cloudinary.com/wecare-img/image/upload/w_1200,h_630,c_fill,q_auto,f_jpg/v1779653243/ChatGPT_Image_May_24_2026_10_54_20_PM_q9pb1p.png';
 

@@ -3,18 +3,11 @@ import type { ResultType, ResponseSpeed } from '@/lib/calculator/types';
 export interface ShortQuizOption {
   id: string;
   text: string;
-  // Bracket values (Q1, Q2, Q6, Q7, Q8)
-  low?: number;
-  mid?: number;
-  high?: number;
-  // Rate value (Q3, Q4)
-  rate?: number;
-  isDefault?: boolean;
-  // Dispersion score (Q5)
-  dispersionScore?: number;
-  // Response speed (Q9)
+  /** Qualitative narrative tag (Q1/Q3/Q4/Q5/Q6/Q7/Q8) used to build the result copy */
+  tag?: string;
+  /** Response speed (Q9) */
   responseSpeed?: ResponseSpeed;
-  // Primary pain / result type (Q10)
+  /** Primary pain / result archetype (Q10) */
   resultType?: ResultType;
 }
 
@@ -31,9 +24,9 @@ export interface ShortQuestion {
 
 export const PHASE_NAMES: Record<1 | 2 | 3 | 4, string> = {
   1: 'פניות ומכירות',
-  2: 'זמן ידני',
-  3: 'גבייה ותפעול',
-  4: 'תוצאה',
+  2: 'הזמן שלך',
+  3: 'גבייה ומעקב',
+  4: 'התמונה',
 };
 
 export const SHORT_QUIZ_QUESTIONS: ShortQuestion[] = [
@@ -42,150 +35,146 @@ export const SHORT_QUIZ_QUESTIONS: ShortQuestion[] = [
     id: 'Q1',
     phase: 1,
     phaseName: PHASE_NAMES[1],
-    context: 'כדי לחשב את נפח הפניות שעוברות דרכך ומה שווי הזדמנויות שעלולות ללכת לאיבוד',
-    text: 'כמה פניות / מתעניינות מגיעות אליך בחודש ממוצע?',
+    context: 'כדי להבין כמה הזדמנויות עוברות דרכך',
+    text: 'כמה מתעניינות מגיעות אלייך בחודש, בערך?',
     microCopy: 'כולל וואטסאפ, אינסטגרם, טפסים, הכול',
     options: [
-      { id: 'Q1_1', text: 'עד 10', low: 5,  mid: 7,  high: 10 },
-      { id: 'Q1_2', text: '11–30', low: 11, mid: 20, high: 30 },
-      { id: 'Q1_3', text: '31–60', low: 31, mid: 45, high: 60 },
-      { id: 'Q1_4', text: 'מעל 60', low: 61, mid: 75, high: 90 },
+      { id: 'Q1_1', text: 'טפטוף, כמה בחודש',          tag: 'LOW'   },
+      { id: 'Q1_2', text: 'זרם יציב לאורך החודש',       tag: 'MID'   },
+      { id: 'Q1_3', text: 'הרבה, כמעט כל יום משהו',     tag: 'HIGH'  },
+      { id: 'Q1_4', text: 'מוצפת, יותר ממה שאני מספיקה', tag: 'FLOOD' },
     ],
   },
   {
     id: 'Q2',
     phase: 1,
     phaseName: PHASE_NAMES[1],
-    context: 'כדי לחשב כמה שווה כל לקוחה שלא נסגרה — ומה זה מסתכם לשנה',
-    text: 'מה שווי לקוחה ממוצעת? (סך התשלום הכולל לעסקה / פרויקט)',
-    microCopy: 'הערכה בסדר גמור, לא צריך מספר מדויק',
+    context: 'כי בדיוק שם הכסף בורח בשקט',
+    text: 'כל כמה זמן את פותחת את הוואטסאפ ומגלה הודעה טובה מלפני כמה ימים שלא חזרת אליה?',
     options: [
-      { id: 'Q2_1', text: 'עד ₪1,500',         low: 500,   mid: 1000,  high: 1500  },
-      { id: 'Q2_2', text: '₪1,500–₪4,000',     low: 1500,  mid: 2500,  high: 4000  },
-      { id: 'Q2_3', text: '₪4,000–₪10,000',    low: 4000,  mid: 7000,  high: 10000 },
-      { id: 'Q2_4', text: 'מעל ₪10,000',       low: 10000, mid: 15000, high: 20000 },
+      { id: 'Q2_1', text: 'קורה לי, וזה תמיד דוקר',       tag: 'OFTEN'     },
+      { id: 'Q2_2', text: 'פה ושם, כשאני עמוסה',          tag: 'SOMETIMES' },
+      { id: 'Q2_3', text: 'כמעט אף פעם, אני על זה',       tag: 'RARE'      },
+      { id: 'Q2_4', text: 'עדיף לי לא לחשוב על זה',        tag: 'UNKNOWN'   },
     ],
   },
   {
     id: 'Q3',
     phase: 1,
     phaseName: PHASE_NAMES[1],
-    context: 'כדי לדעת מה שיעור הסגירה האמיתי שלך ואיפה הפניות נתקעות',
-    text: 'מתוך 10 פניות רלוונטיות, כמה בדרך כלל הופכות ללקוחות?',
-    microCopy: "אם בחרת 'אין לי מושג', המחשבון ישתמש ב-7% ויציג זאת בפירוט",
+    context: 'כדי לראות איפה התהליך דולף',
+    text: 'מהפניות שבאמת מתעניינות, כמה נופלות לך בדרך לסגירה?',
     options: [
-      { id: 'Q3_0', text: 'אין לי מושג', rate: 0.07, isDefault: true },
-      { id: 'Q3_1', text: '0–1',          rate: 0.05 },
-      { id: 'Q3_2', text: '2–3',          rate: 0.20 },
-      { id: 'Q3_3', text: '4–5',          rate: 0.35 },
-      { id: 'Q3_4', text: 'יותר מ-5',    rate: 0.50 },
+      { id: 'Q3_1', text: 'רובן נשארות, אני סוגרת יפה',  tag: 'FEW'     },
+      { id: 'Q3_2', text: 'חלק נסגרות, חלק מתפוגגות',    tag: 'SOME'    },
+      { id: 'Q3_3', text: 'הרבה נופלות בדרך',            tag: 'MANY'    },
+      { id: 'Q3_4', text: 'אין לי מושג, אני לא עוקבת',   tag: 'UNKNOWN' },
     ],
   },
   {
     id: 'Q4',
     phase: 1,
     phaseName: PHASE_NAMES[1],
-    context: 'כדי להעריך כמה הכנסה נשארת על השולחן בגלל פולואפ לא מסודר',
+    context: 'כי כאן נופל חלק גדול מהכסף, בשקט',
     text: 'מה קורה אצלך אחרי שמתעניינת פנתה ולא סגרה מיד?',
     options: [
-      { id: 'Q4_1', text: 'יש לי תהליך פולואפ קבוע',                         rate: 0.10 },
-      { id: 'Q4_2', text: 'חוזרת לרוב המתעניינות, אבל ידנית',                 rate: 0.25 },
-      { id: 'Q4_3', text: 'חוזרת כשאני זוכרת / כשיש זמן',                    rate: 0.50 },
-      { id: 'Q4_4', text: 'לרוב אין המשך מסודר',                              rate: 0.70 },
-      { id: 'Q4_5', text: 'אין לי דרך לדעת',                                  rate: 0.45, isDefault: true },
+      { id: 'Q4_1', text: 'יש לי פולואפ קבוע שרץ מעצמו',        tag: 'STRUCTURED'   },
+      { id: 'Q4_2', text: 'חוזרת לרובן, אבל הכל ידני ועליי',    tag: 'MANUAL'       },
+      { id: 'Q4_3', text: 'חוזרת כשאני נזכרת או כשיש רגע',      tag: 'INCONSISTENT' },
+      { id: 'Q4_4', text: 'לרוב אין המשך מסודר',               tag: 'NONE'         },
+      { id: 'Q4_5', text: 'אין לי דרך לדעת מה קרה איתן',       tag: 'UNKNOWN'      },
     ],
   },
 
-  // ── Phase 2: זמן ידני ──────────────────────────────────────────────────────
+  // ── Phase 2: הזמן שלך ──────────────────────────────────────────────────────
   {
     id: 'Q5',
     phase: 2,
     phaseName: PHASE_NAMES[2],
-    context: 'כדי להבין כמה מידע פרוס בין מקומות שונים — ומה זה עולה בזמן',
-    text: 'איפה מנוהלות הפניות והשיחות עם לקוחות פוטנציאליות היום?',
+    context: 'כדי לראות אם יש מקום אחד שמרכז הכל',
+    text: 'איפה חיות הפניות והשיחות עם לקוחות פוטנציאליות?',
     options: [
-      { id: 'Q5_1', text: 'בעיקר בראש + וואטסאפ',              dispersionScore: 3   },
-      { id: 'Q5_2', text: 'גיליון אקסל / Google Sheets',        dispersionScore: 2   },
-      { id: 'Q5_3', text: 'כמה מערכות לא מחוברות',              dispersionScore: 2.5 },
-      { id: 'Q5_4', text: 'CRM / מערכת מסודרת',                 dispersionScore: 0.5 },
+      { id: 'Q5_1', text: 'בראש שלי ובוואטסאפ',           tag: 'HEAD'      },
+      { id: 'Q5_2', text: 'באקסל או גוגל שיטס',           tag: 'SHEET'     },
+      { id: 'Q5_3', text: 'בכמה כלים שלא מדברים ביניהם',  tag: 'SCATTERED' },
+      { id: 'Q5_4', text: 'במערכת מסודרת אחת',            tag: 'SYSTEM'    },
     ],
   },
   {
     id: 'Q6',
     phase: 2,
     phaseName: PHASE_NAMES[2],
-    context: 'כדי לתרגם את הזמן הידני שלך לעלות שנתית בכסף',
-    text: 'כמה שעות בשבוע את מקדישה להודעות, תיאומים, תזכורות ופולואפים?',
-    microCopy: 'כולל גם מה שנעשה בערב ובין פגישות',
+    context: 'כדי להבין כמה מהזמן שלך הולך על תפעול',
+    text: 'כמה מהיום שלך נבלע בהודעות, תיאומים ותזכורות?',
+    microCopy: 'כולל מה שקורה בערב ובין פגישות',
     options: [
-      { id: 'Q6_1', text: 'פחות משעה',  low: 0.25, mid: 0.5, high: 1  },
-      { id: 'Q6_2', text: '1–3 שעות',   low: 1,    mid: 2,   high: 3  },
-      { id: 'Q6_3', text: '3–6 שעות',   low: 3,    mid: 4.5, high: 6  },
-      { id: 'Q6_4', text: 'מעל 6 שעות', low: 6,    mid: 8,   high: 12 },
+      { id: 'Q6_1', text: 'כמעט כלום, זה זורם',        tag: 'LOW'  },
+      { id: 'Q6_2', text: 'נתח קטן מהיום',             tag: 'SOME' },
+      { id: 'Q6_3', text: 'בערך חצי מהיום',            tag: 'HALF' },
+      { id: 'Q6_4', text: 'רוב היום שלי הולך על זה',   tag: 'MOST' },
     ],
   },
 
-  // ── Phase 3: גבייה ותפעול ─────────────────────────────────────────────────
+  // ── Phase 3: גבייה ומעקב ──────────────────────────────────────────────────
   {
     id: 'Q7',
     phase: 3,
     phaseName: PHASE_NAMES[3],
-    context: 'כדי לחשב את עלות הגבייה הידנית שאפשר לחסוך',
-    text: 'כמה זמן בשבוע עובר על שליחת חשבוניות, תזכורות תשלום ומעקב?',
+    context: 'כי כסף שכבר הרווחת לפעמים תקוע בדרך אלייך',
+    text: 'גבייה, חשבוניות ותזכורות תשלום, כמה זה מעיק עלייך?',
     options: [
-      { id: 'Q7_1', text: 'כמעט אין',       low: 0,   mid: 0.25, high: 0.5 },
-      { id: 'Q7_2', text: 'כשעה',           low: 0.5, mid: 1,    high: 1.5 },
-      { id: 'Q7_3', text: '2–4 שעות',       low: 2,   mid: 3,    high: 4   },
-      { id: 'Q7_4', text: 'יותר מ-4 שעות', low: 4,   mid: 5,    high: 7   },
+      { id: 'Q7_1', text: 'זורם, כמעט לא מרגישה',     tag: 'LOW'   },
+      { id: 'Q7_2', text: 'בסדר, אבל לוקח לי זמן',    tag: 'SOME'  },
+      { id: 'Q7_3', text: 'מתיש, אני דוחה את זה',     tag: 'HEAVY' },
+      { id: 'Q7_4', text: 'נמנעת מזה, וזה נערם',      tag: 'AVOID' },
     ],
   },
   {
     id: 'Q8',
     phase: 3,
     phaseName: PHASE_NAMES[3],
-    context: 'כדי לתמחר את הזמן שלך בכסף ולחשב מה כל שעה ידנית עולה לך בפועל',
-    text: 'מה שווי שעת עבודה שלך, לפי תעריף שירות או לפי מה שתרצי להרוויח?',
-    microCopy: 'הכניסי לפי מה שנראה הגיוני, גם הערכה בסדר',
+    context: 'כי בלי לדעת מאיפה מגיע הכסף, קשה לדעת איפה הוא נוזל',
+    text: 'אם אשאל אותך עכשיו מאיפה הגיעו שלוש הלקוחות האחרונות שסגרת, תדעי להגיד?',
     options: [
-      { id: 'Q8_1', text: 'עד ₪150',      low: 90,  mid: 120, high: 150 },
-      { id: 'Q8_2', text: '₪150–₪300',    low: 150, mid: 225, high: 300 },
-      { id: 'Q8_3', text: '₪300–₪500',    low: 300, mid: 400, high: 500 },
-      { id: 'Q8_4', text: 'מעל ₪500',     low: 500, mid: 650, high: 900 },
+      { id: 'Q8_1', text: 'בטוח, אני יודעת בדיוק',      tag: 'YES'   },
+      { id: 'Q8_2', text: 'בערך, אזכר אם אחשוב',        tag: 'ROUGH' },
+      { id: 'Q8_3', text: 'האמת שלא, זה מתערבב לי',     tag: 'NO'    },
+      { id: 'Q8_4', text: 'אין לי שום מעקב כזה',        tag: 'NONE'  },
     ],
   },
   {
     id: 'Q9',
     phase: 3,
     phaseName: PHASE_NAMES[3],
-    context: 'מחקרים מראים שמהירות התגובה משפיעה ישירות על שיעור הסגירה',
-    text: 'כמה זמן עובר בדרך כלל מרגע פנייה עד שמתעניינת מקבלת תשובה / הצעת מחיר?',
+    context: 'כי מהירות המענה היא לפעמים ההבדל בין סגירה לפספוס',
+    text: 'כמה זמן עובר מרגע שמתעניינת פונה ועד שהיא מקבלת ממך תשובה?',
     options: [
-      { id: 'Q9_1', text: 'אותו יום',         responseSpeed: 'FAST'      },
-      { id: 'Q9_2', text: 'יום עד יומיים',    responseSpeed: 'MODERATE'  },
-      { id: 'Q9_3', text: '3–7 ימים',         responseSpeed: 'SLOW'      },
-      { id: 'Q9_4', text: 'יותר מ-7 ימים',   responseSpeed: 'VERY_SLOW' },
+      { id: 'Q9_1', text: 'באותו יום',                responseSpeed: 'FAST'      },
+      { id: 'Q9_2', text: 'יום, יומיים',              responseSpeed: 'MODERATE'  },
+      { id: 'Q9_3', text: 'כמה ימים, כשמתפנה לי',     responseSpeed: 'SLOW'      },
+      { id: 'Q9_4', text: 'לפעמים עובר שבוע ויותר',   responseSpeed: 'VERY_SLOW' },
     ],
   },
 
-  // ── Phase 4: תוצאה ────────────────────────────────────────────────────────
+  // ── Phase 4: התמונה ───────────────────────────────────────────────────────
   {
     id: 'Q10',
     phase: 4,
     phaseName: PHASE_NAMES[4],
-    context: 'כדי להתאים את הניתוח לנקודת הכאב הכי משמעותית אצלך',
-    text: 'מה הכי נכון לגביך עכשיו?',
+    context: 'כדי לכוון את התמונה בול לאן שהכי כואב',
+    text: 'מה הכי נכון לגבייך עכשיו?',
     options: [
-      { id: 'Q10_1', text: 'פניות ופולואפים נתקעים',                         resultType: 'FOLLOWUP'   },
-      { id: 'Q10_2', text: 'בוזבזת יותר מדי זמן על תפעול ידני',              resultType: 'TIME'        },
-      { id: 'Q10_3', text: 'הגבייה לוקחת יותר מדי אנרגיה',                   resultType: 'COLLECTION'  },
-      { id: 'Q10_4', text: 'הכל עובר דרכי ואני לא מצליחה לצאת מזה',         resultType: 'CENTRALIZED' },
+      { id: 'Q10_1', text: 'פניות ופולואפים נופלים לי בין הסדקים',     resultType: 'FOLLOWUP'   },
+      { id: 'Q10_2', text: 'יותר מדי מהזמן שלי הולך על תפעול ידני',    resultType: 'TIME'        },
+      { id: 'Q10_3', text: 'הגבייה לוקחת לי המון אנרגיה',             resultType: 'COLLECTION'  },
+      { id: 'Q10_4', text: 'הכל עובר דרכי ואני לא מצליחה לצאת מזה',   resultType: 'CENTRALIZED' },
     ],
   },
 ];
 
 export const TOTAL_QUESTIONS = SHORT_QUIZ_QUESTIONS.length;
 
-/** Build a Record<questionId, option> from answers array for easy lookup */
+/** Build a Record<questionId, option> from an ordered answers array */
 export function buildAnswerMap(
   answers: string[],
 ): Record<string, ShortQuizOption | undefined> {
@@ -195,4 +184,24 @@ export function buildAnswerMap(
     if (optId) result[q.id] = q.options.find((o) => o.id === optId);
   });
   return result;
+}
+
+/** Build a Record<questionId, option> from a stored { questionId: optionId } map */
+export function buildAnswerMapFromInputs(
+  inputs: Record<string, string> | null | undefined,
+): Record<string, ShortQuizOption | undefined> {
+  const result: Record<string, ShortQuizOption | undefined> = {};
+  if (!inputs) return result;
+  SHORT_QUIZ_QUESTIONS.forEach((q) => {
+    const optId = inputs[q.id];
+    if (optId) result[q.id] = q.options.find((o) => o.id === optId);
+  });
+  return result;
+}
+
+/** The result archetype is chosen directly by the Q10 answer. */
+export function resolveResultType(
+  map: Record<string, ShortQuizOption | undefined>,
+): ResultType {
+  return map['Q10']?.resultType ?? 'CENTRALIZED';
 }

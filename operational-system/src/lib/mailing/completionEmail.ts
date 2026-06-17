@@ -8,7 +8,7 @@ export const QUIZ_COMPLETION_EMAIL_METADATA_KIND = 'quiz_completion' as const;
 export const QUIZ_COMPLETION_TEMPLATE_NAME = 'quiz_completion' as const;
 
 export const defaultQuizCompletionSubjectTemplate =
-  'ההערכה הראשונית שלך מוכנה, {{name}}';
+  'התמונה האישית שלך מוכנה, {{name}}';
 
 export interface RoiEmailData {
   result_type?: string;
@@ -18,39 +18,6 @@ export interface RoiEmailData {
   efficiency_high?: number;
   accuracy_level?: string;
   confidence_notes?: string;
-}
-
-const RESULT_TYPE_LABELS: Record<string, string> = {
-  FOLLOWUP: 'לידים ופולואפים',
-  TIME: 'שעות ניהול ידניות',
-  COLLECTION: 'גבייה ותזכורות תשלום',
-  CENTRALIZED: 'תלות יתר בך',
-};
-
-function formatILS(n: number): string {
-  return `₪${Math.round(n).toLocaleString('he-IL')}`;
-}
-
-function buildRoiSummaryHtml(roi: RoiEmailData): string {
-  const label = roi.result_type ? (RESULT_TYPE_LABELS[roi.result_type] ?? roi.result_type) : null;
-  const hasRange = typeof roi.total_low === 'number' && typeof roi.total_high === 'number';
-  const hasEfficiency = typeof roi.efficiency_low === 'number' && typeof roi.efficiency_high === 'number';
-
-  if (!label && !hasRange) return '';
-
-  const accuracyBar = roi.accuracy_level
-    ? `<p style="color:#64748b; font-size:13px; margin:8px 0 0 0;">רמת דיוק ההערכה: <strong>${roi.accuracy_level}</strong>${roi.confidence_notes ? `. ${roi.confidence_notes}` : ''}</p>`
-    : '';
-
-  return `
-    <div style="margin: 28px 0; padding: 20px 24px; background: #f1f5f9; border-radius: 10px; border-right: 3px solid #14b8a6;">
-      <p style="color:#1e293b; font-size:16px; font-weight:700; margin:0 0 14px 0;">סיכום הערכת ה-ROI שלך</p>
-      ${label ? `<p style="color:#475569; font-size:14px; margin:0 0 8px 0;">📍 האזור המרכזי שזוהה: <strong>${label}</strong></p>` : ''}
-      ${hasRange ? `<p style="color:#475569; font-size:14px; margin:0 0 8px 0;">עלות שנתית מוערכת: <strong style="color:#0f172a;">${formatILS(roi.total_low!)} – ${formatILS(roi.total_high!)}</strong></p>` : ''}
-      ${hasEfficiency ? `<p style="color:#475569; font-size:14px; margin:0 0 8px 0;">פוטנציאל התייעלות ראשוני: <strong>${formatILS(roi.efficiency_low!)} – ${formatILS(roi.efficiency_high!)}</strong> בשנה</p>` : ''}
-      ${accuracyBar}
-      <p style="color:#94a3b8; font-size:12px; margin:14px 0 0 0;">זוהי הערכה ראשונית בלבד, המבוססת על תשובותיך ועל הנחות שמרניות. אינה מהווה דוח חשבונאי ואינה הבטחה לחיסכון בפועל.</p>
-    </div>`;
 }
 
 /** Converts an Israeli mobile number like "050-434-3547" → "972504343547". */
@@ -98,13 +65,11 @@ export function getDefaultQuizCompletionHtmlTemplate(): string {
   <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
     <h1 style="color: #1e293b; font-size: 22px; margin: 0 0 16px 0;">שלום {{name}},</h1>
     <p style="color: #475569; font-size: 16px; line-height: 1.7; margin: 0 0 12px 0;">
-      תודה שהשלמת את המחשבון "איפה הכסף?". ההערכה הראשונית שלך מוכנה.
+      תודה שעשית את הבדיקה "איפה הכסף?". התמונה האישית שלך מוכנה.
     </p>
 
-    {{roi_block}}
-
     <p style="color: #475569; font-size: 16px; line-height: 1.7; margin: 0 0 8px 0;">
-      הפירוט המלא, עם כל ההנחות שמאחורי המספרים, מחכה לך בקישור הבא:
+      התמונה המלאה, עם הדפוס שזיהינו אצלך והצעד הראשון שכדאי לעשות, מחכה לך בקישור הבא:
     </p>
     <div style="text-align: center; margin: 28px 0;">
       <a href="{{report_url}}" style="background: #14b8a6; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
@@ -115,11 +80,11 @@ export function getDefaultQuizCompletionHtmlTemplate(): string {
       הקישור שמור עבורך, אפשר לחזור אליו בכל עת.
     </p>
 
-    <h2 style="color: #1e293b; font-size: 18px; margin: 24px 0 12px 0;">מה כוללת ההערכה המלאה</h2>
+    <h2 style="color: #1e293b; font-size: 18px; margin: 24px 0 12px 0;">מה מחכה לך בתמונה המלאה</h2>
     <ul style="color: #475569; font-size: 15px; line-height: 1.75; margin: 0; padding: 0 24px 0 0;">
-      <li style="margin-bottom: 8px;">פירוט שלושת רכיבי העלות, עם ההנחה שמאחורי כל מספר</li>
-      <li style="margin-bottom: 8px;">פוטנציאל התייעלות ראשוני בטווח שמרני</li>
-      <li style="margin-bottom: 8px;">הצעד הראשון המומלץ לפי הסיטואציה שלך</li>
+      <li style="margin-bottom: 8px;">הדפוס שזיהינו אצלך, ואיפה הכסף והזמן נוזלים בדרך</li>
+      <li style="margin-bottom: 8px;">התחום שכדאי לסדר ראשון, עם הסבר למה</li>
+      <li style="margin-bottom: 8px;">שלושה צעדים שאפשר להתחיל מהם כבר עכשיו</li>
     </ul>
 
     <h2 style="color: #1e293b; font-size: 18px; margin: 28px 0 12px 0;">קצת עליי</h2>
@@ -169,7 +134,8 @@ export function buildQuizCompletionVariables(input: QuizCompletionVariableInput)
     name: input.name || '',
     pattern: input.pattern || '',
     report_url: input.reportUrl,
-    roi_block: input.roiData ? buildRoiSummaryHtml(input.roiData) : '',
+    // Funnel is qualitative now — no numeric ROI block in the email.
+    roi_block: '',
     // Backwards-compat: templates that still reference {{calcom_url}} now get
     // the WhatsApp chat URL — booking happens only through the bot.
     calcom_url: whatsappUrl,

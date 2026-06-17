@@ -99,7 +99,7 @@ export function AnimatedCounter() {
         ))}
       </div>
       <p className="text-white/30 text-xs text-center mt-4">
-        * הערכה ראשונית. המחשבון מחשב לפי הסיטואציה שלך בדיוק.
+        * נתוני רקע ממוצעים. הבדיקה מראה איפה זה קורה אצלך בדיוק.
       </p>
     </div>
   );

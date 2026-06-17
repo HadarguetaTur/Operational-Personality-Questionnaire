@@ -73,6 +73,18 @@ const BOOKING_HE: Record<BookingType, string> = {
   intro: 'שיחת היכרות',
 };
 
+/**
+ * The bot's fixed first message. Personalized with the lead's first name when
+ * it's already known (e.g. the on-site chat seeds it from the quiz lead). When
+ * no name is known (the WhatsApp path) the original wording is preserved exactly.
+ */
+export function buildFixedOpening(name?: string): string {
+  const n = name?.trim();
+  return n
+    ? `היי ${n}, אני העוזרת הדיגיטלית של הדר אוטומציות, אני כאן כדי שנבין ביחד האם הדר יכולה לעזור לך ובמידה כן- לקבוע פגישה. שנתחיל בכמה שאלות?`
+    : 'היי אני העוזרת הדיגיטלית של הדר אוטומציות, אני כאן כדי שנבין ביחד האם הדר יכולה לעזור לך ובמידה כן- לקבוע פגישה. שנתחיל בכמה שאלות?';
+}
+
 // Email + "no thanks" detection for the in-chat "add to your calendar?" step.
 const EMAIL_RE = /[\w.+-]+@[\w-]+\.[\w.-]+/;
 const DECLINE_EMAIL_RE = /(לא צריך|לא צריכה|לא תודה|לא רוצה|בלי|דלגי|אין צורך|לא חשוב|לא משנה|לא נדרש|^\s*לא\s*$)/;
@@ -906,9 +918,12 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
     }
 
     // ── Fixed opening (first message — bypasses LLM for exact text) ────────
-    if (userMsgCount === 1) {
-      const FIXED_OPENING =
-        'היי אני העוזרת הדיגיטלית של הדר אוטומציות, אני כאן כדי שנבין ביחד האם הדר יכולה לעזור לך ובמידה כן- לקבוע פגישה. שנתחיל בכמה שאלות?';
+    // Gated on state 'initial' so channels that pre-send the opening (the on-site
+    // chat seeds it in /api/webchat/start) don't fire it a second time.
+    if (userMsgCount === 1 && currentState === 'initial') {
+      const FIXED_OPENING = buildFixedOpening(
+        typeof conversationContext.name === 'string' ? conversationContext.name : undefined,
+      );
       await save('assistant', FIXED_OPENING, {
         action: 'continue',
         state: 'discovery',
