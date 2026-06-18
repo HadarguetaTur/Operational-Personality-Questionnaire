@@ -85,13 +85,29 @@ function computeNextState(
     (shouldOfferBooking || intent === 'meeting_request') &&
     knowsChallenge &&
     notDisqualified &&
-    currentState !== 'awaiting_confirmation'
+    currentState !== 'awaiting_confirmation' &&
+    // Don't shortcut to "let's book" before any real discovery happened. A mere
+    // readiness signal from initial/discovery must first earn an understanding
+    // turn (→ diagnostic) so the bot reflects the pain before proposing. Only an
+    // EXPLICIT meeting request is allowed to fast-track from the very start.
+    (intent === 'meeting_request' || !['initial', 'discovery'].includes(currentState))
   ) {
     return {
       nextState: 'awaiting_confirmation',
       forcedAction: 'propose_intro_call',
       reason: 'buying signal + pain known → propose intro',
     };
+  }
+
+  // ── Objection fast lane ────────────────────────────────────────────────────
+  // An objection (or price probe) raised any time after discovery must go to the
+  // Objection specialist — otherwise it falls through to the state's default and
+  // gets generic empathy that ignores the actual concern ("כבר ניסיתי ונטשתי").
+  if (
+    (intent === 'objection' || intent === 'price_inquiry') &&
+    ['diagnostic', 'summary', 'vision', 'awaiting_confirmation'].includes(currentState)
+  ) {
+    return { nextState: 'objection', reason: 'objection raised → objection handling' };
   }
 
   switch (currentState) {
@@ -193,8 +209,8 @@ async function runSpecialists(
   const needsOfferFraming = ['vision', 'awaiting_confirmation'].includes(nextState) ||
     ['vision', 'awaiting_confirmation'].includes(currentState);
 
-  // Objection: objection state
-  const needsObjection = currentState === 'objection';
+  // Objection: whenever we're entering (or already in) objection handling.
+  const needsObjection = currentState === 'objection' || nextState === 'objection';
 
   // Run Pain Mapper + Diagnostic Fit in parallel when both needed
   if (needsPainMapper && needsDiagnosticFit) {

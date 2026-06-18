@@ -103,7 +103,11 @@ export function AssistantChat({ token }: AssistantChatProps) {
 
   const send = useCallback(async () => {
     const text = input.trim();
-    if (!text || !leadUuid || sending) return;
+    // Block until the previous turn's reply has actually arrived — not just until
+    // the POST returned. Two concurrent turns on the same lead read the same bot
+    // state and produce duplicate/contradictory messages (e.g. "סגרתי לך ✅"
+    // alongside "מתי נוח לך?").
+    if (!text || !leadUuid || sending || awaitingReply) return;
     setInput('');
     setSending(true);
     // Optimistic echo so the lead sees her message instantly.
@@ -123,7 +127,7 @@ export function AssistantChat({ token }: AssistantChatProps) {
     } finally {
       setSending(false);
     }
-  }, [input, leadUuid, sending, poll]);
+  }, [input, leadUuid, sending, awaitingReply, poll]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -191,13 +195,13 @@ export function AssistantChat({ token }: AssistantChatProps) {
           onKeyDown={onKeyDown}
           placeholder="כתבי לי כאן..."
           rows={1}
-          disabled={status !== 'ready'}
+          disabled={status !== 'ready' || awaitingReply}
           className="qa-chat-input"
           dir="rtl"
         />
         <button
           onClick={send}
-          disabled={!input.trim() || status !== 'ready' || sending}
+          disabled={!input.trim() || status !== 'ready' || sending || awaitingReply}
           className="qa-chat-send"
           aria-label="שליחה"
         >

@@ -8,9 +8,10 @@
 import type { ConversationMessage } from '@/lib/db/conversationMessages';
 import type { ObjectionResponse } from './types';
 import type { ObjectionType } from '@/lib/ai/classifier';
+import { BOT_MODELS, extractJsonBlock } from '@/lib/ai/models';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const OBJECTION_MODEL = 'openai/gpt-4.1-mini';
+const OBJECTION_MODEL = BOT_MODELS.OBJECTION;
 
 const SYSTEM_PROMPT = `אתה מומחה להתמודדות עם התנגדויות מכירה. תפקידך: לייצר אסטרטגיית תגובה מותאמת לסוג ההתנגדות.
 
@@ -39,7 +40,7 @@ const SYSTEM_PROMPT = `אתה מומחה להתמודדות עם התנגדוי�
 
 function parseObjectionResponse(raw: string): ObjectionResponse | null {
   try {
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(extractJsonBlock(raw));
     if (typeof parsed.acknowledgment !== 'string') return null;
     return {
       acknowledgment: parsed.acknowledgment,
@@ -97,7 +98,6 @@ export async function runObjectionAgent(input: {
           { role: 'user', content: userPrompt },
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.1,
         max_tokens: 200,
       }),
     });

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import {
   saveMessage,
-  upsertBotState,
   getConversationHistory,
 } from '@/lib/db/conversationMessages';
 import { buildFixedOpening } from '@/lib/bot/handleInboundMessage';
@@ -53,17 +52,42 @@ export async function POST(request: NextRequest) {
   // NOT reset state (e.g. scheduling → discovery) — just hand back the identity.
   const history = await getConversationHistory(leadUuid, 1);
   if (history.length === 0) {
-    // Seed the name into bot context so the opening + later turns can use it.
-    await upsertBotState(leadUuid, 'discovery', { name: firstName }, undefined, 'web');
-    // Pre-send the opening so the bot greets first, by name.
-    await saveMessage(
-      leadUuid,
-      undefined,
-      'assistant',
-      buildFixedOpening(firstName),
-      { action: 'continue', state: 'discovery' },
-      'web',
-    );
+    // Atomically claim the right to seed the opening. lead_uuid is the PK of
+    // bot_conversation_state, so under concurrent /start calls (React StrictMode's
+    // double-effect, multi-tab, retries) exactly one INSERT wins; the rest fail
+    // with a duplicate-key error (23505) and skip seeding. This is what prevents
+    // the opening bubble from being saved twice.
+    const { error: claimError } = await supabase
+      .from('bot_conversation_state')
+      .insert({
+        lead_uuid: leadUuid,
+        state: 'discovery',
+        context: { name: firstName },
+        channel: 'web',
+      });
+
+    if (!claimError) {
+      // We won the claim → seed the opening once so the bot greets first, by name.
+      await saveMessage(
+        leadUuid,
+        undefined,
+        'assistant',
+        buildFixedOpening(firstName),
+        { action: 'continue', state: 'discovery' },
+        'web',
+      );
+      // Best-effort dashboard mirror (matches upsertBotState's side effect).
+      await supabase
+        .from('leads')
+        .update({
+          conversation_state: 'discovery',
+          conversation_context: { name: firstName },
+        })
+        .eq('id', leadUuid);
+    } else if (claimError.code !== '23505') {
+      // Unexpected (not a duplicate-key) error — log, but let the chat proceed.
+      console.error('[webchat/start] claim insert failed:', claimError.message);
+    }
   }
 
   return NextResponse.json({ leadUuid, firstName: firstName ?? null });

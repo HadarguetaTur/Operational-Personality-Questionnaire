@@ -228,6 +228,7 @@ export function validateReply(
   reply: string,
   recentBotReplies?: string[],
   askedQuestions?: string[],
+  maxLength: number = MAX_REPLY_LENGTH,
 ): ReplyValidationResult {
   const trimmed = reply.trim();
   if (!trimmed) return { valid: false, reason: 'blocklist' };
@@ -245,7 +246,7 @@ export function validateReply(
   const bulletLines = trimmed.split('\n').filter((line) => /^[-•]\s/.test(line.trim()));
   if (bulletLines.length >= 2) return { valid: false, reason: 'blocklist' };
 
-  if (trimmed.length > MAX_REPLY_LENGTH) return { valid: false, reason: 'too_long' };
+  if (trimmed.length > maxLength) return { valid: false, reason: 'too_long' };
 
   if (recentBotReplies) {
     for (const prev of recentBotReplies) {

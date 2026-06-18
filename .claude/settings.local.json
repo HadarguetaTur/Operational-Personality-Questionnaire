@@ -3,7 +3,31 @@
     "allow": [
       "Bash(npx tsc *)",
       "Bash(npm run *)",
-      "Bash(npx vite *)"
+      "Bash(npx vite *)",
+      "Bash(exist tsconfig.tsbuildinfo del tsconfig.tsbuildinfo)",
+      "Bash(exist .next\\\\cache\\\\tsc del /S /Q .next\\\\cache\\\\tsc)",
+      "Bash(git commit -m ' *)",
+      "Bash(git commit *)",
+      "Bash(curl -s -X GET \"https://betqmjxvinyqicmqgrmt.supabase.co/rest/v1/bot_conversation_state?select=lead_uuid,state,updated_at&order=updated_at.desc&limit=10\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJldHFtanh2aW55cWljbXFncm10Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDczODIyNSwiZXhwIjoyMDg2MzE0MjI1fQ.Fp9hBv3EVKu9LNzwGDgwAna4P-42vz_3F-Qam2fR7nU\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJldHFtanh2aW55cWljbXFncm10Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDczODIyNSwiZXhwIjoyMDg2MzE0MjI1fQ.Fp9hBv3EVKu9LNzwGDgwAna4P-42vz_3F-Qam2fR7nU\")",
+      "Bash(curl -s -X GET \"https://betqmjxvinyqicmqgrmt.supabase.co/rest/v1/leads?select=id,name,phone,created_at&order=created_at.desc&limit=5\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJldHFtanh2aW55cWljbXFncm10Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDczODIyNSwiZXhwIjoyMDg2MzE0MjI1fQ.Fp9hBv3EVKu9LNzwGDgwAna4P-42vz_3F-Qam2fR7nU\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJldHFtanh2aW55cWljbXFncm10Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDczODIyNSwiZXhwIjoyMDg2MzE0MjI1fQ.Fp9hBv3EVKu9LNzwGDgwAna4P-42vz_3F-Qam2fR7nU\")",
+      "Bash(curl -s 'https://betqmjxvinyqicmqgrmt.supabase.co/rest/v1/conversation_messages?select=lead_uuid,role,content,metadata,created_at&order=created_at.desc&limit=5' -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJldHFtanh2aW55cWljbXFncm10Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDczODIyNSwiZXhwIjoyMDg2MzE0MjI1fQ.Fp9hBv3EVKu9LNzwGDgwAna4P-42vz_3F-Qam2fR7nU' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJldHFtanh2aW55cWljbXFncm10Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDczODIyNSwiZXhwIjoyMDg2MzE0MjI1fQ.Fp9hBv3EVKu9LNzwGDgwAna4P-42vz_3F-Qam2fR7nU')",
+      "Bash(curl -s 'https://betqmjxvinyqicmqgrmt.supabase.co/rest/v1/bot_conversation_state?select=lead_uuid,state,updated_at&order=updated_at.desc&limit=5' -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJldHFtanh2aW55cWljbXFncm10Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDczODIyNSwiZXhwIjoyMDg2MzE0MjI1fQ.Fp9hBv3EVKu9LNzwGDgwAna4P-42vz_3F-Qam2fR7nU' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJldHFtanh2aW55cWljbXFncm10Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDczODIyNSwiZXhwIjoyMDg2MzE0MjI1fQ.Fp9hBv3EVKu9LNzwGDgwAna4P-42vz_3F-Qam2fR7nU')",
+      "Bash(curl -s 'https://betqmjxvinyqicmqgrmt.supabase.co/rest/v1/manychat_events?select=lead_uuid,event_type,process_status,created_at&order=created_at.desc&limit=3' -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJldHFtanh2aW55cWljbXFncm10Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDczODIyNSwiZXhwIjoyMDg2MzE0MjI1fQ.Fp9hBv3EVKu9LNzwGDgwAna4P-42vz_3F-Qam2fR7nU' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJldHFtanh2aW55cWljbXFncm10Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDczODIyNSwiZXhwIjoyMDg2MzE0MjI1fQ.Fp9hBv3EVKu9LNzwGDgwAna4P-42vz_3F-Qam2fR7nU')",
+      "Bash(curl -s 'https://betqmjxvinyqicmqgrmt.supabase.co/rest/v1/manychat_events?select=lead_uuid,event_type,process_status,payload,created_at&order=created_at.desc&limit=8' -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJldHFtanh2aW55cWljbXFncm10Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDczODIyNSwiZXhwIjoyMDg2MzE0MjI1fQ.Fp9hBv3EVKu9LNzwGDgwAna4P-42vz_3F-Qam2fR7nU' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJldHFtanh2aW55cWljbXFncm10Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDczODIyNSwiZXhwIjoyMDg2MzE0MjI1fQ.Fp9hBv3EVKu9LNzwGDgwAna4P-42vz_3F-Qam2fR7nU')",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s 'https://betqmjxvinyqicmqgrmt.supabase.co/rest/v1/manychat_events?select=lead_uuid,event_type,process_status,created_at&order=created_at.desc&limit=8' -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJldHFtanh2aW55cWljbXFncm10Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDczODIyNSwiZXhwIjoyMDg2MzE0MjI1fQ.Fp9hBv3EVKu9LNzwGDgwAna4P-42vz_3F-Qam2fR7nU' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJldHFtanh2aW55cWljbXFncm10Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDczODIyNSwiZXhwIjoyMDg2MzE0MjI1fQ.Fp9hBv3EVKu9LNzwGDgwAna4P-42vz_3F-Qam2fR7nU')",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\הדר אוטומציות\\\\Desktop\\\\עסק\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(cat)",
+      "Bash(node /tmp/check_model.mjs)",
+      "Bash(node /tmp/repro.mjs)",
+      "Bash(echo \"tsc exit: $?\")",
+      "Bash(curl -s -H \"Authorization: Bearer cal_live_8096ffd16bb1b1c64b2ad7fa2852708e\" -H \"cal-api-version: 2024-06-14\" \"https://api.cal.com/v2/event-types\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\)['data']; [print\\(e['id'], '|', repr\\(e['title']\\), '|', e['lengthInMinutes'],'min |', e['slug']\\) for e in d]\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\)['data']; [print\\(e['id'],'|',repr\\(e['title']\\),'|',e['lengthInMinutes'],'min |',e['slug']\\) for e in d]\")",
+      "Bash(date -u -v+7d +%Y-%m-%d)",
+      "Bash(curl -s -H 'Authorization: Bearer cal_live_8096ffd16bb1b1c64b2ad7fa2852708e' -H 'cal-api-version: 2024-09-04' 'https://api.cal.com/v2/slots?eventTypeId=2002150&start=__CMDSUB_OUTPUT__&end=__TRACKED_VAR__&timeZone=Asia/Jerusalem')",
+      "Bash(echo \"EXIT=$?\")"
     ]
   }
 }

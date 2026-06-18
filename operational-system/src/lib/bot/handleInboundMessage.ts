@@ -14,6 +14,8 @@ import {
   getBotState,
   countUserMessagesForLead,
   getRecentBotQuestions,
+  acquireBotTurn,
+  releaseBotTurn,
 } from '@/lib/db/conversationMessages';
 import { runAgentPipeline } from '@/lib/ai/agentPipeline';
 import { detectMeetingIntent, detectLinkRequest } from '@/lib/agents/preCheck/detectMeetingIntent';
@@ -345,6 +347,18 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
         },
       ]);
       return;
+    }
+
+    // ── Per-lead turn lock: serialize concurrent inbound messages ──────────
+    // Without this, two messages arriving together (double-send, redelivery)
+    // both read the same state and both reply, causing the loop and the
+    // contradictory "סגרתי לך ✅" + "מתי נוח לך?" pair. Wait for any in-flight
+    // turn to finish, then run against fresh state. Fail-open: if we couldn't
+    // acquire within the budget (a wedged turn), proceed rather than go silent —
+    // the lease auto-expires, so the bot is never permanently blocked.
+    const turnAcquired = await acquireBotTurn(leadUuid);
+    if (!turnAcquired) {
+      console.warn('[bot] proceeding without turn lock (acquire timed out)', { leadUuid, channel });
     }
 
     // Document every inquiry as a lead (creates on first contact, dedup-safe).
@@ -1284,5 +1298,9 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
     if (onResult) {
       await onResult({ success: false, error: String(err), messageCount: 0 }).catch(() => {});
     }
+  } finally {
+    // Release the turn lease so the next queued message runs immediately rather
+    // than waiting for the TTL. Non-fatal if it fails — the lease auto-expires.
+    await releaseBotTurn(leadUuid).catch(() => {});
   }
 }

@@ -1,4 +1,5 @@
 import type { ConversationMessage } from '@/lib/db/conversationMessages';
+import { BOT_MODELS, extractJsonBlock } from '@/lib/ai/models';
 
 export interface HandoffSummary {
   headline: string;
@@ -46,7 +47,7 @@ customer_reply: בעברית טבעית ורכה לליד, עד 3 משפטים:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-4.1-mini',
+        model: BOT_MODELS.HANDOFF,
         messages: [
           { role: 'system', content: system },
           {
@@ -55,7 +56,6 @@ customer_reply: בעברית טבעית ורכה לליד, עד 3 משפטים:
           },
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.2,
         max_tokens: 400,
       }),
     });
@@ -64,7 +64,7 @@ customer_reply: בעברית טבעית ורכה לליד, עד 3 משפטים:
 
     const json = await res.json();
     const raw = json?.choices?.[0]?.message?.content ?? '';
-    const parsed = JSON.parse(raw) as Partial<HandoffSummary>;
+    const parsed = JSON.parse(extractJsonBlock(raw)) as Partial<HandoffSummary>;
 
     return {
       headline: typeof parsed.headline === 'string' ? parsed.headline : FALLBACK.headline,

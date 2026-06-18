@@ -7,6 +7,7 @@ import {
   SCOPING_CALL_TITLE,
   SCOPING_CALL_VALUE,
   SCOPING_CALL_PROMISE,
+  SCOPING_CALL_TRUST,
   SCOPING_CALL_BRIDGE,
   type ResultType,
   type FixStep,
@@ -15,7 +16,7 @@ import { TESTIMONIALS, type Testimonial } from '@/config/testimonials';
 import { ResultChatLauncher } from './ResultChatLauncher';
 
 // Two named, real testimonials surfaced on the result page (with business name).
-const RESULT_TESTIMONIALS: Testimonial[] = [TESTIMONIALS[0], TESTIMONIALS[2]];
+const RESULT_TESTIMONIALS: Testimonial[] = [TESTIMONIALS[0], TESTIMONIALS[3]];
 
 // The bot's WhatsApp number (ManyChat). NOT Hadar's private line.
 const WHATSAPP_NUMBER = '972524759529';
@@ -92,6 +93,13 @@ export function ShortQuizResultView({
           </p>
         </section>
 
+        {/* Reframe: shift from symptom to "it's not you, it's the missing process" */}
+        <section className="mb-8">
+          <p className="text-[18px] font-semibold text-[var(--qa-text-primary)] leading-relaxed">
+            {content.reframe}
+          </p>
+        </section>
+
         {/* 3 first steps */}
         <FixMapSection steps={content.fixSteps} />
 
@@ -125,6 +133,9 @@ export function ShortQuizResultView({
           <h2 className="text-[15px] font-bold text-[var(--qa-text-primary)] mb-3">
             ההבטחה שלי אלייך
           </h2>
+          <p className="text-[15px] text-[var(--qa-text-secondary)] leading-relaxed mb-3">
+            {SCOPING_CALL_TRUST}
+          </p>
           <p className="text-[15px] text-[var(--qa-text-secondary)] leading-relaxed mb-3">
             {SCOPING_CALL_PROMISE.plan}
           </p>

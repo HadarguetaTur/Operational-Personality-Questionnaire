@@ -7,9 +7,10 @@
  */
 
 import type { ConversationMessage } from '@/lib/db/conversationMessages';
+import { BOT_MODELS, extractJsonBlock, computeOpusCost } from './models';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const CLASSIFIER_MODEL = 'openai/gpt-4.1-mini';
+const CLASSIFIER_MODEL = BOT_MODELS.CLASSIFIER;
 
 export type ClassifierIntent =
   | 'meeting_request'
@@ -167,7 +168,8 @@ const CLASSIFIER_SYSTEM_PROMPT = `אתה מסווג שיחות לבוט אבחו
 
 function parseClassifierOutput(raw: string): ClassifierOutput | null {
   try {
-    const parsed = JSON.parse(raw);
+    // Claude via OpenRouter ignores response_format json_object — strip any fence.
+    const parsed = JSON.parse(extractJsonBlock(raw));
     if (typeof parsed.intent !== 'string') return null;
     const VALID_STYLES = new Set<string>(['red', 'yellow', 'green', 'blue']);
     return {
@@ -276,7 +278,7 @@ export async function runClassifier(input: {
           { role: 'user', content: userPrompt },
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.0,
+        // No temperature: Opus 4.8 rejects sampling params.
         max_tokens: 300,
       }),
     });
@@ -299,9 +301,7 @@ export async function runClassifier(input: {
     const rawUsage = json?.usage;
     let usage: ClassifierResult['usage'];
     if (rawUsage?.prompt_tokens != null) {
-      // gpt-4.1-mini: $0.15/1M prompt, $0.60/1M completion
-      const cost_usd =
-        (rawUsage.prompt_tokens * 0.15 + (rawUsage.completion_tokens ?? 0) * 0.6) / 1_000_000;
+      const cost_usd = computeOpusCost(rawUsage.prompt_tokens, rawUsage.completion_tokens ?? 0);
       usage = {
         prompt_tokens: rawUsage.prompt_tokens,
         completion_tokens: rawUsage.completion_tokens ?? 0,

@@ -8,9 +8,10 @@
 
 import type { ConversationMessage } from '@/lib/db/conversationMessages';
 import type { OfferFrame } from './types';
+import { BOT_MODELS, extractJsonBlock } from '@/lib/ai/models';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const OFFER_FRAMING_MODEL = 'openai/gpt-4.1-mini';
+const OFFER_FRAMING_MODEL = BOT_MODELS.OFFER_FRAMING;
 
 const SYSTEM_PROMPT = `אתה מומחה לניסוח הצעות ערך. תפקידך: ליצור מסגרת הצעה אישית המבוססת על הכאב הספציפי של הלקוחה.
 
@@ -37,7 +38,7 @@ const SYSTEM_PROMPT = `אתה מומחה לניסוח הצעות ערך. תפק�
 
 function parseOfferFrame(raw: string): OfferFrame | null {
   try {
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(extractJsonBlock(raw));
     if (typeof parsed.pain_mirror !== 'string') return null;
     return {
       pain_mirror: parsed.pain_mirror,
@@ -95,7 +96,6 @@ export async function runOfferFraming(input: {
           { role: 'user', content: userPrompt },
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.2,
         max_tokens: 300,
       }),
     });

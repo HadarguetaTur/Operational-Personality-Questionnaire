@@ -15,8 +15,10 @@ import {
   type UnderstandingContext,
 } from '@/lib/agents/understandingEngine';
 
+import { BOT_MODELS, extractJsonBlock } from '@/lib/ai/models';
+
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const DIAGNOSTIC_FIT_MODEL = 'openai/gpt-4.1-mini';
+const DIAGNOSTIC_FIT_MODEL = BOT_MODELS.DIAGNOSTIC_FIT;
 
 const SYSTEM_PROMPT = `אתה מומחה לאבחון התאמת ליד. קיבלת ניקוד fit ו-clarity שחושבו אוטומטית, וכל עובדות הליד.
 תפקידך: להסביר למה הניקוד הוא כזה, ומה חסר להעלות אותו.
@@ -37,7 +39,7 @@ function parseDiagnosticFit(
   scores: { fit_score: number; clarity_score: number; recommended_next_step: string },
 ): FitAssessment | null {
   try {
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(extractJsonBlock(raw));
     if (typeof parsed.fit_reasoning !== 'string') return null;
     return {
       fit_score: scores.fit_score,
@@ -107,7 +109,6 @@ export async function runDiagnosticFit(input: {
           { role: 'user', content: userPrompt },
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.0,
         max_tokens: 150,
       }),
     });

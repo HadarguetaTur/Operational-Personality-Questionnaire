@@ -4,6 +4,7 @@ import {
   SCOPING_CALL_TITLE,
   SCOPING_CALL_VALUE,
   SCOPING_CALL_PROMISE,
+  SCOPING_CALL_TRUST,
 } from '@/config/shortQuizResults';
 import { AssistantChat } from '@/components/quiz/AssistantChat';
 
@@ -76,6 +77,9 @@ export default async function MeetingPage({
 
         <section className="mb-8 p-5 rounded-[14px] bg-[var(--qa-surface)] border-r-[3px] border-[var(--qa-accent)] border-t border-b border-l border-[var(--qa-border)]">
           <h2 className="text-[16px] font-bold mb-3">ההבטחה שלי אלייך</h2>
+          <p className="text-[15px] text-[var(--qa-text-secondary)] leading-relaxed mb-3">
+            {SCOPING_CALL_TRUST}
+          </p>
           <p className="text-[15px] text-[var(--qa-text-secondary)] leading-relaxed mb-3">
             {SCOPING_CALL_PROMISE.plan}
           </p>

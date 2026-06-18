@@ -9,12 +9,13 @@
  */
 
 import { getSystemPrompt } from './prompts/salesAgentSystemPrompt';
+import { BOT_MODELS } from './models';
 import { validateReply } from '@/lib/agents/strategicGuardrails';
 import { redactHistory } from './redact';
 import type { ConversationMessage } from '@/lib/db/conversationMessages';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const MODEL = 'anthropic/claude-sonnet-4.6';
+const MODEL = BOT_MODELS.FOLLOWUP;
 
 const FALLBACK_TOUCH_1 =
   'היי 🙂 חזרתי לבדוק, בא לך שנמצא ביחד זמן קצר לשיחה עם הדר?';
@@ -93,7 +94,7 @@ export async function runFollowupWriter(input: {
       body: JSON.stringify({
         model: MODEL,
         messages,
-        temperature: 0.6,
+        // No temperature: Opus 4.8 rejects sampling params.
         max_tokens: 200,
       }),
     });

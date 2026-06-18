@@ -11,6 +11,7 @@
  */
 
 import { getSystemPrompt } from './prompts/salesAgentSystemPrompt';
+import { BOT_MODELS, extractJsonBlock, computeOpusCost } from './models';
 import { getPromptForState, getDiscStyleAddendum } from './prompts/stagePrompts';
 import { validateReply } from '@/lib/agents/strategicGuardrails';
 import { redactHistory } from './redact';
@@ -20,27 +21,14 @@ import type { ClassifierOutput } from './classifier';
 import type { SpecialistContext } from '@/lib/agents/specialists/types';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const WRITER_MODEL = 'anthropic/claude-sonnet-4.6';
+const WRITER_MODEL = BOT_MODELS.WRITER;
 const MAX_RETRIES = 2;
 
-// Shown when the AI call fails outright — honest, hands off to Hadar.
-export const BOT_UNAVAILABLE_MSG = 'סליחה, הבוט לא זמין כרגע. הדר תיצור איתך קשר בהקדם 🙏';
-
-/**
- * Anthropic models via OpenRouter do not enforce response_format json_object —
- * the JSON often arrives wrapped in a ```json fence, sometimes with prose
- * before it. Extract the actual JSON object from whatever came back.
- */
-function extractJsonBlock(raw: string): string {
-  const trimmed = raw.trim();
-  if (trimmed.startsWith('{')) return trimmed;
-  const fence = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fence) return fence[1].trim();
-  const first = trimmed.indexOf('{');
-  const last = trimmed.lastIndexOf('}');
-  if (first !== -1 && last > first) return trimmed.slice(first, last + 1);
-  return trimmed;
-}
+// Shown when the AI call fails outright. Framed as an intentional handoff to a
+// real person (warm, not "the tool broke") — this fires at emotionally fragile
+// moments (objections), where "הבוט לא זמין" confirms the lead's worst fear.
+export const BOT_UNAVAILABLE_MSG =
+  'את יודעת מה, את זה אני רוצה שהדר תענה לך בעצמה 🙏 אני מעבירה לה את מה שכתבת והיא תחזור אלייך אישית ממש בקרוב.';
 
 function parseWriterOutput(raw: string): AgentOutput | null {
   try {
@@ -295,8 +283,11 @@ export async function runResponseWriter(input: {
           model: WRITER_MODEL,
           messages,
           response_format: { type: 'json_object' },
-          temperature: 0.3,
-          max_tokens: attempt > 0 ? 250 : 500,
+          // No temperature: Opus 4.8 rejects sampling params (temperature/top_p).
+          // Never shrink the budget on retry — a truncated JSON is exactly what
+          // makes the longest replies (objection handling) fail to parse. Give
+          // objection turns extra room since ack + reframe + soft_close is long.
+          max_tokens: nextState === 'objection' ? 700 : 600,
         }),
       });
 
@@ -322,10 +313,15 @@ export async function runResponseWriter(input: {
         parsed.state = nextState;
       }
 
+      // Objection handling is intentionally longer (acknowledgment + reframe +
+      // soft close) — give it more room so a legitimate reply isn't rejected as
+      // too_long, which would otherwise dump the lead into the unavailable path.
+      const maxReplyLength = nextState === 'objection' ? 600 : 400;
       const validation = validateReply(
         parsed.reply,
         recentBotReplies,
         Array.isArray(input.context.asked_questions) ? (input.context.asked_questions as string[]) : [],
+        maxReplyLength,
       );
       if (!validation.valid) {
         console.warn(`[responseWriter:${nextState}] Validation failed (attempt ${attempt + 1}):`, validation.reason);
@@ -336,8 +332,7 @@ export async function runResponseWriter(input: {
       const rawUsage = json?.usage;
       let usage: AgentUsage | undefined;
       if (rawUsage?.prompt_tokens != null) {
-        const cost_usd =
-          (rawUsage.prompt_tokens * 3 + (rawUsage.completion_tokens ?? 0) * 15) / 1_000_000;
+        const cost_usd = computeOpusCost(rawUsage.prompt_tokens, rawUsage.completion_tokens ?? 0);
         usage = {
           prompt_tokens: rawUsage.prompt_tokens,
           completion_tokens: rawUsage.completion_tokens ?? 0,

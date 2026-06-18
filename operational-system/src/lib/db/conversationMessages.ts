@@ -122,6 +122,60 @@ export async function getRecentBotQuestions(
   return questions;
 }
 
+// ─── Per-lead turn lock (serializes concurrent inbound messages) ──────────────
+// Backed by `claim_bot_turn` / `release_bot_turn` (migration 027). Two messages
+// for the same lead arriving together used to be processed concurrently against
+// the same state, producing duplicate/contradictory replies. The lease makes the
+// second turn wait for the first, then run against fresh state.
+
+/**
+ * Tries to acquire the turn lease for a lead. Returns true if acquired.
+ * On any DB error, returns true (fail-open) — a lock outage must never silence
+ * the bot; the worst case reverts to the prior (un-serialized) behavior.
+ */
+export async function claimBotTurn(leadUuid: string, ttlSeconds = 45): Promise<boolean> {
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase.rpc('claim_bot_turn', {
+    p_lead_uuid: leadUuid,
+    p_ttl_seconds: ttlSeconds,
+  });
+  if (error) {
+    console.warn('[conversationMessages] claimBotTurn failed (fail-open):', error.message);
+    return true;
+  }
+  return data === true;
+}
+
+/** Releases the turn lease so the next queued turn can proceed immediately. */
+export async function releaseBotTurn(leadUuid: string): Promise<void> {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.rpc('release_bot_turn', { p_lead_uuid: leadUuid });
+  if (error) {
+    console.warn('[conversationMessages] releaseBotTurn failed (non-fatal):', error.message);
+  }
+}
+
+/**
+ * Acquires the turn lease, retrying while another turn holds it. Returns true
+ * once acquired, or false if it could not be acquired within the budget (the
+ * holder is likely wedged — the lease will auto-expire). Polls without a tight
+ * spin so a normal turn (a few seconds) is waited out cleanly.
+ */
+export async function acquireBotTurn(
+  leadUuid: string,
+  opts: { ttlSeconds?: number; maxWaitMs?: number; pollMs?: number } = {},
+): Promise<boolean> {
+  const { ttlSeconds = 45, maxWaitMs = 40_000, pollMs = 1_200 } = opts;
+  const deadline = Date.now() + maxWaitMs;
+  // First attempt is immediate; the common (uncontended) case returns at once.
+  if (await claimBotTurn(leadUuid, ttlSeconds)) return true;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, pollMs));
+    if (await claimBotTurn(leadUuid, ttlSeconds)) return true;
+  }
+  return false;
+}
+
 // ─── bot_conversation_state helpers ───────────────────────────────────────────
 // These are the PRIMARY source of truth for bot state and context.
 // Unlike the `leads` table, this table is keyed by lead_uuid only,
@@ -145,13 +199,20 @@ export async function getBotState(leadUuid: string): Promise<BotConversationStat
     console.warn('[conversationMessages] getBotState failed:', error.message);
   }
 
-  if (data) {
+  const rowContext =
+    data?.context && typeof data.context === 'object' && !Array.isArray(data.context)
+      ? (data.context as Record<string, unknown>)
+      : {};
+  // A populated row is authoritative. A bare placeholder (state 'initial' + empty
+  // context) is NOT — it can be the row that claim_bot_turn just created for the
+  // turn lock, so fall through to the cold-start scan to recover real state for a
+  // legacy lead that has history but no persisted state yet.
+  const isPlaceholder =
+    (data?.state ?? 'initial') === 'initial' && Object.keys(rowContext).length === 0;
+  if (data && !isPlaceholder) {
     return {
       state: data.state ?? 'initial',
-      context:
-        data.context && typeof data.context === 'object' && !Array.isArray(data.context)
-          ? (data.context as Record<string, unknown>)
-          : {},
+      context: rowContext,
       subscriber_id: data.subscriber_id ?? undefined,
       channel: parseChannel(data.channel),
     };

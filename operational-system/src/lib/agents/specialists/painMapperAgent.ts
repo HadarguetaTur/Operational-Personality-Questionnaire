@@ -8,9 +8,10 @@
 
 import type { ConversationMessage } from '@/lib/db/conversationMessages';
 import type { PainAnalysis } from './types';
+import { BOT_MODELS, extractJsonBlock } from '@/lib/ai/models';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const PAIN_MAPPER_MODEL = 'openai/gpt-4.1-mini';
+const PAIN_MAPPER_MODEL = BOT_MODELS.PAIN_MAPPER;
 
 const SYSTEM_PROMPT = `אתה מומחה לניתוח כאב עסקי. תפקידך: לנתח שיחה ולהחזיר JSON מובנה עם הבנה עמוקה של הכאב של הלקוחה.
 
@@ -37,7 +38,7 @@ const SYSTEM_PROMPT = `אתה מומחה לניתוח כאב עסקי. תפקי�
 
 function parsePainAnalysis(raw: string): PainAnalysis | null {
   try {
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(extractJsonBlock(raw));
     if (typeof parsed.exact_words !== 'string') return null;
     return {
       exact_words: parsed.exact_words,
@@ -94,7 +95,6 @@ export async function runPainMapper(input: {
           { role: 'user', content: userPrompt },
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.0,
         max_tokens: 200,
       }),
     });

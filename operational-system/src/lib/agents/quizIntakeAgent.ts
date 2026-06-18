@@ -1,4 +1,5 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { BOT_MODELS, extractJsonBlock } from '@/lib/ai/models';
 
 export interface QuizIntakeResult {
   opening_hook: string;
@@ -38,7 +39,7 @@ export async function runQuizIntakeAgent(input: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-4.1-mini',
+        model: BOT_MODELS.QUIZ_INTAKE,
         messages: [
           {
             role: 'system',
@@ -49,7 +50,6 @@ export async function runQuizIntakeAgent(input: {
           { role: 'user', content: JSON.stringify(answers) },
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.2,
         max_tokens: 300,
       }),
     });
@@ -57,7 +57,7 @@ export async function runQuizIntakeAgent(input: {
     if (!res.ok) return FALLBACK;
 
     const json = await res.json();
-    const parsed = JSON.parse(json?.choices?.[0]?.message?.content ?? '{}');
+    const parsed = JSON.parse(extractJsonBlock(json?.choices?.[0]?.message?.content ?? '{}'));
 
     const result: QuizIntakeResult = {
       opening_hook:
