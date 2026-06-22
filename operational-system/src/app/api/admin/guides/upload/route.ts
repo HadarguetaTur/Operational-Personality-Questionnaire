@@ -6,10 +6,13 @@ const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_TYPES = new Set([
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
   'image/png',
   'image/jpeg',
   'image/webp',
 ]);
+// Excel often reports an empty / generic MIME on Windows — fall back to extension.
+const ALLOWED_EXT = /\.(pdf|docx|xlsx|png|jpe?g|webp)$/i;
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
@@ -27,9 +30,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing file field' }, { status: 400 });
   }
 
-  if (!ALLOWED_TYPES.has(file.type)) {
+  if (!ALLOWED_TYPES.has(file.type) && !ALLOWED_EXT.test(file.name)) {
     return NextResponse.json(
-      { error: 'סוג קובץ לא נתמך. מותרים: PDF, DOCX, PNG, JPG' },
+      { error: 'סוג קובץ לא נתמך. מותרים: PDF, DOCX, XLSX, PNG, JPG' },
       { status: 415 }
     );
   }

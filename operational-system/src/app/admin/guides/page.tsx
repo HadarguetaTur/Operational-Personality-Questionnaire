@@ -103,9 +103,11 @@ export default function GuidesPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const ALLOWED = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/png', 'image/jpeg', 'image/webp'];
-    if (!ALLOWED.includes(file.type)) {
-      toast.error('סוג קובץ לא נתמך. מותרים: PDF, DOCX, PNG, JPG');
+    const ALLOWED = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/png', 'image/jpeg', 'image/webp', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+    // Excel often reports an empty / generic MIME on Windows — fall back to extension.
+    const ALLOWED_EXT = /\.(pdf|docx|png|jpe?g|webp|xlsx)$/i;
+    if (!ALLOWED.includes(file.type) && !ALLOWED_EXT.test(file.name)) {
+      toast.error('סוג קובץ לא נתמך. מותרים: PDF, DOCX, XLSX, PNG, JPG');
       return;
     }
 
@@ -119,9 +121,16 @@ export default function GuidesPage() {
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100);
       const storagePath = `${timestamp}-${safeName}`;
 
+      // Resolve a sane content-type — Windows may hand us an empty file.type for .xlsx.
+      const contentType =
+        file.type ||
+        (/\.xlsx$/i.test(file.name)
+          ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          : 'application/octet-stream');
+
       const { error } = await supabase.storage
         .from('guides')
-        .upload(storagePath, file, { contentType: file.type, upsert: false });
+        .upload(storagePath, file, { contentType, upsert: false });
 
       if (error) {
         toast.error(error.message ?? 'העלאה נכשלה');
@@ -239,7 +248,7 @@ export default function GuidesPage() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".pdf,.docx,.png,.jpg,.jpeg,.webp"
+                  accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg,.webp"
                   onChange={handleFileSelect}
                   className="hidden"
                   id="guide-file-input"
@@ -267,7 +276,7 @@ export default function GuidesPage() {
                 )}
 
                 {!uploadedFileName && !uploading && (
-                  <span className="text-sm text-gray-400">PDF, DOCX, PNG, JPG עד 10MB</span>
+                  <span className="text-sm text-gray-400">PDF, DOCX, XLSX, PNG, JPG עד 10MB</span>
                 )}
               </div>
             </div>
