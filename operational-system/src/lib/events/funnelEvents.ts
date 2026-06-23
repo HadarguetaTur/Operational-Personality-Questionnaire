@@ -16,7 +16,16 @@ export type FunnelEventType =
   | 'meeting_cancelled'
   | 'meeting_rescheduled'
   | 'post_meeting_message'
-  | 'meeting_status_unknown';
+  | 'meeting_status_unknown'
+  // Funnel-stage measurement (028) — closes the gaps between quiz and payment.
+  | 'lead_details_submitted'
+  | 'result_viewed'
+  | 'chat_opened'
+  | 'booking_requested'
+  | 'meeting_attended'
+  | 'fit_for_diagnostic'
+  | 'payment_completed'
+  | 'project_started';
 
 export async function recordFunnelEvent(
   leadUuid: string,

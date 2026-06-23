@@ -5,8 +5,13 @@ import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
   buildAnswerMapFromInputs,
+  scoreQuiz,
 } from '@/config/shortQuizConfig';
-import { buildWhereYouAre, type ResultType } from '@/config/shortQuizResults';
+import {
+  buildWhereYouAre,
+  buildGapNote,
+  type ResultType,
+} from '@/config/shortQuizResults';
 import { ShortQuizResultView } from './ShortQuizResultView';
 
 interface ResultSnapshot {
@@ -19,6 +24,8 @@ interface ResultState {
   firstName?: string;
   resultType: ResultType;
   whereYouAre: string[];
+  gapNote: string | null;
+  isStrong: boolean;
 }
 
 export function ShortQuizResult({ token }: { token: string }) {
@@ -28,6 +35,8 @@ export function ShortQuizResult({ token }: { token: string }) {
     status: 'loading',
     resultType: 'CENTRALIZED',
     whereYouAre: [],
+    gapNote: null,
+    isStrong: false,
   });
 
   useEffect(() => {
@@ -51,13 +60,43 @@ export function ShortQuizResult({ token }: { token: string }) {
       const snapshot = (data.result_snapshot ?? null) as ResultSnapshot | null;
       const firstName = (snapshot?.user_name ?? '').split(' ')[0];
 
-      const resultType =
+      const storedType =
         (data.result_pattern as ResultType | undefined) ?? 'CENTRALIZED';
 
-      const map = buildAnswerMapFromInputs(snapshot?.answers);
-      const whereYouAre = buildWhereYouAre(map, resultType);
+      // Recompute the full picture (gap / strong) from the saved answers.
+      // Fall back to the stored archetype when answers are missing (legacy leads).
+      const hasAnswers =
+        !!snapshot?.answers && Object.keys(snapshot.answers).length >= 5;
 
-      setState({ status: 'ready', firstName, resultType, whereYouAre });
+      if (!hasAnswers) {
+        setState({
+          status: 'ready',
+          firstName,
+          resultType: storedType,
+          whereYouAre: buildWhereYouAre({}, storedType),
+          gapNote: null,
+          isStrong: false,
+        });
+        return;
+      }
+
+      const map = buildAnswerMapFromInputs(snapshot.answers);
+      const score = scoreQuiz(map);
+      const resultType = score.resultType;
+      const whereYouAre = score.isStrong ? [] : buildWhereYouAre(map, resultType);
+      const gapNote =
+        score.isGap && score.feltPain
+          ? buildGapNote(score.feltPain, resultType)
+          : null;
+
+      setState({
+        status: 'ready',
+        firstName,
+        resultType,
+        whereYouAre,
+        gapNote,
+        isStrong: score.isStrong,
+      });
     }
     load();
   }, [token]);
@@ -84,6 +123,8 @@ export function ShortQuizResult({ token }: { token: string }) {
     <ShortQuizResultView
       resultType={state.resultType}
       whereYouAre={state.whereYouAre}
+      gapNote={state.gapNote}
+      isStrong={state.isStrong}
       firstName={state.firstName}
       showBanner={isNew}
       token={token}

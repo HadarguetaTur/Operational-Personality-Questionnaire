@@ -60,14 +60,14 @@
   --qa-accent-hover: rgba(58, 90, 107, 0.10);
 
   /* Dark / Glassmorphism */
-  --qa-dark-bg: #0f1419;
-  --qa-dark-surface: rgba(255, 255, 255, 0.05);
-  --qa-dark-surface-solid: #1a2332;
-  --qa-dark-text: #f0f4f8;
+  --qa-dark-bg: #0c1220;
+  --qa-dark-surface: rgba(255, 255, 255, 0.02);
+  --qa-dark-surface-solid: #111827;
+  --qa-dark-text: #ffffff;
   --qa-dark-text-secondary: #94a3b8;
-  --qa-dark-border: rgba(255, 255, 255, 0.1);
+  --qa-dark-border: rgba(255, 255, 255, 0.06);
   --qa-dark-accent: #14b8a6;
-  --qa-dark-accent-soft: rgba(20, 184, 166, 0.15);
+  --qa-dark-accent-soft: rgba(20, 184, 166, 0.12);
   --font-modern: 'Plus Jakarta Sans', 'Heebo', sans-serif;
 
   /* Landing */
@@ -218,14 +218,14 @@
   --qa-bg: var(--qa-dark-bg) !important;
   --qa-surface: var(--qa-dark-surface-solid) !important;
   --qa-text-primary: var(--qa-dark-text) !important;
-  --qa-text-secondary: #b8c5d4 !important;
-  --qa-text-muted: #94a3b8 !important;
-  --qa-border: rgba(255,255,255,0.15) !important;
-  --qa-border-light: rgba(255,255,255,0.08) !important;
+  --qa-text-secondary: rgba(255,255,255,0.70) !important;
+  --qa-text-muted: rgba(255,255,255,0.45) !important;
+  --qa-border: rgba(255,255,255,0.08) !important;
+  --qa-border-light: rgba(255,255,255,0.05) !important;
   --qa-accent: var(--qa-dark-accent) !important;
   --qa-accent-soft: var(--qa-dark-accent-soft) !important;
-  --qa-accent-hover: rgba(20, 184, 166, 0.25) !important;
-  font-family: var(--font-modern) !important;
+  --qa-accent-hover: rgba(20, 184, 166, 0.18) !important;
+  font-family: 'Heebo', sans-serif !important;
 
   --report-hero: linear-gradient(135deg, #1e3a4a 0%, #256363 50%, #0d4d4d 100%);
   --report-card: rgba(26, 35, 50, 0.85);
@@ -306,7 +306,24 @@ p, li, h1, h2, h3, span {
 .qa-sync-pill[data-status="error"] { color: var(--report-risk); border-color: var(--report-risk); }
 .qa-sync-pill[data-status="synced"] { color: var(--qa-accent); }
 
-.qa-theme-2026 .qa-progress-fill { background: var(--qa-dark-accent); }
+.qa-theme-2026 .qa-progress-fill {
+  background: linear-gradient(to left, #14b8a6, #10b981);
+}
+
+/* Quiz atmosphere — dot-grid texture (matches home page) */
+.qa-dotgrid {
+  background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.45) 1px, transparent 0);
+  background-size: 40px 40px;
+  opacity: 0.025;
+}
+
+/* Gradient text headline (matches home hero) */
+.qa-gradient-text {
+  background-image: linear-gradient(to left, #5eead4, #2dd4bf, #34d399);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
 
 /* ============================
    Animations

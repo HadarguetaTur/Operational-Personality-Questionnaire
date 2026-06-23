@@ -1,5 +1,5 @@
 import type { ResultType } from '@/lib/calculator/types';
-import type { ShortQuizOption } from '@/config/shortQuizConfig';
+import type { ShortQuizOption, DomainKey } from '@/config/shortQuizConfig';
 
 export type { ResultType };
 
@@ -13,6 +13,8 @@ export interface ShortResultContent {
   /** Headline. No dash, no numbers. */
   headline: string;
   tagline: string;
+  /** The opening paragraph that frames the pattern, before the personalized lines. */
+  opening: string;
   /** Fallback "where you are" line when no answers are available. */
   whereYouAreFallback: string;
   /** The "how much it costs you" pain paragraph. Vivid, no numbers. */
@@ -27,14 +29,16 @@ export interface ShortResultContent {
 export const SHORT_QUIZ_RESULTS: Record<ResultType, ShortResultContent> = {
   FOLLOWUP: {
     id: 'FOLLOWUP',
-    headline: 'יש פניות. אין פולואפ. הכסף נשאר על השולחן.',
-    tagline: 'לידים ופולואפים',
+    headline: 'הפניות מגיעות. אבל אין תהליך שמחזיק אותן עד הסגירה.',
+    tagline: 'פניות ופולואפ',
+    opening:
+      'הבעיה אצלך אינה בהכרח שאין עניין. יש פניות, יש שיחות, ויש נשים שבודקות אפשרות לעבוד איתך. אבל מהרגע שהן לא סוגרות מיד, יותר מדי מהתהליך נשען על זה שתזכרי, תתפני ותחזרי בזמן. וכשזה תלוי בזיכרון שלך, חלק מהפניות פשוט מתקררות בדרך.',
     whereYouAreFallback:
-      'מתעניינות מגיעות אלייך, אבל בלי מעקב מסודר חלק מהן פשוט מתפוגגות בדרך.',
+      'מתעניינות מגיעות אלייך, אבל בלי תהליך שמחזיק אותן עד הסגירה, חלק מהן מתפוגגות בדרך.',
     whatItCosts:
-      'תחשבי על הפנייה הטובה שכתבה לך, קיבלה "אחזור אלייך", ואז נבלעה. לא כי לא רצתה, אלא כי החיים זזו והיא כבר סגרה עם מישהי אחרת. זה לא קורה פעם אחת. זה קורה בשקט, שוב ושוב, וזה הכסף שהכי כואב כי הוא היה ממש ביד.',
+      'הכסף לא הולך לאיבוד ברגע דרמטי. הוא נעלם בפנייה שנשארה בלי תשובה, בשיחה שלא קיבלה המשך, ובמתעניינת שהתכוונה לחזור אבל המשיכה לעסק הבא. אלה לא תמיד לידים לא טובים. לעיתים אלה לקוחות שהיו צריכות עוד הודעה אחת, תזכורת אחת או תהליך ברור יותר.',
     reframe:
-      'זה לא שאת לא עקבית. זה שהמעקב נשען על הזיכרון שלך, בלי תהליך שעוקב במקומך, אז דווקא כשהכי עמוס, פניות נושרות. זאת לא בעיה של משמעת, זאת בעיה של מבנה.',
+      'זה לא אומר שאת לא טובה במכירות. זה אומר שאין כרגע מערכת שממשיכה להחזיק את ההזדמנות גם כשאת עסוקה בעבודה עצמה. הפתרון אינו לזכור טוב יותר, אלא לבנות תהליך שלא תלוי בזיכרון.',
     fixSteps: [
       { label: 'היום:', text: 'בחרי פנייה אחת שתקועה אצלך כבר כמה ימים, ושלחי לה הודעה עכשיו. רק אחת. תרגישי כמה קל היה להחזיר אותה.' },
       { label: 'השבוע:', text: 'כתבי תסריט פולואפ קצר, שתי הודעות, שתמיד יהיו מוכנות לך לכל פנייה שלא ענתה.' },
@@ -48,14 +52,16 @@ export const SHORT_QUIZ_RESULTS: Record<ResultType, ShortResultContent> = {
 
   TIME: {
     id: 'TIME',
-    headline: 'את לא חסרת שעות. את חסרת מערכת.',
-    tagline: 'זמן ניהול ידני',
+    headline: 'הבעיה היא לא שאין לך זמן. יותר מדי מהעסק עדיין דורש אותך ידנית.',
+    tagline: 'זמן ותפעול ידני',
+    opening:
+      'היום שלך מתמלא בפעולות קטנות שנראות הכרחיות: לענות, לתאם, להזכיר, לבדוק, להעביר מידע ולעדכן. כל פעולה בפני עצמה לוקחת כמה דקות. ביחד הן אוכלות את השעות שבהן היית יכולה למכור, לפתח, ליצור או פשוט לסיים את היום בלי שהעסק ימשיך איתך לערב.',
     whereYouAreFallback:
       'הרבה מהיום שלך הולך על הודעות, תיאומים ותזכורות שחוזרים על עצמם וקורים דרכך, ידנית.',
     whatItCosts:
-      'זה לא רק הזמן. זה שבסוף היום את מרוקנת, בלי כוח לחשוב על העסק עצמו, רק לרוץ בתוכו. השעות האלה לא נעלמות, הן באות במקום הדברים שבאמת מקדמים אותך, ובמקום הערב שלך עם עצמך.',
+      'העלות אינה רק מספר השעות. העלות היא הקטיעות, המעבר המתמיד בין משימות, והתחושה שאת עובדת כל היום בלי להגיע לדברים שבאמת מקדמים את העסק. כשהתפעול נכנס לכל מרווח פנוי, אין כמעט מקום לחשיבה, שיווק, מכירה או מנוחה.',
     reframe:
-      'את לא צריכה להתארגן יותר טוב או לעבוד יותר חזק. את צריכה שהדברים החוזרים יקרו בלעדייך, לא דרכך. זה לא חוסר סדר אצלך, זה שעוד לא נבנה תהליך שלוקח אותם ממך.',
+      'את לא צריכה להיות יעילה יותר בתוך עומס לא יעיל. את צריכה לבדוק אילו פעולות בכלל לא אמורות להמשיך לעבור דרכך. לא כל משימה צריכה אוטומציה, אבל משימה שחוזרת שוב ושוב באותו מבנה היא סימן שצריך לבנות לה תהליך.',
     fixSteps: [
       { label: 'היום:', text: 'רשמי את שלוש הפעולות שחוזרות אצלך הכי הרבה בשבוע. הן לא יפתיעו אותך, וזו בדיוק הנקודה.' },
       { label: 'השבוע:', text: 'קחי אחת מהן וכתבי אותה כהוראות פשוטות, עשר דקות. זה מה שיאפשר להוציא אותה ממך.' },
@@ -69,14 +75,16 @@ export const SHORT_QUIZ_RESULTS: Record<ResultType, ShortResultContent> = {
 
   COLLECTION: {
     id: 'COLLECTION',
-    headline: 'הכסף שלך כבר שם. הוא פשוט עוד לא הגיע אלייך.',
+    headline: 'הכסף כבר הושג. אבל הדרך שלו אלייך עדיין תלויה ביותר מדי מאמץ.',
     tagline: 'גבייה ותזכורות תשלום',
+    opening:
+      'עשית את העבודה. סיפקת את השירות. מגיע לך לקבל את התשלום. אבל כשהמעקב אחר חשבוניות ותשלומים נשען עלייך, הגבייה הופכת לעוד משימה שצריך לזכור ולעוד שיחה שלא תמיד נעים לפתוח. וככל שדוחים אותה, הכסף נשאר אצל הלקוחה במקום להגיע לעסק.',
     whereYouAreFallback:
       'יש כסף שכבר הרווחת, אבל לגבות אותו לוקח לך זמן ואנרגיה, ולפעמים את פשוט דוחה את זה.',
     whatItCosts:
-      'זה כסף שכבר עבדת בשבילו, שיושב ומחכה אצל מישהו אחר, בזמן שאת מתלבטת אם להזכיר. כל חשבונית פתוחה היא לא רק סכום, היא עוד דבר שרץ לך בראש בלילה. וזה מצטבר, גם רגשית וגם בעובר ושב.',
+      'כסף פתוח אינו רק בעיית תזרים. הוא תופס מקום בראש, מייצר אי־נעימות ופוגע ביכולת שלך לדעת מה באמת נכנס לעסק בכל חודש. כשהגבייה אינה שיטתית, קשה להבדיל בין הכנסה שהרווחת לבין כסף שבאמת זמין לך.',
     reframe:
-      'הגבייה היא עוד מקום שבו הכסף נוזל בין פנייה לסגירה, רק שכאן כבר סגרת. וזה לא חוסר משמעת ולא שאת נמנעת, זה שאין תהליך שגובה במקומך, אז כל תזכורת חוזרת אלייך כהחלטה מחדש.',
+      'גבייה מסודרת אינה אגרסיבית. להפך, תהליך ברור, עקבי וצפוי מוריד את המבוכה גם ממך וגם מהלקוחה. את לא צריכה לרדוף, את צריכה מערכת שיודעת להזכיר בזמן, להציג סטטוס ולהעלות אלייך רק את המקרים שבאמת דורשים טיפול.',
     fixSteps: [
       { label: 'היום:', text: 'ספרי כמה חשבוניות פתוחות יש לך עכשיו. זה הכסף שכבר הרווחת ועוד לא נכנס.' },
       { label: 'מחר:', text: 'שלחי תזכורת תשלום אחת, לחשבונית הכי ישנה. רק אחת, בלי להעמיס על עצמך.' },
@@ -90,14 +98,16 @@ export const SHORT_QUIZ_RESULTS: Record<ResultType, ShortResultContent> = {
 
   CENTRALIZED: {
     id: 'CENTRALIZED',
-    headline: 'הכל עובר דרכך. זה לא חוסר יכולת, זה מבנה.',
+    headline: 'העסק עובד, אבל יותר מדי ממנו עדיין מוחזק על ידך.',
     tagline: 'תלות יתר בך',
+    opening:
+      'את יודעת מה קורה עם הלקוחות. את זוכרת למי צריך לחזור. את יודעת איפה נמצא כל פרט ומה הצעד הבא. וזו בדיוק הבעיה. כל עוד התמונה קיימת בעיקר אצלך, העסק יכול לעבוד רק בקצב שבו את מסוגלת לזכור, לבדוק ולהחזיק הכול.',
     whereYouAreFallback:
       'הזמן, הפניות והגבייה, הכל עובר דרכך. זה לא חוסר מיומנות, זה מבנה שנבנה תוך כדי תנועה.',
     whatItCosts:
-      'המחיר הוא שאת לא באמת יכולה לעצור. לא לחלות, לא לקחת אוויר, כי כשאת לא שם, הכל מחכה לך. העסק גדל, אבל הוא נשען עלייך בדיוק כמו ביום הראשון, והתקרה הזאת לא נפתחת בעוד מאמץ שלך. היא נפתחת רק כשמשהו עובר ממך החוצה.',
+      'המחיר אינו רק עומס, זו תקרת צמיחה. כל לקוחה חדשה מוסיפה עוד מעקב, עוד מידע ועוד החלטות שאת צריכה להחזיק. לכן גם כשהעסק גדל, את לא בהכרח מרגישה שהוא נעשה יציב יותר. לפעמים ההפך קורה: יותר הכנסה מייצרת יותר תלות בך.',
     reframe:
-      'זה לא שאת לא יודעת להאציל. זה שהעסק נבנה סביבך לפני שנבנה לו תהליך, אז הכל מחובר אלייך באופן אישי. זה משהו שמתקנים, לא תכונה שלך.',
+      'הבעיה אינה שאת ריכוזית או מתקשה לשחרר. ברוב העסקים המבנה הזה נוצר בהדרגה, כל פעם עוד לקוחה, עוד כלי ועוד פתרון זמני. עכשיו צריך להפוך את הידע שנמצא אצלך לתהליך שהעסק יכול להחזיק. המטרה אינה להוציא אותך מהעסק, אלא שאת תנהלי אותו במקום להחזיק אותו בידיים כל היום.',
     fixSteps: [
       { label: 'היום:', text: 'חשבי מה עשית אתמול שחוזר אצלך הכי הרבה. כתבי אותה. זו הפעולה שמתחילים ממנה.' },
       { label: 'מחר:', text: 'כתבי לאותה פעולה הוראות פשוטות, עשר דקות. זה מה שמאפשר להסיר אותה ממך.' },
@@ -110,54 +120,161 @@ export const SHORT_QUIZ_RESULTS: Record<ResultType, ShortResultContent> = {
   },
 };
 
-// ── "Where you are" narrative, built from the qualitative answer tags ──────────
+// ── "Where you are" — the data lines, built from the actual answers ───────────
+// Two to three lines, chosen by the headline domain. Each branch reads the real
+// answer ids, so the lines reflect what she actually said. No numbers.
 
-const Q9_LINES: Record<string, string> = {
-  FAST: 'את מגיבה מהר למתעניינות, וזה נכס אמיתי. עכשיו צריך לוודא שזה נשמר גם כשעמוס.',
-  MODERATE: 'את חוזרת, אבל לא תמיד מיד, ויש פניות שמתקררות בינתיים.',
-  SLOW: 'לפעמים עוברים ימים עד שמתעניינת מקבלת ממך תשובה, וחלק כבר לא שם כשחזרת.',
-  VERY_SLOW: 'קורה שעובר שבוע ויותר עד שאת חוזרת, ואז רוב הסיכוי לסגור כבר עבר.',
-};
+function optId(map: Record<string, ShortQuizOption | undefined>, q: string): string | undefined {
+  return map[q]?.id;
+}
 
-const Q4_LINES: Record<string, string> = {
-  STRUCTURED: 'הפולואפ אצלך מסודר, וזה בדיוק מה שמחזיק את הסגירות.',
-  MANUAL: 'את חוזרת לרוב המתעניינות, אבל הכל ידני ויושב עלייך.',
-  INCONSISTENT: 'הפולואפ קורה כשאת נזכרת, לא כשיטה, אז חלק מהפניות פשוט נשמטות.',
-  NONE: 'אחרי הפנייה הראשונה לרוב אין המשך מסודר, וכאן נושר הכי הרבה.',
-  UNKNOWN: 'אין לך כרגע דרך לדעת מה קרה עם פניות שלא סגרו, וזה כשלעצמו אומר משהו.',
-};
+function followupLines(map: Record<string, ShortQuizOption | undefined>): string[] {
+  const lines: string[] = [];
+  const q1 = optId(map, 'Q1');
+  const q2 = optId(map, 'Q2');
+  const q4 = optId(map, 'Q4');
+  const q5 = optId(map, 'Q5');
 
-const Q5_LINES: Record<string, string> = {
-  HEAD: 'הפניות חיות בראש שלך ובוואטסאפ, בלי מקום אחד שמרכז הכל.',
-  SHEET: 'יש לך גיליון, אבל הוא דורש ממך לזכור לעדכן ולבדוק כל הזמן.',
-  SCATTERED: 'המידע מפוזר בין כמה כלים שלא מדברים, אז כל פנייה דורשת חיפוש.',
-  SYSTEM: 'יש לך מערכת מסודרת, אז הבסיס לסדר כבר קיים.',
-};
+  if (q2 === 'Q2_3' || q2 === 'Q2_4' || q2 === 'Q2_5') {
+    lines.push('חלק מהמתעניינות מחכות יותר מיום לתשובה, ובזמן הזה רמת העניין שלהן יכולה לרדת.');
+  }
+  if (q4 === 'Q4_2' || q4 === 'Q4_3') {
+    lines.push('הפולואפ אצלך נעשה ידנית, ולכן הוא נדחק הצידה דווקא בשבועות שבהם את הכי עמוסה.');
+  }
+  if (q4 === 'Q4_4' || q4 === 'Q4_5' || q5 === 'Q5_4' || q5 === 'Q5_5') {
+    lines.push('אין לך כרגע דרך ברורה לראות כמה פניות נשארו פתוחות וכמה נעלמו בדרך.');
+  }
+  // She answers fast, but nothing continues the conversation if it doesn't close.
+  if (q2 === 'Q2_1' && (q4 === 'Q4_3' || q4 === 'Q4_4' || q4 === 'Q4_5')) {
+    lines.push('את מגיבה מהר לפנייה הראשונה, אבל אין תהליך קבוע שממשיך את השיחה אם היא לא נסגרת מיד.');
+  }
+  if ((q1 === 'Q1_3' || q1 === 'Q1_4') && lines.length < 3) {
+    lines.push('מגיעות אלייך מספיק פניות כדי שגם דליפה קטנה בתהליך תהפוך לאובדן הכנסה משמעותי.');
+  }
+  return lines.slice(0, 3);
+}
+
+function timeLines(map: Record<string, ShortQuizOption | undefined>): string[] {
+  const lines: string[] = [];
+  const q6 = optId(map, 'Q6');
+  const q7 = optId(map, 'Q7');
+  const q8 = optId(map, 'Q8');
+  const q9 = optId(map, 'Q9');
+
+  if (q7 === 'Q7_3' || q7 === 'Q7_4' || q7 === 'Q7_5') {
+    lines.push('חלק לא קטן מהיום שלך הולך על משימות שחוזרות על עצמן.');
+  }
+  if (q6 === 'Q6_4' || q9 === 'Q9_2' || q9 === 'Q9_3') {
+    lines.push('המידע קיים, אבל הוא מפוזר ודורש ממך לעבור בין כמה מקומות כדי להבין מה קורה.');
+  }
+  if (q6 === 'Q6_3' || q6 === 'Q6_5') {
+    lines.push('חלק גדול מהעבודה מתבצע דרך וואטסאפ, רשימות וזיכרון.');
+  }
+  if (q8 === 'Q8_3' || q8 === 'Q8_4') {
+    lines.push('כשאת לא זמינה, משימות מתחילות לחכות ולהיערם.');
+  }
+  // Has a system, but still feeds it by hand.
+  if (q6 === 'Q6_1' && (q7 === 'Q7_4' || q7 === 'Q7_5') && lines.length < 3) {
+    lines.push('יש לך מערכת מסוימת, אבל עדיין נדרשת ממך הרבה עבודה ידנית כדי להחזיק אותה מעודכנת.');
+  }
+  return lines.slice(0, 3);
+}
+
+function collectionLines(map: Record<string, ShortQuizOption | undefined>): string[] {
+  const lines: string[] = [];
+  const q10 = optId(map, 'Q10');
+  const q11 = optId(map, 'Q11');
+
+  if (q11 === 'Q11_3' || q11 === 'Q11_4' || q11 === 'Q11_5') {
+    lines.push('את משקיעה בכל חודש זמן במעקב ידני אחרי תשלומים.');
+  }
+  if (q10 === 'Q10_3') {
+    lines.push('תזכורות תשלום נדחות לפעמים כי הן דורשות ממך לעצור ולפנות ללקוחה.');
+  }
+  if (q10 === 'Q10_5') {
+    lines.push('אין לך תמונה אחת שמראה מי שילמה, מה פתוח ומה כבר באיחור.');
+  }
+  if (q10 === 'Q10_4') {
+    lines.push('חלק מהגבייה מתבצע רק כשאת נזכרת לבדוק.');
+  }
+  if ((q10 === 'Q10_1' || q10 === 'Q10_2') && lines.length < 3) {
+    lines.push('תהליך הגבייה אצלך מסודר יחסית, אבל עדיין צורך ממך יותר זמן ואנרגיה ממה שהוא אמור.');
+  }
+  return lines.slice(0, 3);
+}
+
+function centralizedLines(map: Record<string, ShortQuizOption | undefined>): string[] {
+  const lines: string[] = [];
+  const q6 = optId(map, 'Q6');
+  const q8 = optId(map, 'Q8');
+  const q9 = optId(map, 'Q9');
+
+  if (q8 === 'Q8_3' || q8 === 'Q8_4' || q8 === 'Q8_5') {
+    lines.push('כשאת לא זמינה, חלק משמעותי מהעבודה מתחיל להמתין לך.');
+  }
+  if (q6 === 'Q6_3' || q6 === 'Q6_4' || q6 === 'Q6_5') {
+    lines.push('מידע חשוב נמצא בכמה מקומות, ורק את יודעת לחבר ביניהם.');
+  }
+  if (q9 === 'Q9_3' || q9 === 'Q9_4' || q9 === 'Q9_5') {
+    lines.push('קשה לך לראות את כל תמונת העסק בלי לעבור על הודעות, גיליונות ורשימות.');
+  }
+  // Has a system, but the processes still run only when she drives them.
+  if (q6 === 'Q6_1' && (q8 === 'Q8_3' || q8 === 'Q8_4' || q8 === 'Q8_5') && lines.length < 3) {
+    lines.push('יש לך מערכת מסודרת, אבל בפועל התהליכים עדיין תלויים בכך שאת תפעילי ותעדכני אותה.');
+  }
+  return lines.slice(0, 3);
+}
 
 /**
- * Builds 1-3 personalized "where you are" lines from the answer map.
+ * Builds 2-3 personalized "where you are" lines for the headline domain.
  * Falls back to the archetype's static line when nothing matched.
  */
 export function buildWhereYouAre(
   map: Record<string, ShortQuizOption | undefined>,
   resultType: ResultType,
 ): string[] {
-  const lines: string[] = [];
-
-  const speed = map['Q9']?.responseSpeed;
-  if (speed && Q9_LINES[speed]) lines.push(Q9_LINES[speed]);
-
-  const followup = map['Q4']?.tag;
-  if (followup && Q4_LINES[followup]) lines.push(Q4_LINES[followup]);
-
-  const dispersion = map['Q5']?.tag;
-  if (dispersion && Q5_LINES[dispersion]) lines.push(Q5_LINES[dispersion]);
-
+  let lines: string[];
+  switch (resultType) {
+    case 'FOLLOWUP':
+      lines = followupLines(map);
+      break;
+    case 'TIME':
+      lines = timeLines(map);
+      break;
+    case 'COLLECTION':
+      lines = collectionLines(map);
+      break;
+    case 'CENTRALIZED':
+    default:
+      lines = centralizedLines(map);
+      break;
+  }
   if (lines.length === 0) {
-    lines.push(SHORT_QUIZ_RESULTS[resultType].whereYouAreFallback);
+    lines = [SHORT_QUIZ_RESULTS[resultType].whereYouAreFallback];
   }
   return lines;
 }
+
+// ── Gap state: felt pain differs from the structural driver ───────────────────
+
+/** Short noun-phrases that read naturally after "ש…" in the gap note. */
+const GAP_LABELS: Record<DomainKey, string> = {
+  FOLLOWUP: 'נושא הפניות והפולואפ',
+  TIME: 'עומס התפעול',
+  COLLECTION: 'נושא הגבייה',
+  CENTRALIZED: 'התלות בך',
+};
+
+export function buildGapNote(felt: DomainKey, data: DomainKey): string {
+  return `סימנת ש${GAP_LABELS[felt]} הוא מה שהכי מעסיק אותך כרגע, וזה הגיוני, כי זה כנראה המקום שבו את מרגישה את העומס בצורה הכי ישירה. אבל מהתשובות שלך עולה שהגורם שמזין את זה הוא דווקא ${GAP_LABELS[data]}. ייתכן ש${GAP_LABELS[felt]} הוא הסימפטום, ו${GAP_LABELS[data]} הוא המבנה שמתחתיו.`;
+}
+
+// ── Strong state: the picture is healthy across the board ─────────────────────
+
+export const STRONG_TAGLINE = 'הבסיס שלך מסודר';
+export const STRONG_HEADLINE = 'התהליך שלך עובד. האתגר הוא לשמור עליו כשהעסק גדל.';
+export const STRONG_BODY =
+  'מהתשובות שלך עולה שכבר בנית בסיס טוב. את מגיבה בזמן, יש המשך מסודר למתעניינות, והמידע מרוכז במקום שאת שולטת בו. ההזדמנות אצלך אינה לתקן כאוס, אלא לוודא שהמערכת ממשיכה לעבוד גם כשהיקף הפניות והלקוחות עולה, בלי שתצטרכי להחזיק יותר ויותר בראש.';
 
 export const DISCLAIMER_TEXT =
   'זוהי תמונה ראשונית בלבד, המבוססת על מה שסיפרת לי כאן. היא נועדה להאיר לך איפה כדאי להסתכל, לא להחליף בדיקה מלאה של התהליך.';

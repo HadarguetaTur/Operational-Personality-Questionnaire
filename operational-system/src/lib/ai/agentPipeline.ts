@@ -15,6 +15,7 @@
  */
 
 import { runClassifier } from './classifier';
+import { isBlockedLeadName } from '@/lib/bot/nameGuard';
 import { runSalesConversationManager } from '@/lib/agents/salesConversationManager';
 import {
   runGuardrailsCheck,
@@ -114,6 +115,13 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
   // ── Stage 1b: Enrich context + compute understanding scores ───────────────
 
   const facts = classifierOutput.new_facts;
+  // Never let the owner/brand name ("הדר" / "הדר אוטומציות") be captured as the
+  // lead's name — it would overwrite the real quiz name in both write points
+  // below (enrichedContext.name and newFactsPatch.name) and make the bot greet
+  // the lead by Hadar's name.
+  if (facts.name && isBlockedLeadName(facts.name)) {
+    facts.name = undefined;
+  }
   const enrichedContext: Record<string, unknown> = { ...conversationContext };
   if (facts.name)                            enrichedContext.name = facts.name;
   if (facts.reason_for_reaching_out)         enrichedContext.reason_for_reaching_out = facts.reason_for_reaching_out;

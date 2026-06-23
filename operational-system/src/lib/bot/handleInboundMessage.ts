@@ -29,6 +29,8 @@ import {
 import { notifySlackHandoff } from '@/lib/notifications/slackHandoff';
 import { runHandoffSummary } from '@/lib/agents/handoffSummaryAgent';
 import { recordFunnelEvent } from '@/lib/events/funnelEvents';
+import { isBlockedLeadName } from '@/lib/bot/nameGuard';
+import { isTerminalState } from '@/lib/bot/terminalStates';
 import {
   ensureLeadRow,
   markLeadMeetingBooked,
@@ -83,8 +85,8 @@ const BOOKING_HE: Record<BookingType, string> = {
 export function buildFixedOpening(name?: string): string {
   const n = name?.trim();
   return n
-    ? `היי ${n}, אני העוזרת הדיגיטלית של הדר אוטומציות, אני כאן כדי שנבין ביחד האם הדר יכולה לעזור לך ובמידה כן- לקבוע פגישה. שנתחיל בכמה שאלות?`
-    : 'היי אני העוזרת הדיגיטלית של הדר אוטומציות, אני כאן כדי שנבין ביחד האם הדר יכולה לעזור לך ובמידה כן- לקבוע פגישה. שנתחיל בכמה שאלות?';
+    ? `היי ${n}, אני העוזרת הדיגיטלית של הדר אוטומציות. אני כאן כדי להכין אותך לשיחה עם הדר עצמה: נבין ביחד אם זה מתאים, ואם כן אקבע לך פגישה איתה. ואם בא לך כבר עכשיו לקבוע, פשוט תכתבי לי "רוצה לקבוע" ואדאג לזה. שנתחיל בכמה שאלות קצרות?`
+    : 'היי, אני העוזרת הדיגיטלית של הדר אוטומציות. אני כאן כדי להכין אותך לשיחה עם הדר עצמה: נבין ביחד אם זה מתאים, ואם כן אקבע לך פגישה איתה. ואם בא לך כבר עכשיו לקבוע, פשוט תכתבי לי "רוצה לקבוע" ואדאג לזה. שנתחיל בכמה שאלות קצרות?';
 }
 
 // Email + "no thanks" detection for the in-chat "add to your calendar?" step.
@@ -124,7 +126,11 @@ function cleanName(message: string): string {
   s = s.replace(/^(קוראים לי|שמי|השם שלי(?:\s+הוא)?|אני|זה|השם)\s+/, '').trim();
   // Keep it short — a name, not a sentence.
   if (s.length > 30) s = s.split(/\s+/).slice(0, 2).join(' ');
-  return s || message.trim().slice(0, 30);
+  const candidate = s || message.trim().slice(0, 30);
+  // Never accept the owner/brand name as the lead's name (this path doesn't go
+  // through the classifier guard) — return '' so callers fall back to the known
+  // name / channel label.
+  return isBlockedLeadName(candidate) ? '' : candidate;
 }
 
 function sanitizeOutgoing(text: string): string {
@@ -232,6 +238,14 @@ async function scheduleFollowup(leadUuid: string, step: number, remindAt: Date):
 
 /** Schedules the single morning follow-up (eligible 3h after going quiet). */
 export async function scheduleFirstFollowup(leadUuid: string): Promise<void> {
+  // Don't schedule for channels the cron can never send on (e.g. web has no
+  // proactive outbound). Otherwise we'd write a row that only ever gets picked
+  // up to be skipped + closed — noise in pending_followups and a wasted cron
+  // pass. Same CHANNEL_CAPABILITIES source the cron uses, so no divergent logic.
+  const { channel } = await getBotState(leadUuid);
+  if (!CHANNEL_CAPABILITIES[channel].supportsOutboundFollowup) {
+    return;
+  }
   await scheduleFollowup(leadUuid, 1, new Date(Date.now() + FOLLOWUP_FIRST_TOUCH_MS));
 }
 
@@ -987,6 +1001,10 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
 
       // In-chat scheduling: show real availability instead of a raw link.
       if (detectMeetingIntent(userMessage)) {
+        await recordFunnelEvent(leadUuid, 'booking_requested', {
+          from_state: currentState,
+          channel,
+        });
         await enterScheduling(bookingType, bookingPatch);
         return;
       }
@@ -1136,6 +1154,29 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
       });
       await setState('escalated');
       await finalize([{ type: 'text', text: reply }]);
+      return;
+    }
+
+    // ── Pre-check: explicit booking intent from ANY active state ──────────────
+    // "רוצה לקבוע" must go straight to scheduling — never another discovery
+    // question — regardless of which state we're in. awaiting_confirmation and
+    // scheduling have their own handlers above; terminal states never re-book;
+    // frustration (handled just above) wins over booking by Core Doctrine.
+    if (
+      !isTerminalState(currentState) &&
+      currentState !== 'awaiting_confirmation' &&
+      currentState !== 'scheduling' &&
+      detectMeetingIntent(userMessage)
+    ) {
+      await recordFunnelEvent(leadUuid, 'booking_requested', {
+        from_state: currentState,
+        channel,
+      });
+      // Policy: always offer the FREE intro first; honor an explicitly pending
+      // diagnostic if one was already set.
+      const bookingType: BookingType =
+        conversationContext.pending_booking_type === 'diagnostic' ? 'diagnostic' : 'intro';
+      await enterScheduling(bookingType, {});
       return;
     }
 
