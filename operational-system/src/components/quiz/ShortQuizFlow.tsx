@@ -13,46 +13,9 @@ import {
 import type { ResultType } from '@/lib/calculator/types';
 import { QuizLeadForm } from './QuizLeadForm';
 
-type FlowPhase = 'intro' | 'questions' | 'lead';
+type FlowPhase = 'questions' | 'lead';
 
 const AUTO_ADVANCE_MS = 320;
-
-// ─── Intro screen (hero, matches home page) ────────────────────────────────────
-
-function IntroScreen({ onStart }: { onStart: () => void }) {
-  return (
-    <div
-      className="flex flex-col min-h-screen items-center justify-center px-6 md:px-8 py-16 text-center"
-      dir="rtl"
-    >
-      <div className="max-w-[560px] mx-auto">
-        <span className="inline-block text-[13px] font-medium tracking-wider text-teal-400 mb-5">
-          אבחון קצר לעסק
-        </span>
-        <h1 className="text-[34px] md:text-[44px] font-extrabold leading-[1.15] tracking-tight mb-5">
-          <span className="qa-gradient-text">איפה הכסף נתקע בעסק שלך?</span>
-        </h1>
-        <p className="text-[17px] md:text-[18px] text-white/70 leading-relaxed mb-3">
-          כמה דקות, כמה שאלות, ובסוף תמונה ברורה של המקום שהכי מעכב את העסק שלך.
-        </p>
-        <p className="text-[14px] text-white/40 mb-9">
-          {TOTAL_QUESTIONS} שאלות קצרות · 4 תחומים · תמונה אחת
-        </p>
-
-        <button
-          onClick={onStart}
-          className="group relative inline-flex items-center justify-center gap-2.5 min-h-[58px] px-10 rounded-2xl bg-gradient-to-l from-teal-500 via-teal-500 to-emerald-500 text-white text-[17px] font-bold tracking-tight shadow-[0_10px_40px_-12px_rgba(20,184,166,0.55)] transition-all duration-300 hover:shadow-[0_18px_60px_-12px_rgba(20,184,166,0.7)] hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--qa-bg)]"
-        >
-          מתחילות
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="transition-transform group-hover:-translate-x-0.5">
-            <line x1="19" y1="12" x2="5" y2="12" />
-            <polyline points="12 19 5 12 12 5" />
-          </svg>
-        </button>
-      </div>
-    </div>
-  );
-}
 
 // ─── Progress bar ─────────────────────────────────────────────────────────────
 
@@ -210,7 +173,7 @@ function buildAnswerInputs(answers: string[]): Record<string, string> {
 }
 
 export default function ShortQuizFlow() {
-  const [phase, setPhase] = useState<FlowPhase>('intro');
+  const [phase, setPhase] = useState<FlowPhase>('questions');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<string[]>([]);
   const [resultType, setResultType] = useState<ResultType>('CENTRALIZED');
@@ -235,10 +198,6 @@ export default function ShortQuizFlow() {
     },
     [answers, currentIndex],
   );
-
-  if (phase === 'intro') {
-    return <IntroScreen onStart={() => setPhase('questions')} />;
-  }
 
   if (phase === 'lead') {
     return (
