@@ -17,10 +17,14 @@ interface ResultChatLauncherProps {
 export function ResultChatLauncher({ token }: ResultChatLauncherProps) {
   const [open, setOpen] = useState(false);
   const [hasOpened, setHasOpened] = useState(false);
+  const [teaser, setTeaser] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const openRef = useRef(false);
+  openRef.current = open;
 
   const openChat = useCallback(() => {
+    setTeaser(false);
     setHasOpened(true);
     setOpen(true);
   }, []);
@@ -41,20 +45,66 @@ export function ResultChatLauncher({ token }: ResultChatLauncherProps) {
     return () => document.removeEventListener('keydown', onKey);
   }, [open, closeChat]);
 
+  // CTA buttons elsewhere on the page open the chat by dispatching this event.
+  useEffect(() => {
+    const onOpen = () => openChat();
+    window.addEventListener('qa:open-chat', onOpen);
+    return () => window.removeEventListener('qa:open-chat', onOpen);
+  }, [openChat]);
+
+  // Surface a gentle invitation bubble shortly after landing — once per session,
+  // and only if the visitor hasn't already opened the chat themselves.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (sessionStorage.getItem('qa-teaser-shown')) return;
+    const t = window.setTimeout(() => {
+      if (!openRef.current) {
+        setTeaser(true);
+        sessionStorage.setItem('qa-teaser-shown', '1');
+      }
+    }, 3500);
+    return () => window.clearTimeout(t);
+  }, []);
+
   return (
     <>
+      {/* Invitation bubble — appears shortly after landing, above the button */}
+      {teaser && !open && (
+        <div className="qa-teaser" dir="rtl" role="status">
+          <button
+            type="button"
+            onClick={openChat}
+            className="qa-teaser-body"
+            aria-label="קביעת פגישה עם הדר דרך העוזרת הדיגיטלית"
+          >
+            רוצה שאקבע לך פגישה עם הדר? דברי איתי כאן ועכשיו 👋
+          </button>
+          <button
+            type="button"
+            onClick={() => setTeaser(false)}
+            className="qa-teaser-close"
+            aria-label="סגירת ההודעה"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Floating button — RTL bottom-left, clear of the CTA flow */}
       <button
         ref={buttonRef}
         onClick={openChat}
-        aria-label="פתחי צ'אט עם העוזרת הדיגיטלית"
+        aria-label="קביעת פגישה עם הדר דרך העוזרת הדיגיטלית"
         className={`qa-launch ${open ? 'qa-launch-hidden' : ''}`}
         dir="rtl"
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
         </svg>
-        <span>דברי עם העוזרת</span>
+        <span>קבעי פגישה עם הדר</span>
         <i className="qa-launch-pulse" aria-hidden="true" />
       </button>
 
@@ -72,7 +122,7 @@ export function ResultChatLauncher({ token }: ResultChatLauncherProps) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="qa-panel-head">
-              <p className="qa-panel-title">דברי עכשיו עם העוזרת הדיגיטלית</p>
+              <p className="qa-panel-title">העוזרת תקבע לך פגישה עם הדר</p>
               <button
                 ref={closeRef}
                 onClick={closeChat}
@@ -119,6 +169,44 @@ export function ResultChatLauncher({ token }: ResultChatLauncherProps) {
         .qa-launch-hidden {
           opacity: 0;
           pointer-events: none;
+        }
+        .qa-teaser {
+          position: fixed;
+          bottom: 78px;
+          left: 20px;
+          z-index: 51;
+          display: flex;
+          align-items: flex-start;
+          gap: 6px;
+          max-width: min(78vw, 290px);
+          padding: 12px 14px;
+          border-radius: 16px;
+          border: 1px solid var(--qa-border);
+          background: var(--qa-surface);
+          box-shadow: 0 16px 38px -14px rgba(0, 0, 0, 0.5);
+          animation: qa-slide-up 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        .qa-teaser-body {
+          flex: 1;
+          text-align: right;
+          font-size: 14px;
+          font-weight: 600;
+          line-height: 1.5;
+          color: var(--qa-text-primary);
+        }
+        .qa-teaser-close {
+          flex-shrink: 0;
+          width: 22px;
+          height: 22px;
+          border-radius: 7px;
+          display: grid;
+          place-items: center;
+          color: var(--qa-text-secondary);
+          transition: background 0.15s, color 0.15s;
+        }
+        .qa-teaser-close:hover {
+          background: var(--qa-accent-soft);
+          color: var(--qa-accent);
         }
         .qa-launch-pulse {
           position: absolute;

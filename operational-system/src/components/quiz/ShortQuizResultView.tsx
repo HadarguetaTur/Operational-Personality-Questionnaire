@@ -93,6 +93,26 @@ export function ShortQuizResultView({
           </section>
         </FadeIn>
 
+        {/* Next step — surfaces the path forward right at the top, before the long read */}
+        <FadeIn delay={70}>
+          <section className="mb-9 p-5 rounded-2xl border border-teal-500/30 bg-teal-500/[0.06] backdrop-blur-sm">
+            <p className="text-[15px] md:text-[16px] text-white/85 leading-relaxed mb-4">
+              הצעד הבא הוא שיחת היכרות קצרה איתי, ללא עלות וללא התחייבות. אפשר לקבוע אותה כאן ועכשיו דרך העוזרת הדיגיטלית.
+            </p>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event('qa:open-chat'))}
+              className="group inline-flex items-center justify-center gap-2 min-h-[48px] px-6 rounded-xl bg-gradient-to-l from-teal-500 to-emerald-500 text-white text-[16px] font-bold tracking-tight shadow-[0_10px_36px_-14px_rgba(20,184,166,0.6)] transition-all duration-200 hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--qa-bg)]"
+            >
+              קבעי פגישה עכשיו עם העוזרת
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="transition-transform group-hover:-translate-x-0.5">
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+            </button>
+          </section>
+        </FadeIn>
+
         {/* The problem sections — only when the picture isn't already healthy */}
         {!isStrong && (
           <>
