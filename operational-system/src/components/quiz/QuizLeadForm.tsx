@@ -146,14 +146,14 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
       className="flex flex-col min-h-screen justify-center text-[var(--qa-text-primary)] px-6 md:px-8 py-12"
       dir="rtl"
     >
-      <section className="w-full max-w-[480px] mx-auto rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm shadow-[0_0_60px_-20px_rgba(20,184,166,0.18)] p-7 md:p-8">
-        <p className="text-[13px] font-medium tracking-wider text-teal-400 mb-2.5">
+      <section className="w-full max-w-[480px] mx-auto rounded-2xl border border-[#dce7ea] bg-white backdrop-blur-sm shadow-[0_0_60px_-20px_rgba(20,184,166,0.18)] p-7 md:p-8">
+        <p className="text-[13px] font-medium tracking-wider text-[#0e7a6e] mb-2.5">
           רגע לפני התוצאה
         </p>
-        <h1 className="text-[25px] md:text-[29px] font-extrabold leading-snug tracking-tight mb-3">
+        <h1 className="studio-display text-[28px] md:text-[34px] font-black leading-tight mb-3">
           <span className="qa-gradient-text">לאן לשלוח לך את התמונה המלאה?</span>
         </h1>
-        <p className="text-[15px] text-white/65 leading-relaxed mb-7">
+        <p className="text-[15px] text-[#46544f] leading-relaxed mb-7">
           השאירי פרטים ואראה לך מיד איפה הכסף נוזל אצלך, ומה הצעד הראשון לסדר.
         </p>
 
@@ -172,7 +172,7 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
               onChange={(e) => setName(e.target.value)}
               onBlur={() => setTouched((t) => ({ ...t, name: true }))}
               placeholder="השם הפרטי שלך"
-              className={`w-full h-12 px-4 rounded-xl border bg-[#0a0f18]/65 text-white placeholder-white/35 focus:outline-none focus:border-teal-500/45 focus:ring-2 focus:ring-teal-400/20 transition-colors ${nameHint ? 'border-rose-400' : 'border-white/[0.08]'}`}
+              className={`w-full h-12 px-4 rounded-xl border bg-[#f6f9fb] text-[#15302d] placeholder-[#7c8884] focus:outline-none focus:border-[#0e7a6e]/45 focus:ring-2 focus:ring-[#0e7a6e]/20 transition-colors ${nameHint ? 'border-rose-400' : 'border-[#dce7ea]'}`}
               dir="rtl"
               autoComplete="given-name"
               required
@@ -181,7 +181,7 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
               disabled={submitting}
             />
             {nameHint && (
-              <p className="mt-1.5 text-[13px] text-rose-400" role="alert">{nameHint}</p>
+              <p className="mt-1.5 text-[13px] text-rose-600" role="alert">{nameHint}</p>
             )}
           </div>
 
@@ -199,7 +199,7 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
               onChange={(e) => setPhone(e.target.value)}
               onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
               placeholder="050-1234567"
-              className={`w-full h-12 px-4 rounded-xl border bg-[#0a0f18]/65 text-white placeholder-white/35 focus:outline-none focus:border-teal-500/45 focus:ring-2 focus:ring-teal-400/20 transition-colors ${phoneHint ? 'border-rose-400' : 'border-white/[0.08]'}`}
+              className={`w-full h-12 px-4 rounded-xl border bg-[#f6f9fb] text-[#15302d] placeholder-[#7c8884] focus:outline-none focus:border-[#0e7a6e]/45 focus:ring-2 focus:ring-[#0e7a6e]/20 transition-colors ${phoneHint ? 'border-rose-400' : 'border-[#dce7ea]'}`}
               dir="ltr"
               autoComplete="tel"
               required
@@ -208,7 +208,7 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
               disabled={submitting}
             />
             {phoneHint && (
-              <p className="mt-1.5 text-[13px] text-rose-400" role="alert">{phoneHint}</p>
+              <p className="mt-1.5 text-[13px] text-rose-600" role="alert">{phoneHint}</p>
             )}
           </div>
 
@@ -226,14 +226,14 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
               onChange={(e) => setEmail(e.target.value)}
               onBlur={() => setTouched((t) => ({ ...t, email: true }))}
               placeholder="כתובת אימייל"
-              className={`w-full h-12 px-4 rounded-xl border bg-[#0a0f18]/65 text-white placeholder-white/35 focus:outline-none focus:border-teal-500/45 focus:ring-2 focus:ring-teal-400/20 transition-colors ${emailHint ? 'border-rose-400' : 'border-white/[0.08]'}`}
+              className={`w-full h-12 px-4 rounded-xl border bg-[#f6f9fb] text-[#15302d] placeholder-[#7c8884] focus:outline-none focus:border-[#0e7a6e]/45 focus:ring-2 focus:ring-[#0e7a6e]/20 transition-colors ${emailHint ? 'border-rose-400' : 'border-[#dce7ea]'}`}
               dir="ltr"
               autoComplete="email"
               aria-invalid={!!emailHint}
               disabled={submitting}
             />
             {emailHint && (
-              <p className="mt-1.5 text-[13px] text-rose-400" role="alert">{emailHint}</p>
+              <p className="mt-1.5 text-[13px] text-rose-600" role="alert">{emailHint}</p>
             )}
           </div>
 
@@ -294,7 +294,7 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
           {error && (
             <div
               role="alert"
-              className="px-3 py-2.5 rounded-lg border border-rose-400 bg-rose-400/5 text-[14px] text-rose-400"
+              className="px-3 py-2.5 rounded-lg border border-rose-400 bg-rose-50 text-[14px] text-rose-600"
             >
               {error}
             </div>
@@ -304,12 +304,12 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
             type="submit"
             disabled={submitting || !termsConsent}
             aria-busy={submitting}
-            className="mt-1 w-full h-14 rounded-xl bg-gradient-to-l from-teal-500 via-teal-500 to-emerald-500 text-white text-[17px] font-bold tracking-tight shadow-[0_10px_40px_-12px_rgba(20,184,166,0.55)] transition-all duration-300 hover:shadow-[0_18px_60px_-12px_rgba(20,184,166,0.7)] hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--qa-bg)]"
+            className="mt-1 w-full h-14 rounded-xl bg-gradient-to-l from-teal-500 via-teal-500 to-emerald-500 text-white text-[17px] font-bold tracking-tight shadow-[0_10px_40px_-12px_rgba(20,184,166,0.55)] transition-all duration-300 hover:shadow-[0_18px_60px_-12px_rgba(20,184,166,0.7)] hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0e7a6e] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--qa-bg)]"
           >
             {submitting ? 'רגע, מכינה לך את התמונה...' : 'לתוצאה שלי ←'}
           </button>
 
-          <p className="text-[12px] text-white/40 text-center leading-relaxed">
+          <p className="text-[12px] text-[#7c8884] text-center leading-relaxed">
             לא נתקשר בלי שביקשת. הפרטים נשמרים אצל הדר בלבד, משמשים לשליחת התוצאה ולהמשך שתבחרי, ולא מועברים לאף אחד. אפשר לבקש מחיקה בכל עת.
           </p>
         </form>

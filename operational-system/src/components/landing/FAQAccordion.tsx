@@ -7,7 +7,7 @@ import { FadeInSection } from './FadeInSection';
 
 const ChevronDown: React.FC<{ open: boolean; variant?: 'landing' | 'home' }> = ({ open, variant = 'landing' }) => (
   <svg
-    className={`w-5 h-5 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''} ${variant === 'home' ? 'text-teal-400' : 'text-[var(--landing-primary)]'}`}
+    className={`w-5 h-5 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''} ${variant === 'home' ? 'text-[#0e7a6e]' : 'text-[var(--landing-primary)]'}`}
     fill="none"
     viewBox="0 0 24 24"
     stroke="currentColor"
@@ -33,37 +33,30 @@ export const FAQAccordion: React.FC<
 
   const landingSection = 'faq-section-bg py-20 md:py-24 px-6 md:px-8 relative scroll-mt-20';
   const homeSection =
-    'relative scroll-mt-20 bg-gradient-to-b from-[#111827] to-[#0f1729] py-24 md:py-32 px-5 md:px-8 overflow-hidden';
+    'relative scroll-mt-20 bg-[#eef4f6] border-y border-[#dce7ea] py-24 md:py-32 px-5 md:px-8 overflow-hidden';
 
   const sectionClass = [variant === 'home' ? homeSection : landingSection, sectionClassName]
     .filter(Boolean)
     .join(' ');
 
-  const ringHome = 'focus-visible:ring-teal-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#111827]';
+  const ringHome = 'focus-visible:ring-[#0e7a6e]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#eef4f6]';
   const ringLanding =
     'focus-visible:ring-[var(--landing-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent';
 
   if (variant === 'home') {
     return (
       <section id={sectionId} className={sectionClass} dir="rtl">
-        <div className="absolute inset-0 pointer-events-none" aria-hidden>
-          <div className="absolute bottom-0 right-0 w-[min(400px,70vw)] h-[280px] bg-indigo-600/[0.06] rounded-full blur-3xl" />
-          <div
-            className="absolute inset-0 opacity-[0.025]"
-            style={{
-              backgroundImage:
-                'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.45) 1px, transparent 0)',
-              backgroundSize: '40px 40px',
-            }}
-          />
-        </div>
         <FadeInSection delay={100}>
           <div className="relative z-10 mx-auto max-w-3xl">
-            <p className="text-teal-400 text-sm font-medium tracking-wider text-center mb-3">לפני שמתחילים</p>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-white text-center mb-5 leading-snug px-2">
+            <div className="flex items-center justify-center gap-2.5 mb-4">
+              <span className="h-px w-7 bg-[#0e7a6e]/40" aria-hidden />
+              <span className="text-[#0e7a6e] text-xs font-bold tracking-[0.16em]">לפני שמתחילים</span>
+              <span className="h-px w-7 bg-[#0e7a6e]/40 sm:hidden" aria-hidden />
+            </div>
+            <h2 className="studio-display text-3xl md:text-5xl text-[#15302d] text-center mb-5 leading-tight px-2">
               שאלות נפוצות
             </h2>
-            <p className="text-white/55 text-center text-base md:text-lg max-w-2xl mx-auto mb-12 md:mb-14 leading-relaxed px-2">
+            <p className="text-[#46544f] text-center text-base md:text-lg max-w-2xl mx-auto mb-12 md:mb-14 leading-relaxed px-2">
               {intro}
             </p>
             <div className="space-y-2.5 md:space-y-3">
@@ -74,10 +67,10 @@ export const FAQAccordion: React.FC<
                 return (
                   <div
                     key={i}
-                    className={`rounded-2xl border backdrop-blur-sm overflow-hidden transition-all duration-200 hover:border-white/[0.1] hover:bg-white/[0.035] ${
+                    className={`rounded-2xl border overflow-hidden transition-all duration-200 ${
                       isOpen
-                        ? 'border-teal-500/30 bg-teal-500/[0.04] shadow-[0_0_40px_-20px_rgba(20,184,166,0.35)]'
-                        : 'border-white/[0.06] bg-white/[0.02]'
+                        ? 'border-[#0e7a6e]/30 bg-white shadow-[0_14px_40px_-26px_rgba(21,48,45,0.3)]'
+                        : 'border-[#dce7ea] bg-white/70 hover:bg-white'
                     }`}
                   >
                     <button
@@ -88,16 +81,16 @@ export const FAQAccordion: React.FC<
                       aria-controls={aId}
                       id={qId}
                     >
-                      <span className="font-semibold text-white/95 text-[15px] md:text-base leading-snug">{item.question}</span>
+                      <span className="font-semibold text-[#15302d] text-[15px] md:text-base leading-snug">{item.question}</span>
                       <ChevronDown open={isOpen} variant="home" />
                     </button>
                     <div
                       id={aId}
                       role="region"
                       aria-labelledby={qId}
-                      className={`overflow-hidden transition-all duration-200 ${isOpen ? 'max-h-[520px] overflow-y-auto border-t border-white/[0.05]' : 'max-h-0 border-t border-transparent'}`}
+                      className={`overflow-hidden transition-all duration-200 ${isOpen ? 'max-h-[520px] overflow-y-auto border-t border-[#e6eef0]' : 'max-h-0 border-t border-transparent'}`}
                     >
-                      <p className="p-4 md:px-5 md:pb-5 md:pt-4 text-[15px] md:text-base text-white/65 leading-relaxed">
+                      <p className="p-4 md:px-5 md:pb-5 md:pt-4 text-[15px] md:text-base text-[#46544f] leading-relaxed">
                         {item.answer}
                       </p>
                     </div>

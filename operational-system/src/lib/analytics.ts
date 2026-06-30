@@ -74,6 +74,12 @@ export interface TrackOptions {
   metadata?: Record<string, unknown>;
   /** Use fetch with keepalive so the request survives full-page navigation (e.g. CTA → /quiz). */
   keepalive?: boolean;
+  /**
+   * Use navigator.sendBeacon — synchronous and reliable on page exit
+   * (visibilitychange→hidden / pagehide), including mobile. For exit events.
+   * Falls back to keepalive fetch if the beacon cannot be queued.
+   */
+  beacon?: boolean;
 }
 
 function buildLandingEventRow(
@@ -122,6 +128,28 @@ async function insertLandingEventViaRestKeepalive(row: Record<string, unknown>):
 }
 
 /**
+ * navigator.sendBeacon cannot set custom headers, so the Supabase apikey rides
+ * as a query param (verified working against this project) and the JSON body is
+ * sent as a typed Blob so PostgREST sees `Content-Type: application/json`.
+ * Returns false if the beacon could not be queued (caller falls back).
+ */
+function insertLandingEventViaBeacon(row: Record<string, unknown>): boolean {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '');
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!base || !anonKey) return false;
+  if (typeof navigator === 'undefined' || typeof navigator.sendBeacon !== 'function') return false;
+
+  try {
+    const url = `${base}/rest/v1/landing_events?apikey=${encodeURIComponent(anonKey)}`;
+    const blob = new Blob([JSON.stringify(row)], { type: 'application/json' });
+    return navigator.sendBeacon(url, blob);
+  } catch (err) {
+    logAnalyticsError('beacon_insert', err);
+    return false;
+  }
+}
+
+/**
  * Fire-and-forget event tracking. Never blocks UX, never throws.
  * Returns a promise that resolves when the insert finishes (or fails gracefully).
  */
@@ -129,6 +157,13 @@ export async function trackEvent(eventType: LandingEventType, opts: TrackOptions
   if (typeof window === 'undefined') return;
   try {
     const row = buildLandingEventRow(eventType, opts);
+
+    if (opts.beacon) {
+      // sendBeacon is synchronous; only fall back when it cannot be queued.
+      if (insertLandingEventViaBeacon(row)) return;
+      await insertLandingEventViaRestKeepalive(row);
+      return;
+    }
 
     if (opts.keepalive) {
       await insertLandingEventViaRestKeepalive(row);
@@ -144,6 +179,88 @@ export async function trackEvent(eventType: LandingEventType, opts: TrackOptions
   } catch (err) {
     logAnalyticsError('trackEvent', err);
   }
+}
+
+function deviceFromWidth(width: number): 'mobile' | 'tablet' | 'desktop' {
+  if (width < 768) return 'mobile';
+  if (width < 1024) return 'tablet';
+  return 'desktop';
+}
+
+/** Max-scroll depth as 0–100. Pages that fit in the viewport count as fully seen (100). */
+function currentScrollPct(): number {
+  const doc = document.documentElement;
+  const viewportH = window.innerHeight || doc.clientHeight || 0;
+  const fullH = Math.max(doc.scrollHeight, document.body?.scrollHeight ?? 0);
+  const scrollable = fullH - viewportH;
+  if (scrollable <= 0) return 100;
+  const scrolled = window.scrollY || doc.scrollTop || 0;
+  const pct = Math.round((scrolled / scrollable) * 100);
+  return Math.max(0, Math.min(100, pct));
+}
+
+/**
+ * Behavioral tracking for a landing page. Call once on mount; returns a cleanup fn.
+ *
+ * Captures entry data immediately, tracks max scroll depth (throttled, max-only),
+ * and emits a SINGLE `page_view` enriched with dwell + scroll on first exit
+ * (visibilitychange→hidden or pagehide) via sendBeacon. One row per visit — no
+ * duplicates that would inflate funnel counts. Does not touch other event types.
+ */
+export function initLandingPageTracking(): () => void {
+  if (typeof window === 'undefined') return () => {};
+
+  const startTs = Date.now();
+  const entryPath = window.location.pathname;
+  let maxScrollPct = currentScrollPct();
+  let sent = false;
+  let throttled = false;
+
+  const onScroll = (): void => {
+    if (throttled) return;
+    throttled = true;
+    window.setTimeout(() => {
+      throttled = false;
+      const pct = currentScrollPct();
+      if (pct > maxScrollPct) maxScrollPct = pct;
+    }, 200);
+  };
+
+  const send = (): void => {
+    if (sent) return;
+    sent = true;
+    // Final measurement in case the last scroll happened inside the throttle window.
+    const pct = currentScrollPct();
+    if (pct > maxScrollPct) maxScrollPct = pct;
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    void trackEvent('page_view', {
+      pagePath: entryPath,
+      beacon: true,
+      metadata: {
+        dwell_ms: Date.now() - startTs,
+        max_scroll_pct: maxScrollPct,
+        viewport: { width, height },
+        device: deviceFromWidth(width),
+        entry_path: entryPath
+      }
+    });
+  };
+
+  const onVisibility = (): void => {
+    if (document.visibilityState === 'hidden') send();
+  };
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  document.addEventListener('visibilitychange', onVisibility);
+  window.addEventListener('pagehide', send);
+
+  return () => {
+    window.removeEventListener('scroll', onScroll);
+    document.removeEventListener('visibilitychange', onVisibility);
+    window.removeEventListener('pagehide', send);
+  };
 }
 
 /**

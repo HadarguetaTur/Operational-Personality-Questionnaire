@@ -7,14 +7,17 @@ export function QuizShell({ children }: { children: ReactNode }) {
   return (
     <QuizErrorBoundary>
       <div
-        className="qa-theme-2026 relative min-h-screen overflow-hidden bg-[var(--qa-bg)] text-[var(--qa-text-primary)] font-heebo"
+        className="studio-landing qa-theme-2026 relative min-h-screen overflow-hidden bg-[var(--qa-bg)] text-[var(--qa-text-primary)] font-heebo"
         dir="rtl"
       >
-        {/* Atmosphere — matches the home page (gradient blobs + dot grid) */}
+        {/* Atmosphere — matches the home page (animated aurora + dot grid) */}
         <div className="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
-          <div className="absolute top-[-120px] left-1/2 -translate-x-1/2 w-[900px] h-[520px] max-w-[140vw] bg-gradient-to-b from-teal-500/15 via-teal-500/5 to-transparent rounded-full blur-3xl" />
-          <div className="absolute bottom-[-160px] right-[-120px] w-[460px] h-[460px] bg-indigo-600/8 rounded-full blur-3xl" />
-          <div className="qa-dotgrid absolute inset-0" />
+          <div className="studio-aurora opacity-50">
+            <span className="orb orb-1" />
+            <span className="orb orb-2" />
+            <span className="orb orb-3" />
+          </div>
+          <div className="qa-dotgrid absolute inset-0 opacity-60" />
         </div>
 
         <a

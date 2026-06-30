@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { trackEvent } from '@/lib/analytics';
 import {
   SHORT_QUIZ_QUESTIONS,
@@ -25,17 +26,17 @@ function PhaseProgressBar({ currentIndex }: { currentIndex: number }) {
   const phases: (1 | 2 | 3 | 4)[] = [1, 2, 3, 4];
 
   return (
-    <div className="sticky top-0 z-50 bg-[var(--qa-bg)]/80 backdrop-blur-md border-b border-white/[0.06]">
+    <div className="sticky top-0 z-50 bg-[var(--qa-bg)]/80 backdrop-blur-md border-b border-[#dce7ea]">
       <div className="flex justify-between px-4 pt-3 pb-1 max-w-[640px] mx-auto">
         {phases.map((p) => (
           <span
             key={p}
             className={`text-[11px] font-medium tracking-wide transition-colors ${
               p === currentPhase
-                ? 'text-teal-400'
+                ? 'text-[#0e7a6e]'
                 : p < currentPhase
-                ? 'text-white/55'
-                : 'text-white/25'
+                ? 'text-[#7c8884]'
+                : 'text-[#aab4b1]'
             }`}
           >
             {PHASE_NAMES[p]}
@@ -53,7 +54,7 @@ function PhaseProgressBar({ currentIndex }: { currentIndex: number }) {
         ))}
       </div>
       <div className="px-6 pb-2.5 text-right max-w-[640px] mx-auto">
-        <span className="text-[12px] text-white/40">
+        <span className="text-[12px] text-[#7c8884]">
           שאלה {currentIndex + 1} מתוך {TOTAL_QUESTIONS}
         </span>
       </div>
@@ -72,6 +73,7 @@ function QuestionScreen({ questionIndex, onAnswer }: QuestionScreenProps) {
   const question = SHORT_QUIZ_QUESTIONS[questionIndex];
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     setSelectedId(null);
@@ -91,21 +93,29 @@ function QuestionScreen({ questionIndex, onAnswer }: QuestionScreenProps) {
     <div className="flex flex-col min-h-screen text-[var(--qa-text-primary)]" dir="rtl">
       <PhaseProgressBar currentIndex={questionIndex} />
 
-      <div key={questionIndex} className="qa-fade-slide flex-1 flex flex-col justify-center px-6 md:px-8 pb-12 max-w-[640px] w-full mx-auto">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={questionIndex}
+          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, x: 28 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -28 }}
+          transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+          className="flex-1 flex flex-col justify-center px-6 md:px-8 pb-12 max-w-[640px] w-full mx-auto"
+        >
         {question.context && (
-          <p className="text-[12px] font-medium tracking-wider text-teal-400 mb-2.5 text-right">
+          <p className="text-[12px] font-medium tracking-wider text-[#0e7a6e] mb-2.5 text-right">
             {question.context}
           </p>
         )}
         <h2
           ref={headingRef}
           tabIndex={-1}
-          className="text-[23px] md:text-[28px] font-bold leading-snug mb-2 text-right outline-none text-white"
+          className="text-[23px] md:text-[28px] font-bold leading-snug mb-2 text-right outline-none text-[#15302d]"
         >
           {question.text}
         </h2>
         {question.microCopy && (
-          <p className="text-[13px] text-white/45 mb-6 text-right">
+          <p className="text-[13px] text-[#7c8884] mb-6 text-right">
             {question.microCopy}
           </p>
         )}
@@ -126,12 +136,12 @@ function QuestionScreen({ questionIndex, onAnswer }: QuestionScreenProps) {
                   text-[15px] md:text-[16px] font-normal leading-relaxed
                   transition-all duration-200 cursor-pointer
                   flex items-center justify-between gap-3
-                  focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-300
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0e7a6e]
                   ${isSelected
-                    ? 'border-teal-500 bg-teal-500/[0.08] text-white shadow-[0_0_30px_-12px_rgba(20,184,166,0.6)]'
+                    ? 'border-[#0e7a6e] bg-[#0e7a6e]/[0.08] text-[#15302d] shadow-[0_0_30px_-12px_rgba(20,184,166,0.6)]'
                     : isDimmed
-                      ? 'border-white/[0.04] bg-white/[0.01] text-white/40 opacity-50'
-                      : 'border-white/[0.06] bg-white/[0.02] text-white/90 hover:border-teal-500/40 hover:bg-white/[0.05] active:scale-[0.99]'
+                      ? 'border-[#e6eef0] bg-white text-[#7c8884] opacity-50'
+                      : 'border-[#dce7ea] bg-white text-[#15302d] hover:border-[#0e7a6e]/40 hover:bg-[#f1f6f8] active:scale-[0.99]'
                   }
                 `}
               >
@@ -151,11 +161,12 @@ function QuestionScreen({ questionIndex, onAnswer }: QuestionScreenProps) {
           })}
         </div>
         {selectedId === null && (
-          <p className="mt-5 text-[13px] font-semibold text-teal-400/70 text-right">
+          <p className="mt-5 text-[13px] font-semibold text-[#0e7a6e] text-right">
             ← בחרי תשובה אחת כדי להמשיך
           </p>
         )}
-      </div>
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
@@ -213,7 +224,6 @@ export default function ShortQuizFlow() {
 
   return (
     <QuestionScreen
-      key={currentIndex}
       questionIndex={currentIndex}
       onAnswer={handleAnswer}
     />

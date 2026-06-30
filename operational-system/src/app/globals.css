@@ -213,30 +213,30 @@
   background: hsl(var(--accent));
 }
 
-/* 2026 Dark theme for quiz */
+/* Studio light theme for quiz — matches the home page (cool ivory + deep teal) */
 .qa-theme-2026 {
-  --qa-bg: var(--qa-dark-bg) !important;
-  --qa-surface: var(--qa-dark-surface-solid) !important;
-  --qa-text-primary: var(--qa-dark-text) !important;
-  --qa-text-secondary: rgba(255,255,255,0.70) !important;
-  --qa-text-muted: rgba(255,255,255,0.45) !important;
-  --qa-border: rgba(255,255,255,0.08) !important;
-  --qa-border-light: rgba(255,255,255,0.05) !important;
-  --qa-accent: var(--qa-dark-accent) !important;
-  --qa-accent-soft: var(--qa-dark-accent-soft) !important;
-  --qa-accent-hover: rgba(20, 184, 166, 0.18) !important;
+  --qa-bg: #f6f9fb !important;
+  --qa-surface: #ffffff !important;
+  --qa-text-primary: #15302d !important;
+  --qa-text-secondary: #46544f !important;
+  --qa-text-muted: #7c8884 !important;
+  --qa-border: #dce7ea !important;
+  --qa-border-light: #e6eef0 !important;
+  --qa-accent: #0e7a6e !important;
+  --qa-accent-soft: rgba(14, 122, 110, 0.08) !important;
+  --qa-accent-hover: rgba(14, 122, 110, 0.14) !important;
   font-family: 'Heebo', sans-serif !important;
 
-  --report-hero: linear-gradient(135deg, #1e3a4a 0%, #256363 50%, #0d4d4d 100%);
-  --report-card: rgba(26, 35, 50, 0.85);
-  --report-accent: #14b8a6;
-  --report-success: #2dd4bf;
-  --report-gap: #fbbf24;
-  --report-risk: #f87171;
-  --report-direction: #38bdf8;
-  --report-avoid: #fb923c;
-  --report-closing-bg: rgba(26, 35, 50, 0.95);
-  --report-card-soft: rgba(255,255,255,0.05);
+  --report-hero: linear-gradient(135deg, #0e7a6e 0%, #14b8a6 50%, #06b6d4 100%);
+  --report-card: #ffffff;
+  --report-accent: #0e7a6e;
+  --report-success: #0d9488;
+  --report-gap: #b45309;
+  --report-risk: #be123c;
+  --report-direction: #1e40af;
+  --report-avoid: #9a5c3a;
+  --report-closing-bg: rgba(14, 122, 110, 0.06);
+  --report-card-soft: rgba(21, 48, 45, 0.03);
 }
 
 /* ============================
@@ -312,17 +312,21 @@ p, li, h1, h2, h3, span {
 
 /* Quiz atmosphere — dot-grid texture (matches home page) */
 .qa-dotgrid {
-  background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.45) 1px, transparent 0);
-  background-size: 40px 40px;
-  opacity: 0.025;
+  background-image: radial-gradient(circle at 1px 1px, rgba(21, 48, 45, 0.10) 1px, transparent 0);
+  background-size: 38px 38px;
 }
 
-/* Gradient text headline (matches home hero) */
+/* Gradient text headline (matches home hero — animated deep teal flow) */
 .qa-gradient-text {
-  background-image: linear-gradient(to left, #5eead4, #2dd4bf, #34d399);
+  background-image: linear-gradient(100deg, #0e7a6e, #14b8a6, #06b6d4, #14b8a6, #0e7a6e);
+  background-size: 220% auto;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  animation: studioTextFlow 6s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .qa-gradient-text { animation: none; }
 }
 
 /* ============================
@@ -507,6 +511,171 @@ p, li, h1, h2, h3, span {
 
 .cta-section-bg { background: linear-gradient(165deg, #2d3748 0%, #4c5568 40%, #334155 100%); }
 .footer-section-bg { background: rgba(30, 41, 59, 0.9); border-top: 1px solid rgba(255, 255, 255, 0.06); }
+
+/* ============================
+   Studio — warm editorial landing (home page only)
+   ============================ */
+.studio-landing {
+  --st-ivory: #f6f9fb;
+  --st-sand: #eef4f6;
+  --st-white: #ffffff;
+  --st-ink: #15302d;
+  --st-body: #46544f;
+  --st-muted: #7c8884;
+  --st-teal: #0e7a6e;
+  --st-teal-deep: #0b5f56;
+  --st-clay: #0d9488;
+  --st-border: #dce7ea;
+  --st-border-soft: #e6eef0;
+  background-color: var(--st-ivory);
+  color: var(--st-body);
+}
+
+.studio-landing ::selection {
+  background: rgba(13, 148, 136, 0.18);
+  color: var(--st-ink);
+}
+
+/* Headline serif — Frank Ruhl Libre, tuned for Hebrew RTL display */
+.studio-display {
+  font-family: 'Frank Ruhl Libre', 'Heebo', serif;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+  color: var(--st-ink);
+}
+
+/* Cool, crisp light field — atmosphere comes from the animated aurora, not color wash */
+.studio-paper {
+  background-color: var(--st-ivory);
+}
+
+/* ── Animated aurora — drifting gradient orbs behind the hero/sections ── */
+.studio-aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.studio-aurora .orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(70px);
+  opacity: 0.55;
+  will-change: transform;
+}
+.studio-aurora .orb-1 {
+  width: 46vw; height: 46vw; max-width: 620px; max-height: 620px;
+  top: -12%; right: -6%;
+  background: radial-gradient(circle at 30% 30%, #19c2ad, transparent 70%);
+  animation: auroraDrift1 22s ease-in-out infinite;
+}
+.studio-aurora .orb-2 {
+  width: 40vw; height: 40vw; max-width: 540px; max-height: 540px;
+  bottom: -16%; left: -8%;
+  background: radial-gradient(circle at 50% 50%, #34d399, transparent 70%);
+  animation: auroraDrift2 26s ease-in-out infinite;
+}
+.studio-aurora .orb-3 {
+  width: 34vw; height: 34vw; max-width: 460px; max-height: 460px;
+  top: 24%; left: 30%;
+  background: radial-gradient(circle at 50% 50%, #38bdf8, transparent 70%);
+  opacity: 0.4;
+  animation: auroraDrift3 30s ease-in-out infinite;
+}
+@keyframes auroraDrift1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-6%, 8%) scale(1.12); }
+}
+@keyframes auroraDrift2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(8%, -6%) scale(1.1); }
+}
+@keyframes auroraDrift3 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.4; }
+  50% { transform: translate(-10%, -8%) scale(1.18); opacity: 0.55; }
+}
+
+/* Subtle ink dot-grid */
+.studio-dotgrid {
+  background-image: radial-gradient(circle at 1px 1px, rgba(21, 48, 45, 0.10) 1px, transparent 0);
+  background-size: 38px 38px;
+}
+
+/* Gentle continuous float for decorative accents */
+.studio-float { animation: studioFloat 7s ease-in-out infinite; }
+.studio-float-slow { animation: studioFloat 11s ease-in-out infinite; }
+@keyframes studioFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Animated gradient text for highlighted headline words */
+.studio-gradient-text {
+  background-image: linear-gradient(100deg, #0e7a6e, #14b8a6, #06b6d4, #14b8a6, #0e7a6e);
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: studioTextFlow 6s linear infinite;
+}
+@keyframes studioTextFlow {
+  to { background-position: 220% center; }
+}
+
+/* Gradient underline accent for a single highlighted phrase */
+.studio-underline {
+  background-image: linear-gradient(transparent 60%, rgba(20, 184, 166, 0.32) 60%, rgba(6, 182, 212, 0.32) 92%, transparent 92%);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  padding: 0 0.04em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-aurora .orb,
+  .studio-float, .studio-float-slow,
+  .studio-gradient-text { animation: none !important; }
+}
+
+.studio-cta-shine {
+  position: relative;
+  overflow: hidden;
+}
+.studio-cta-shine::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -120%;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: skewX(-18deg);
+  transition: right 0.9s ease;
+}
+.studio-cta-shine:hover::after { right: 130%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-cta-shine::after { transition: none; }
+}
+
+/* Airbnb-style gradient CTA — rich diagonal fill that shifts & deepens on hover.
+   Stays on-brand (teal family); the bright end gives it life on the warm paper. */
+.studio-cta-grad {
+  background-image: linear-gradient(118deg, #17b3a3 0%, #0e8a7c 42%, #0b5f56 100%);
+  background-size: 185% 100%;
+  background-position: 0% 50%;
+  transition:
+    background-position 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s ease,
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.studio-cta-grad:hover {
+  background-position: 100% 50%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-cta-grad { transition: box-shadow 0.2s ease; }
+}
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
