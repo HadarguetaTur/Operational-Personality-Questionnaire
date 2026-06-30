@@ -180,6 +180,9 @@ export default function ShortQuizFlow() {
 
   useEffect(() => {
     trackEvent('quiz_start');
+    if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+      window.fbq('track', 'ViewContent', { content_name: 'quiz_start' });
+    }
   }, []);
 
   const handleAnswer = useCallback(

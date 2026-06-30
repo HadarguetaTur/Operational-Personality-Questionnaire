@@ -108,6 +108,9 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
       }
 
       trackEvent('cta_click', { ctaId: 'quiz_lead_submit', metadata: { result_type: resultType } });
+      if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+        window.fbq('track', 'Lead', { content_name: 'quiz_lead_submit' });
+      }
 
       // Best-effort attribution — never blocks the redirect.
       try {

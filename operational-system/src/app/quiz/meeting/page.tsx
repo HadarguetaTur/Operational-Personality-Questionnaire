@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import Link from 'next/link';
 import {
   SCOPING_CALL_TITLE,
@@ -116,6 +117,10 @@ export default async function MeetingPage({
           </Link>
         </div>
       </div>
+
+      <Script id="fb-schedule" strategy="afterInteractive">
+        {`if(typeof fbq==='function'){fbq('track','Schedule',{content_name:'meeting_page'});}`}
+      </Script>
     </div>
   );
 }
