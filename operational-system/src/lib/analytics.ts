@@ -9,23 +9,23 @@ const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 export type LandingEventType = 'page_view' | 'cta_click' | 'quiz_start';
 
-/** Public production host. Only traffic on this domain writes to landing_events. */
-const PROD_HOSTNAME = 'hadarturgemanautomations.com';
-
 /**
- * Central gate for all analytics writes. Returns true only for real production
- * traffic, keeping dev/preview noise out of the landing_events table.
+ * Central gate for all analytics writes. Blocklist, not allowlist: it drops ONLY
+ * local development hosts and passes every real host through — the production
+ * domain, `www`, and any host the paid campaign happens to land on (e.g. a
+ * `*.vercel.app` URL set as the ad destination).
  *
- * - `NODE_ENV !== 'production'` blocks every local `next dev` run outright.
- * - The positive hostname allowlist (prod domain + its subdomains) additionally
- *   blocks localhost / 127.0.0.1 / *.local AND Vercel preview/staging URLs, which
- *   are production builds served on a non-production host.
+ * Guiding principle: when in doubt, send. A little local/preview noise is far
+ * cheaper than blindly dropping paid production traffic. A prior positive
+ * allowlist keyed on the apex domain silently blocked all paid traffic that
+ * landed on any other host.
  */
-function isProductionTraffic(): boolean {
-  if (process.env.NODE_ENV !== 'production') return false;
+function isTrackableHost(): boolean {
   if (typeof window === 'undefined') return false;
   const host = window.location.hostname.toLowerCase();
-  return host === PROD_HOSTNAME || host.endsWith(`.${PROD_HOSTNAME}`);
+  if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return false;
+  if (host.endsWith('.local') || host.endsWith('.localhost')) return false;
+  return true;
 }
 
 function safeUUID(): string {
@@ -174,8 +174,8 @@ function insertLandingEventViaBeacon(row: Record<string, unknown>): boolean {
  */
 export async function trackEvent(eventType: LandingEventType, opts: TrackOptions = {}): Promise<void> {
   if (typeof window === 'undefined') return;
-  // Single central guard: drop all dev/preview traffic before any network write.
-  if (!isProductionTraffic()) return;
+  // Single central guard: drop only local-dev traffic; send everything else.
+  if (!isTrackableHost()) return;
   try {
     const row = buildLandingEventRow(eventType, opts);
 
