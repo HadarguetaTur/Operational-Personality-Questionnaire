@@ -9,6 +9,25 @@ const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 export type LandingEventType = 'page_view' | 'cta_click' | 'quiz_start';
 
+/** Public production host. Only traffic on this domain writes to landing_events. */
+const PROD_HOSTNAME = 'hadarturgemanautomations.com';
+
+/**
+ * Central gate for all analytics writes. Returns true only for real production
+ * traffic, keeping dev/preview noise out of the landing_events table.
+ *
+ * - `NODE_ENV !== 'production'` blocks every local `next dev` run outright.
+ * - The positive hostname allowlist (prod domain + its subdomains) additionally
+ *   blocks localhost / 127.0.0.1 / *.local AND Vercel preview/staging URLs, which
+ *   are production builds served on a non-production host.
+ */
+function isProductionTraffic(): boolean {
+  if (process.env.NODE_ENV !== 'production') return false;
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname.toLowerCase();
+  return host === PROD_HOSTNAME || host.endsWith(`.${PROD_HOSTNAME}`);
+}
+
 function safeUUID(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -155,6 +174,8 @@ function insertLandingEventViaBeacon(row: Record<string, unknown>): boolean {
  */
 export async function trackEvent(eventType: LandingEventType, opts: TrackOptions = {}): Promise<void> {
   if (typeof window === 'undefined') return;
+  // Single central guard: drop all dev/preview traffic before any network write.
+  if (!isProductionTraffic()) return;
   try {
     const row = buildLandingEventRow(eventType, opts);
 

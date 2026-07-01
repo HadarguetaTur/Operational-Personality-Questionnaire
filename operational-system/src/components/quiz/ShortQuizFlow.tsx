@@ -189,7 +189,14 @@ export default function ShortQuizFlow() {
   const [answers, setAnswers] = useState<string[]>([]);
   const [resultType, setResultType] = useState<ResultType>('CENTRALIZED');
 
+  const quizStartFired = useRef(false);
   useEffect(() => {
+    // Guard against React StrictMode's double-invoke (mount→unmount→remount in dev),
+    // which otherwise fires quiz_start twice ~2ms apart. The ref persists across the
+    // remount, so the event is emitted exactly once per real mount.
+    if (quizStartFired.current) return;
+    quizStartFired.current = true;
+
     trackEvent('quiz_start');
     if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
       window.fbq('track', 'ViewContent', { content_name: 'quiz_start' });
