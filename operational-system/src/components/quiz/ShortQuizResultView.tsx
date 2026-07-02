@@ -101,7 +101,7 @@ export function ShortQuizResultView({
           <section className="mb-9 p-5 rounded-2xl border border-[#0e7a6e]/30 bg-[#0e7a6e]/[0.07] backdrop-blur-sm">
             <p className="text-[15px] md:text-[16px] text-[#46544f] leading-relaxed mb-4">
               הצעד הבא הוא שיחת אסטרטגיה איתי: שעה אחת על התהליך שלך, ובסופה מפה
-              כתובה של מה לסדר ראשון. 350 ש&quot;ח, מקוזזים במלואם מהפרויקט אם ממשיכות יחד.
+              כתובה ומתועדפת של מה לסדר ראשון. 350 ש&quot;ח, והסכום מקוזז במלואו מהפרויקט אם ממשיכות יחד.
             </p>
             <Link
               href={`${MEETING_PATH}?p=${resultType.toLowerCase()}${token ? `&token=${token}` : ''}`}

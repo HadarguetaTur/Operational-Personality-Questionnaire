@@ -46,7 +46,7 @@ export default async function MeetingPage({
         <p className="text-[17px] text-[#46544f] leading-relaxed mb-8">
           עברת את הבדיקה, אז את כבר יודעת איפה זה דולף. בשיחת האסטרטגיה אנחנו
           הופכות את זה לתוכנית: עוברות יחד על התהליך שלך, מסמנות מה עולה לך הכי
-          הרבה, ואת יוצאת עם מסמך כתוב שנשאר אצלך, גם אם נעצור שם.
+          הרבה, ואת יוצאת עם מפה כתובה ומתועדפת שנשארת אצלך, גם אם נעצור שם.
         </p>
 
         <section className="mb-8 p-6 rounded-2xl border border-[#0e7a6e]/30 bg-[#0e7a6e]/[0.06] backdrop-blur-sm shadow-[0_0_40px_-20px_rgba(20,184,166,0.35)]">
@@ -88,7 +88,7 @@ export default async function MeetingPage({
         <PaymentCta href={paymentUrl} pattern={p ?? null} />
 
         <p className="mt-4 text-center text-[14px] text-[#46544f] leading-relaxed">
-          מיד אחרי התשלום נתאם את המועד שנוח לך.
+          מיד אחרי התשלום תגיעי למסך תיאום, ובוחרות יחד את המועד שנוח לך.
         </p>
 
         {/* Secondary path: questions before paying — WhatsApp bot or the assistant chat. */}

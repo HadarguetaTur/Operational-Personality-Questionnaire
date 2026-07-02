@@ -18,7 +18,7 @@ const LP_CTA_LABEL = 'גלי איפה הכסף נוזל';
 const LP_CTA_MICRO = '10 שאלות קצרות · כ-3 דקות · בלי הכנה ובלי כרטיס אשראי';
 
 const LP_IDENTIFICATION = [
-  'הפולואפ קורה רק אם את זוכרת.',
+  'לקוחה מחכה לתשובה שלך, אבל היא מגיעה רק כשאת נזכרת.',
   'הוואטסאפ הוא עדיין מערכת הניהול האמיתית שלך.',
   'תיאומים, תזכורות וחשבוניות לוקחים לך שעות בשבוע.',
   'כשאת לא זמינה, דברים פשוט מחכים.',
@@ -43,10 +43,9 @@ const LP_STEPS = [
 ];
 
 const LP_DELIVERABLES = [
-  'הדפוס שזיהינו אצלך, איפה בדיוק הכסף והזמן נוזלים בדרך.',
-  'התחום שהכי עמוס אצלך כרגע, זה שכדאי להסתכל עליו ראשון.',
-  'תחום אחד שכדאי לסדר ראשון, עם הסבר למה.',
-  'צעד ספציפי ומוגדר, לא עצות כלליות.',
+  'הדפוס שזיהינו אצלך: איפה בדיוק הכסף והזמן נוזלים בדרך.',
+  'התחום שהכי עמוס אצלך כרגע, וההסבר למה כדאי לסדר אותו ראשון.',
+  'צעד ראשון ספציפי ומוגדר, שאפשר להתחיל בו כבר היום.',
 ];
 
 /* The three objections cold traffic actually has, answered before the quiz. */
@@ -162,16 +161,17 @@ export default function CampaignLandingPage() {
           <FadeIn delay={140}>
             <h1 className="studio-display font-black text-[2.5rem] leading-[1.1] sm:text-5xl sm:leading-[1.12] md:text-6xl md:leading-[1.1] mb-5">
               כל העסק שלך חי{' '}
-              <span className="studio-gradient-text">בוואטסאפ</span> ובזיכרון שלך.
-              <br className="hidden sm:block" /> וזה עולה לך כסף, <span className="studio-underline">בשקט</span>.
+              <span className="studio-gradient-text">בוואטסאפ</span> ובזיכרון שלך?
+              <br className="hidden sm:block" /> גלי בדיוק איפה זה{' '}
+              <span className="studio-underline">עולה לך כסף</span>.
             </h1>
           </FadeIn>
 
           <FadeIn delay={220}>
             <p className="text-lg md:text-xl text-[#46544f] leading-relaxed mb-8 max-w-2xl mx-auto">
-              עני על 10 שאלות קצרות וקבלי תמונה אישית: איפה בדיוק פניות, זמן
-              וגבייה נוזלים אצלך בדרך, ומה הצעד הראשון שמחזיר לך שליטה. בלי עוד
-              מערכת, ובלי לאבד את היחס האישי.
+              10 שאלות קצרות, ותמונה אישית בסוף: איפה בדיוק פניות, זמן וכסף
+              נוזלים לך בדרך, ומה הצעד הראשון לסדר. בלי להתקין עוד מערכת ובלי
+              לאבד את היחס האישי.
             </p>
           </FadeIn>
 
@@ -217,7 +217,7 @@ export default function CampaignLandingPage() {
                   ))}
                 </div>
                 <p className="text-sm text-[#46544f]">
-                  <span className="font-semibold text-[#15302d]">לאה, נעמי, רחל</span> ועוד, כבר עשו סדר בתהליכים.
+                  <span className="font-semibold text-[#15302d]">לאה, נעמי, רחל</span> ועוד, כבר העבירו את הניהול מהראש לתהליך מסודר.
                 </p>
               </div>
             </div>
@@ -292,7 +292,7 @@ export default function CampaignLandingPage() {
           <FadeIn>
             <Eyebrow>מה מקבלים בסוף</Eyebrow>
             <h2 className="studio-display text-3xl md:text-5xl text-center mb-12 leading-tight">
-              ארבעה פריטים. לא סיכום. לא עצות.
+              תמונה אחת ברורה, שנשארת אצלך.
             </h2>
           </FadeIn>
           <div className="space-y-3">

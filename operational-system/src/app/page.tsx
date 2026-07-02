@@ -116,7 +116,7 @@ const NAV_LINKS: { id: string; label: string }[] = [
 ];
 
 const IDENTIFICATION_ITEMS = [
-  'הפולואפ קורה רק אם את זוכרת.',
+  'לקוחה מחכה לתשובה שלך, אבל היא מגיעה רק כשאת נזכרת.',
   'הוואטסאפ הוא עדיין מערכת הניהול האמיתית שלך.',
   'תיאומים, תזכורות וחשבוניות לוקחים לך שעות בשבוע.',
   'כשאת לא זמינה, דברים פשוט מחכים.',
@@ -142,10 +142,9 @@ const PROCESS_STEPS = [
 ];
 
 const DELIVERABLES = [
-  'הדפוס שזיהינו אצלך — איפה בדיוק הכסף והזמן נוזלים בדרך.',
-  'התחום שהכי עמוס אצלך כרגע, זה שכדאי להסתכל עליו ראשון.',
-  'תחום אחד שכדאי לסדר ראשון, עם הסבר למה.',
-  'צעד ספציפי ומוגדר — לא עצות כלליות.',
+  'הדפוס שזיהינו אצלך: איפה בדיוק הכסף והזמן נוזלים בדרך.',
+  'התחום שהכי עמוס אצלך כרגע, וההסבר למה כדאי לסדר אותו ראשון.',
+  'צעד ראשון ספציפי ומוגדר, שאפשר להתחיל בו כבר היום.',
 ];
 
 /* Hero trust row — three real clients shown as initial chips */
@@ -307,7 +306,7 @@ export default function HomePage() {
                 ))}
               </div>
               <p className="text-sm text-[#46544f]">
-                <span className="font-semibold text-[#15302d]">לאה, נעמי, רחל</span> ועוד — כבר עשו סדר בתהליכים.
+                <span className="font-semibold text-[#15302d]">לאה, נעמי, רחל</span> ועוד — כבר העבירו את הניהול מהראש לתהליך מסודר.
               </p>
             </div>
           </FadeIn>
@@ -480,7 +479,7 @@ export default function HomePage() {
           <FadeIn>
             <Eyebrow>מה מקבלים בסוף</Eyebrow>
             <h2 className="studio-display text-3xl md:text-5xl text-center mb-12 leading-tight">
-              ארבעה פריטים. לא סיכום. לא עצות.
+              תמונה אחת ברורה, שנשארת אצלך.
             </h2>
           </FadeIn>
           <div className="space-y-3">

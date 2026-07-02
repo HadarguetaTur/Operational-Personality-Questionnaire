@@ -29,7 +29,9 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [marketingConsent, setMarketingConsent] = useState(true);
+  // Unchecked by default — pre-checked marketing consent conflicts with the
+  // Israeli spam law's opt-in requirement.
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const [termsConsent, setTermsConsent] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -151,7 +153,7 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
           רגע לפני התוצאה
         </p>
         <h1 className="studio-display text-[28px] md:text-[34px] font-black leading-tight mb-3">
-          <span className="qa-gradient-text">לאן לשלוח לך את התמונה המלאה?</span>
+          <span className="qa-gradient-text">לאן לשלוח לך את התמונה האישית?</span>
         </h1>
         <p className="text-[15px] text-[#46544f] leading-relaxed mb-7">
           השאירי פרטים ואראה לך מיד איפה הכסף נוזל אצלך, ומה הצעד הראשון לסדר.
@@ -306,7 +308,7 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
             aria-busy={submitting}
             className="mt-1 w-full h-14 rounded-xl bg-gradient-to-l from-teal-500 via-teal-500 to-emerald-500 text-white text-[17px] font-bold tracking-tight shadow-[0_10px_40px_-12px_rgba(20,184,166,0.55)] transition-all duration-300 hover:shadow-[0_18px_60px_-12px_rgba(20,184,166,0.7)] hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0e7a6e] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--qa-bg)]"
           >
-            {submitting ? 'רגע, מכינה לך את התמונה...' : 'לתוצאה שלי ←'}
+            {submitting ? 'רגע, מכינה לך את התמונה...' : 'לתמונה האישית שלי ←'}
           </button>
 
           <p className="text-[12px] text-[#7c8884] text-center leading-relaxed">

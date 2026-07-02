@@ -56,6 +56,7 @@ function PhaseProgressBar({ currentIndex }: { currentIndex: number }) {
       <div className="px-6 pb-2.5 text-right max-w-[640px] mx-auto">
         <span className="text-[12px] text-[#7c8884]">
           שאלה {currentIndex + 1} מתוך {TOTAL_QUESTIONS}
+          {currentIndex === 0 ? ' · כ-3 דקות' : ''}
         </span>
       </div>
     </div>

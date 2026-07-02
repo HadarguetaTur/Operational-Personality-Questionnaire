@@ -59,8 +59,8 @@ export default function MeetingThanksPage() {
 
         <p className="mt-6 text-[14px] text-[#7c8884] leading-relaxed">
           תזכורת להתחייבות שלי: אם בסוף השיחה תרגישי שלא קיבלת ערך אמיתי, את
-          מקבלת את מלוא הסכום בחזרה. ואם נמשיך לפרויקט, ה-350 ש&quot;ח מקוזזים ממנו
-          במלואם.
+          מקבלת את מלוא הסכום בחזרה. ואם נמשיך לפרויקט, הסכום מקוזז במלואו
+          מהמחיר.
         </p>
 
         <div className="mt-8 text-center">

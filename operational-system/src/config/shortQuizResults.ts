@@ -292,8 +292,8 @@ export const SCOPING_CALL_TITLE = 'מה את מקבלת בשיחת האסטרט�
 export const SCOPING_CALL_VALUE: string[] = [
   'שעה מלאה איתי, אחת על אחת, על התהליך שלך. עוברות על מה שעלה בבדיקה ועל איך זה קורה אצלך בפועל.',
   'מסמנות יחד איפה בדיוק נושרות אצלך פניות, זמן וכסף, ומה שווה לסדר קודם.',
-  'את יוצאת עם מפת אוטומציה כתובה ומתועדפת: מה לסדר ראשון, מה אחר כך, ולמה. המסמך נשאר אצלך גם אם לא נמשיך לעבוד יחד.',
-  'אם מחליטות להמשיך לפרויקט, מלוא הסכום ששילמת מקוזז מהמחיר שלו.',
+  'את יוצאת עם מפה כתובה ומתועדפת: מה לסדר ראשון, מה אחר כך, ולמה. המפה נשארת אצלך גם אם לא נמשיך לעבוד יחד.',
+  'אם מחליטות להמשיך לפרויקט, הסכום ששילמת מקוזז במלואו מהמחיר.',
 ];
 
 /**
@@ -305,19 +305,30 @@ export const SCOPING_CALL_TRUST =
 
 /** The strategy-call terms: what it costs, what she keeps, where it leads. */
 export const SCOPING_CALL_PROMISE = {
-  plan: 'שיחת האסטרטגיה אורכת כשעה ועולה 350 ש"ח. בסופה נשאר אצלך מסמך עבודה כתוב, וברור לך מה הצעד הראשון, גם אם תחליטי לבצע אותו בעצמך.',
+  plan: 'שיחת האסטרטגיה אורכת כשעה ועולה 350 ש"ח. בסופה נשארת אצלך מפה כתובה ומתועדפת, וברור לך מה הצעד הראשון, גם אם תחליטי לבצע אותו בעצמך.',
   price:
-    'אם נמשיך יחד לפרויקט, ה-350 ש"ח מקוזזים ממנו במלואם. פרויקטים אצלי נעים לרוב בין 5,000 ל-15,000 ש"ח, כך שאת יודעת לאן זה הולך עוד לפני שהתחלנו.',
+    'אם נמשיך יחד לפרויקט, הסכום מקוזז במלואו מהמחיר. פרויקטים אצלי נעים לרוב בין 5,000 ל-15,000 ש"ח, כך שאת יודעת לאן זה הולך עוד לפני שהתחלנו.',
 };
 
 /** Bridge line: pivots from the free steps to the paid, deliverable-led call. */
 export const SCOPING_CALL_BRIDGE =
   'את כבר רואה איפה זה דולף. הצעד הבא הוא לא עוד טיפ כללי, אלא שיחת אסטרטגיה ממוקדת איתי, שבסופה יש לך מפה כתובה של מה לסדר אצלך, באיזה סדר, ולמה.';
 
-/** Refund microcopy shown right next to the payment CTA. */
+/**
+ * Refund microcopy shown right next to the payment CTA. Separates the two
+ * promises so neither reads as conditional on the other: value guarantee
+ * (after the call) vs. advance cancellation (before it).
+ */
 export const SCOPING_CALL_GUARANTEE =
-  'לא יצא לך ערך מהשיחה? החזר מלא. אפשר לבטל עד 24 שעות לפני, בהחזר מלא.';
+  'אם בסוף השיחה תרגישי שלא קיבלת ערך, את מקבלת החזר מלא, בלי שאלות. צריך לבטל מראש? עד 24 שעות לפני המועד, בהחזר מלא.';
 
-/** Short label for the payment CTA itself. */
-export const SCOPING_CALL_CTA_LABEL = 'לקביעת שיחת האסטרטגיה, 350 ש"ח';
+/** Journey CTA (result page → meeting page). Names the destination, not a booking. */
+export const SCOPING_CALL_CTA_LABEL = 'לשיחת האסטרטגיה, 350 ש"ח';
 export const SCOPING_CALL_CTA_SUB = 'מקוזז במלואו מהפרויקט אם ממשיכות יחד';
+
+/**
+ * Payment CTA (meeting page → Sumit). Says payment explicitly — the click
+ * opens a payment page, not a calendar, and the label must not promise otherwise.
+ */
+export const SCOPING_CALL_PAY_LABEL = 'לתשלום וקביעת השיחה';
+export const SCOPING_CALL_PAY_SUB = '350 ש"ח · מקוזז במלואו מהפרויקט';
