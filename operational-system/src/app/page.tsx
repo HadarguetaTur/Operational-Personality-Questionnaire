@@ -126,7 +126,7 @@ const IDENTIFICATION_ITEMS = [
 const PROCESS_STEPS = [
   {
     num: '01',
-    title: 'כמה שאלות קצרות, פחות מ-4 דקות',
+    title: '10 שאלות קצרות, כ-3 דקות',
     desc: 'מסך נקי, שאלה אחת בכל פעם. שאלות שמדברות בשפה שלך — פניות, זמן, גבייה — ומאירות איפה זה נתקע.',
   },
   {
@@ -270,15 +270,16 @@ export default function HomePage() {
           <FadeIn delay={140}>
             <h1 className="studio-display font-black text-[2.6rem] leading-[1.08] sm:text-5xl sm:leading-[1.12] md:text-6xl md:leading-[1.1] mb-5">
               כל העסק שלך חי{' '}
-              <span className="studio-gradient-text">בוואטסאפ</span>
-              <br className="hidden sm:block" /> ובזיכרון{' '}
-              <span className="studio-underline">שלך</span>.
+              <span className="studio-gradient-text">בוואטסאפ</span> ובזיכרון שלך.
+              <br className="hidden sm:block" /> וזה עולה לך כסף,{' '}
+              <span className="studio-underline">בשקט</span>.
             </h1>
           </FadeIn>
 
           <FadeIn delay={220}>
             <p className="text-lg md:text-xl text-[#46544f] leading-relaxed mb-8 max-w-2xl mx-auto">
-              את עונה, מתאמת, נזכרת ועוקבת. וכשמשהו נופל בין כל אלה, זה נופל בשקט — ועולה לך כסף.
+              עני על 10 שאלות קצרות וקבלי תמונה אישית: איפה בדיוק פניות, זמן
+              וגבייה נוזלים אצלך בדרך, ומה הצעד הראשון שמחזיר לך שליטה.
             </p>
           </FadeIn>
 
@@ -287,7 +288,7 @@ export default function HomePage() {
               <PrimaryCta onClick={() => goToQuiz('hero_primary')} className="w-full sm:w-auto">
                 {CTA_LABEL}
               </PrimaryCta>
-              <p className="text-sm text-[#7c8884]">בלי עלות · פחות מ-4 דקות · בלי הכנה מראש</p>
+              <p className="text-sm text-[#7c8884]">בלי עלות · 10 שאלות · כ-3 דקות · בלי הכנה מראש</p>
             </div>
           </FadeIn>
 

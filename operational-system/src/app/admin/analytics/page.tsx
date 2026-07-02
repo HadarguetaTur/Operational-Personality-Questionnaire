@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, MousePointerClick, Rocket, TrendingUp, Users } from 'lucide-react';
+import { CreditCard, Eye, MousePointerClick, Rocket, TrendingUp, Users } from 'lucide-react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -16,7 +16,7 @@ import {
 } from 'recharts';
 
 interface LandingEvent {
-  event_type: 'page_view' | 'cta_click' | 'quiz_start';
+  event_type: 'page_view' | 'cta_click' | 'quiz_start' | 'payment_click';
   visitor_id: string | null;
   cta_id: string | null;
   utm_source: string | null;
@@ -44,6 +44,7 @@ interface DailyRow {
   page_views: number;
   cta_clicks: number;
   quiz_starts: number;
+  payment_clicks: number;
 }
 
 interface SourceRow {
@@ -53,6 +54,7 @@ interface SourceRow {
   page_views: number;
   cta_clicks: number;
   quiz_starts: number;
+  payment_clicks: number;
   ctr: number;
 }
 
@@ -108,12 +110,13 @@ export default function AnalyticsPage() {
     const pageViews = events.filter(e => e.event_type === 'page_view').length;
     const ctaClicks = events.filter(e => e.event_type === 'cta_click').length;
     const quizStarts = events.filter(e => e.event_type === 'quiz_start').length;
+    const paymentClicks = events.filter(e => e.event_type === 'payment_click').length;
     const uniqueVisitors = new Set(
       events.filter(e => e.event_type === 'page_view' && e.visitor_id).map(e => e.visitor_id)
     ).size;
     const ctaCtr = pageViews > 0 ? (ctaClicks / pageViews) * 100 : 0;
     const completionRate = ctaClicks > 0 ? (quizStarts / ctaClicks) * 100 : 0;
-    return { pageViews, ctaClicks, quizStarts, uniqueVisitors, ctaCtr, completionRate };
+    return { pageViews, ctaClicks, quizStarts, paymentClicks, uniqueVisitors, ctaCtr, completionRate };
   }, [events]);
 
   const daily: DailyRow[] = useMemo(() => {
@@ -123,7 +126,7 @@ export default function AnalyticsPage() {
       const d = new Date();
       d.setDate(d.getDate() - i);
       const key = formatDay(d);
-      buckets.set(key, { day: key, label: formatDayShort(d), page_views: 0, cta_clicks: 0, quiz_starts: 0 });
+      buckets.set(key, { day: key, label: formatDayShort(d), page_views: 0, cta_clicks: 0, quiz_starts: 0, payment_clicks: 0 });
     }
     for (const e of events) {
       const key = formatDay(new Date(e.created_at));
@@ -132,6 +135,7 @@ export default function AnalyticsPage() {
       if (e.event_type === 'page_view')  bucket.page_views++;
       if (e.event_type === 'cta_click')  bucket.cta_clicks++;
       if (e.event_type === 'quiz_start') bucket.quiz_starts++;
+      if (e.event_type === 'payment_click') bucket.payment_clicks++;
     }
     return Array.from(buckets.values());
   }, [events, range]);
@@ -145,12 +149,13 @@ export default function AnalyticsPage() {
       const key = `${source}|${medium}|${campaign}`;
       let row = map.get(key);
       if (!row) {
-        row = { source, medium, campaign, page_views: 0, cta_clicks: 0, quiz_starts: 0, ctr: 0 };
+        row = { source, medium, campaign, page_views: 0, cta_clicks: 0, quiz_starts: 0, payment_clicks: 0, ctr: 0 };
         map.set(key, row);
       }
       if (e.event_type === 'page_view')  row.page_views++;
       if (e.event_type === 'cta_click')  row.cta_clicks++;
       if (e.event_type === 'quiz_start') row.quiz_starts++;
+      if (e.event_type === 'payment_click') row.payment_clicks++;
     }
     return Array.from(map.values())
       .map(r => ({ ...r, ctr: r.page_views > 0 ? (r.cta_clicks / r.page_views) * 100 : 0 }))
@@ -211,11 +216,12 @@ export default function AnalyticsPage() {
       )}
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <KpiCard icon={Eye} label="צפיות בדף" value={kpis.pageViews} loading={loading} />
         <KpiCard icon={Users} label="מבקרים ייחודיים" value={kpis.uniqueVisitors} loading={loading} />
         <KpiCard icon={MousePointerClick} label="לחיצות על CTA" value={kpis.ctaClicks} loading={loading} />
         <KpiCard icon={Rocket} label="התחילו שאלון" value={kpis.quizStarts} loading={loading} />
+        <KpiCard icon={CreditCard} label="מעבר לתשלום" value={kpis.paymentClicks} loading={loading} />
         <KpiCard
           icon={TrendingUp}
           label="CTR (לחיצה / צפייה)"
@@ -248,6 +254,7 @@ export default function AnalyticsPage() {
                   <Bar dataKey="page_views" name="צפיות"     fill="#0d9488" />
                   <Bar dataKey="cta_clicks" name="לחיצות"   fill="#f59e0b" />
                   <Bar dataKey="quiz_starts" name="התחלו שאלון" fill="#155e75" />
+                  <Bar dataKey="payment_clicks" name="מעבר לתשלום" fill="#7c3aed" />
                 </BarChart>
               </ResponsiveContainer>
             )}
