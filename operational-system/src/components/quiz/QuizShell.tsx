@@ -7,7 +7,7 @@ export function QuizShell({ children }: { children: ReactNode }) {
   return (
     <QuizErrorBoundary>
       <div
-        className="studio-landing qa-theme-2026 relative min-h-screen overflow-hidden bg-[var(--qa-bg)] text-[var(--qa-text-primary)] font-heebo"
+        className="studio-landing qa-theme-2026 relative min-h-screen overflow-hidden bg-[var(--qa-bg)] text-[var(--qa-text-primary)] font-assistant"
         dir="rtl"
       >
         {/* Atmosphere — matches the home page (animated aurora + dot grid) */}

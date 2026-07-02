@@ -8,7 +8,7 @@ export const QUIZ_COMPLETION_EMAIL_METADATA_KIND = 'quiz_completion' as const;
 export const QUIZ_COMPLETION_TEMPLATE_NAME = 'quiz_completion' as const;
 
 export const defaultQuizCompletionSubjectTemplate =
-  'התמונה האישית שלך מוכנה, {{name}}';
+  '{{name}}, ראיתי איפה הכסף שלך נוזל';
 
 export interface RoiEmailData {
   result_type?: string;
@@ -43,10 +43,10 @@ function ctaBlockHtml(whatsappUrl: string): string {
   return `
     <div style="margin: 32px 0; padding: 24px; background: #f1f5f9; border-radius: 10px; text-align: center;">
       <p style="color: #334155; font-size: 16px; line-height: 1.7; margin: 0 0 18px 0; font-weight: 600;">
-        רוצה לעבור על הדוח יחד?
+        רוצה לעבור על התמונה שלך יחד?
       </p>
       <p style="color: #475569; font-size: 14px; margin: 0 0 18px 0;">
-        אפשר לכתוב לי בוואטסאפ ונתאם שיחה קצרה ישירות שם.
+        כתבי לי בוואטסאפ. אני כבר מכירה את התשובות שלך, אז השיחה מתחילה מהנקודה שחשובה לך.
       </p>
       ${waBtn}
     </div>`;
@@ -63,17 +63,17 @@ export function getDefaultQuizCompletionHtmlTemplate(): string {
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
 <body style="font-family: 'Heebo', Arial, sans-serif; background: #f8fafc; padding: 40px 20px; direction: rtl;">
   <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-    <h1 style="color: #1e293b; font-size: 22px; margin: 0 0 16px 0;">שלום {{name}},</h1>
+    <h1 style="color: #1e293b; font-size: 22px; margin: 0 0 16px 0;">היי {{name}},</h1>
     <p style="color: #475569; font-size: 16px; line-height: 1.7; margin: 0 0 12px 0;">
-      תודה שעשית את הבדיקה "איפה הכסף?". התמונה האישית שלך מוכנה.
+      עברתי על התשובות שלך בבדיקה "איפה הכסף?". התמונה של העסק שלך מוכנה.
     </p>
 
     <p style="color: #475569; font-size: 16px; line-height: 1.7; margin: 0 0 8px 0;">
-      התמונה המלאה, עם הדפוס שזיהינו אצלך והצעד הראשון שכדאי לעשות, מחכה לך בקישור הבא:
+      הדפוס שזיהינו אצלך והצעד הראשון שלך מחכים לך כאן:
     </p>
     <div style="text-align: center; margin: 28px 0;">
       <a href="{{report_url}}" style="background: #14b8a6; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
-        לצפייה בתוצאה המלאה ←
+        לתמונת המצב העסקית שלי ←
       </a>
     </div>
     <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin: 0 0 24px 0;">
@@ -82,9 +82,9 @@ export function getDefaultQuizCompletionHtmlTemplate(): string {
 
     <h2 style="color: #1e293b; font-size: 18px; margin: 24px 0 12px 0;">מה מחכה לך בתמונה המלאה</h2>
     <ul style="color: #475569; font-size: 15px; line-height: 1.75; margin: 0; padding: 0 24px 0 0;">
-      <li style="margin-bottom: 8px;">הדפוס שזיהינו אצלך, ואיפה הכסף והזמן נוזלים בדרך</li>
-      <li style="margin-bottom: 8px;">התחום שכדאי לסדר ראשון, עם הסבר למה</li>
-      <li style="margin-bottom: 8px;">שלושה צעדים שאפשר להתחיל מהם כבר עכשיו</li>
+      <li style="margin-bottom: 8px;">הדפוס שזיהינו אצלך, ואיפה הכסף והזמן שלך נוזלים בדרך</li>
+      <li style="margin-bottom: 8px;">התחום שכדאי לך לסדר ראשון, עם הסבר למה</li>
+      <li style="margin-bottom: 8px;">שלושה צעדים שאת יכולה להתחיל מהם כבר עכשיו</li>
     </ul>
 
     <h2 style="color: #1e293b; font-size: 18px; margin: 28px 0 12px 0;">קצת עליי</h2>

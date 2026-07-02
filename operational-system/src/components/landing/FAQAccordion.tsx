@@ -7,7 +7,7 @@ import { FadeInSection } from './FadeInSection';
 
 const ChevronDown: React.FC<{ open: boolean; variant?: 'landing' | 'home' }> = ({ open, variant = 'landing' }) => (
   <svg
-    className={`w-5 h-5 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''} ${variant === 'home' ? 'text-[#0e7a6e]' : 'text-[var(--landing-primary)]'}`}
+    className={`w-5 h-5 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''} ${variant === 'home' ? 'text-[#5B3FC4]' : 'text-[var(--landing-primary)]'}`}
     fill="none"
     viewBox="0 0 24 24"
     stroke="currentColor"
@@ -33,13 +33,13 @@ export const FAQAccordion: React.FC<
 
   const landingSection = 'faq-section-bg py-20 md:py-24 px-6 md:px-8 relative scroll-mt-20';
   const homeSection =
-    'relative scroll-mt-20 bg-[#eef4f6] border-y border-[#dce7ea] py-24 md:py-32 px-5 md:px-8 overflow-hidden';
+    'relative scroll-mt-20 bg-[#F3F0FB] border-y border-[#E6E2F4] py-24 md:py-32 px-5 md:px-8 overflow-hidden';
 
   const sectionClass = [variant === 'home' ? homeSection : landingSection, sectionClassName]
     .filter(Boolean)
     .join(' ');
 
-  const ringHome = 'focus-visible:ring-[#0e7a6e]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#eef4f6]';
+  const ringHome = 'focus-visible:ring-[#5B3FC4]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#F3F0FB]';
   const ringLanding =
     'focus-visible:ring-[var(--landing-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent';
 
@@ -49,14 +49,14 @@ export const FAQAccordion: React.FC<
         <FadeInSection delay={100}>
           <div className="relative z-10 mx-auto max-w-3xl">
             <div className="flex items-center justify-center gap-2.5 mb-4">
-              <span className="h-px w-7 bg-[#0e7a6e]/40" aria-hidden />
-              <span className="text-[#0e7a6e] text-xs font-bold tracking-[0.16em]">לפני שמתחילים</span>
-              <span className="h-px w-7 bg-[#0e7a6e]/40 sm:hidden" aria-hidden />
+              <span className="h-px w-7 bg-[#5B3FC4]/40" aria-hidden />
+              <span className="text-[#5B3FC4] text-xs font-bold tracking-[0.16em]">לפני שמתחילים</span>
+              <span className="h-px w-7 bg-[#5B3FC4]/40 sm:hidden" aria-hidden />
             </div>
-            <h2 className="studio-display text-3xl md:text-5xl text-[#15302d] text-center mb-5 leading-tight px-2">
+            <h2 className="studio-display text-3xl md:text-5xl text-[#0D1B2A] text-center mb-5 leading-tight px-2">
               שאלות נפוצות
             </h2>
-            <p className="text-[#46544f] text-center text-base md:text-lg max-w-2xl mx-auto mb-12 md:mb-14 leading-relaxed px-2">
+            <p className="text-[#3D4859] text-center text-base md:text-lg max-w-2xl mx-auto mb-12 md:mb-14 leading-relaxed px-2">
               {intro}
             </p>
             <div className="space-y-2.5 md:space-y-3">
@@ -69,8 +69,8 @@ export const FAQAccordion: React.FC<
                     key={i}
                     className={`rounded-2xl border overflow-hidden transition-all duration-200 ${
                       isOpen
-                        ? 'border-[#0e7a6e]/30 bg-white shadow-[0_14px_40px_-26px_rgba(21,48,45,0.3)]'
-                        : 'border-[#dce7ea] bg-white/70 hover:bg-white'
+                        ? 'border-[#5B3FC4]/30 bg-white shadow-[0_14px_40px_-26px_rgba(13,27,42,0.3)]'
+                        : 'border-[#E6E2F4] bg-white/70 hover:bg-white'
                     }`}
                   >
                     <button
@@ -81,16 +81,16 @@ export const FAQAccordion: React.FC<
                       aria-controls={aId}
                       id={qId}
                     >
-                      <span className="font-semibold text-[#15302d] text-[15px] md:text-base leading-snug">{item.question}</span>
+                      <span className="font-semibold text-[#0D1B2A] text-[15px] md:text-base leading-snug">{item.question}</span>
                       <ChevronDown open={isOpen} variant="home" />
                     </button>
                     <div
                       id={aId}
                       role="region"
                       aria-labelledby={qId}
-                      className={`overflow-hidden transition-all duration-200 ${isOpen ? 'max-h-[520px] overflow-y-auto border-t border-[#e6eef0]' : 'max-h-0 border-t border-transparent'}`}
+                      className={`overflow-hidden transition-all duration-200 ${isOpen ? 'max-h-[520px] overflow-y-auto border-t border-[#EEEBF8]' : 'max-h-0 border-t border-transparent'}`}
                     >
-                      <p className="p-4 md:px-5 md:pb-5 md:pt-4 text-[15px] md:text-base text-[#46544f] leading-relaxed">
+                      <p className="p-4 md:px-5 md:pb-5 md:pt-4 text-[15px] md:text-base text-[#3D4859] leading-relaxed">
                         {item.answer}
                       </p>
                     </div>

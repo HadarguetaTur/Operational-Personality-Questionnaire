@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       הדוח המלא שלך מוכן וממתין לך:
     </p>
     <div style="text-align: center; margin: 32px 0;">
-      <a href="{{report_url}}" style="background: #14b8a6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
+      <a href="{{report_url}}" style="background: #5B3FC4; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
         צפה בדוח המלא
       </a>
     </div>

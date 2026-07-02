@@ -8,12 +8,12 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-[#0c1220] text-white" dir="rtl">
+    <div className="min-h-screen bg-[#0D1B2A] text-white" dir="rtl">
       {/* Navbar */}
-      <header className="sticky top-0 z-50 h-16 flex items-center px-5 md:px-8 border-b border-white/[0.06] bg-[#0c1220]/80 backdrop-blur-md">
+      <header className="sticky top-0 z-50 h-16 flex items-center px-5 md:px-8 border-b border-white/[0.06] bg-[#0D1B2A]/80 backdrop-blur-md">
         <div className="max-w-3xl mx-auto w-full flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group" aria-label="חזרה לדף הבית">
-            <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center shrink-0">
+            <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-400 to-brand-500 flex items-center justify-center shrink-0">
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3" />
               </svg>
@@ -42,11 +42,11 @@ export default function PrivacyPage() {
             <p>
               האתר מופעל על ידי <strong className="text-white">הדר אוטומציות — תורג&apos;מן גואטה הדר מזל</strong> (ח.פ. 204174361),
               המספקת שירותי ייעוץ תפעולי, אבחון תפעולי, מיפוי תהליכים ובניית מערכות ואוטומציות לעסקים. לפניות:{' '}
-              <a href="mailto:cs@hadarturgemanautomations.com" className="text-teal-400 hover:underline">
+              <a href="mailto:cs@hadarturgemanautomations.com" className="text-brand-400 hover:underline">
                 cs@hadarturgemanautomations.com
               </a>{' '}
               | טלפון/וואטסאפ:{' '}
-              <a href="https://wa.me/972504343547" className="text-teal-400 hover:underline">
+              <a href="https://wa.me/972504343547" className="text-brand-400 hover:underline">
                 050-434-3547
               </a>
             </p>
@@ -91,7 +91,7 @@ export default function PrivacyPage() {
             <h2 className="text-xl font-bold text-white mb-3">6. זכויותיך</h2>
             <p>
               בהתאם לחוק הגנת הפרטיות, יש לך זכות לעיין במידע שנמסר, לתקנו או לבקש את מחיקתו.
-              לבקשות: <a href="mailto:cs@hadarturgemanautomations.com" className="text-teal-400 hover:underline">cs@hadarturgemanautomations.com</a>
+              לבקשות: <a href="mailto:cs@hadarturgemanautomations.com" className="text-brand-400 hover:underline">cs@hadarturgemanautomations.com</a>
             </p>
           </section>
 
@@ -115,7 +115,7 @@ export default function PrivacyPage() {
               ייתכן שניצור קשר עם משתמשים ולקוחות באמצעות WhatsApp, בהתאם לפרטים שנמסרו על ידם ובהתאם להסכמה שניתנה במסגרת פנייה, מילוי טופס, הרשמה, קביעת פגישה או תקשורת אחרת עם העסק.{' '}
               התקשורת עשויה לכלול מענה לפנייה, תיאום שיחה, שליחת מידע רלוונטי לגבי השירות, תזכורות, עדכונים או המשך טיפול בבקשה.{' '}
               ניתן לבקש להפסיק לקבל הודעות בכל עת באמצעות מענה להודעה במילים כגון &quot;הסר&quot; או &quot;הפסק&quot;, או באמצעות פנייה למייל:{' '}
-              <a href="mailto:cs@hadarturgemanautomations.com" className="text-teal-400 hover:underline">
+              <a href="mailto:cs@hadarturgemanautomations.com" className="text-brand-400 hover:underline">
                 cs@hadarturgemanautomations.com
               </a>.
             </p>
@@ -126,7 +126,7 @@ export default function PrivacyPage() {
             <p>
               משתמש רשאי לבקש בכל עת להפסיק לקבל הודעות שיווקיות או תפעוליות שאינן נדרשות להמשך השירות.
               ניתן לעשות זאת באמצעות מענה &quot;הסר&quot; או &quot;הפסק&quot; להודעת WhatsApp, או באמצעות פנייה למייל:{' '}
-              <a href="mailto:cs@hadarturgemanautomations.com" className="text-teal-400 hover:underline">
+              <a href="mailto:cs@hadarturgemanautomations.com" className="text-brand-400 hover:underline">
                 cs@hadarturgemanautomations.com
               </a>.{' '}
               בקשות הסרה יטופלו בתוך זמן סביר ובהתאם לדין.

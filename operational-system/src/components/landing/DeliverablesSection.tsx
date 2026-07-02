@@ -64,7 +64,7 @@ export const DeliverablesSection: React.FC<{ copy: LandingCopy }> = ({ copy }) =
             <div className="mt-8 flex justify-start">
               <a
                 href={paymentUrl}
-                className="cta-moving-gradient inline-flex items-center justify-center min-h-[52px] px-10 py-3 rounded-xl font-bold text-white text-base no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--landing-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#334155] active:scale-[0.98]"
+                className="cta-moving-gradient inline-flex items-center justify-center min-h-[52px] px-10 py-3 rounded-xl font-bold text-white text-base no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--landing-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1E3450] active:scale-[0.98]"
                 aria-label={copy.ctaText}
               >
                 {copy.ctaText}

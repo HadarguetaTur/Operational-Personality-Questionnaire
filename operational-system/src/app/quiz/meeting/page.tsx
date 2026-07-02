@@ -35,29 +35,29 @@ export default async function MeetingPage({
       dir="rtl"
     >
       <div className="max-w-[600px] mx-auto text-right">
-        <span className="studio-chip-pop inline-block text-[13px] font-semibold px-3 py-1 rounded-full border border-[#0e7a6e]/30 bg-[#0e7a6e]/[0.08] text-[#0b5f56] mb-5">
+        <span className="studio-chip-pop inline-block text-[13px] font-semibold px-3 py-1 rounded-full border border-[#5B3FC4]/30 bg-[#5B3FC4]/[0.08] text-[#4A32A4] mb-5">
           שיחת אסטרטגיה · 350 ש&quot;ח · מקוזז במלואו מהפרויקט
         </span>
 
         <h1 className="studio-display text-[30px] md:text-[38px] font-black leading-[1.12] mb-4">
-          <span className="qa-gradient-text">שעה אחת, ובידיים שלך מפה כתובה: מה לסדר בעסק, ובאיזה סדר.</span>
+          <span className="qa-gradient-text">שעה אחת על העסק שלך, ובידיים שלך מפה כתובה: מה את מסדרת ראשון, ולמה.</span>
         </h1>
 
-        <p className="text-[17px] text-[#46544f] leading-relaxed mb-8">
+        <p className="text-[17px] text-[#3D4859] leading-relaxed mb-8">
           עברת את הבדיקה, אז את כבר יודעת איפה זה דולף. בשיחת האסטרטגיה אנחנו
           הופכות את זה לתוכנית: עוברות יחד על התהליך שלך, מסמנות מה עולה לך הכי
           הרבה, ואת יוצאת עם מפה כתובה ומתועדפת שנשארת אצלך, גם אם נעצור שם.
         </p>
 
-        <section className="mb-8 p-6 rounded-2xl border border-[#0e7a6e]/30 bg-[#0e7a6e]/[0.06] backdrop-blur-sm shadow-[0_0_40px_-20px_rgba(20,184,166,0.35)]">
-          <h2 className="text-[16px] font-bold text-[#15302d] mb-4">{SCOPING_CALL_TITLE}</h2>
+        <section className="mb-8 p-6 rounded-2xl border border-[#5B3FC4]/30 bg-[#5B3FC4]/[0.06] backdrop-blur-sm shadow-[0_0_40px_-20px_rgba(123,97,232,0.35)]">
+          <h2 className="text-[16px] font-bold text-[#0D1B2A] mb-4">{SCOPING_CALL_TITLE}</h2>
           <ul className="flex flex-col gap-3">
             {SCOPING_CALL_VALUE.map((item) => (
               <li
                 key={item}
-                className="flex gap-2.5 items-start text-[15px] text-[#46544f] leading-relaxed"
+                className="flex gap-2.5 items-start text-[15px] text-[#3D4859] leading-relaxed"
               >
-                <svg className="w-5 h-5 text-[#0e7a6e] shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <svg className="w-5 h-5 text-[#5B3FC4] shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
                 {item}
@@ -66,29 +66,29 @@ export default async function MeetingPage({
           </ul>
         </section>
 
-        <section className="mb-8 p-6 rounded-2xl bg-white backdrop-blur-sm border border-[#dce7ea] border-r-[3px] border-r-[#0e7a6e]">
-          <h2 className="text-[16px] font-bold text-[#15302d] mb-3">ההבטחה שלי אלייך</h2>
-          <p className="text-[15px] text-[#46544f] leading-relaxed mb-3">
+        <section className="mb-8 p-6 rounded-2xl bg-white backdrop-blur-sm border border-[#E6E2F4] border-r-[3px] border-r-[#5B3FC4]">
+          <h2 className="text-[16px] font-bold text-[#0D1B2A] mb-3">ההבטחה שלי אלייך</h2>
+          <p className="text-[15px] text-[#3D4859] leading-relaxed mb-3">
             {SCOPING_CALL_TRUST}
           </p>
-          <p className="text-[15px] text-[#46544f] leading-relaxed mb-3">
+          <p className="text-[15px] text-[#3D4859] leading-relaxed mb-3">
             {SCOPING_CALL_PROMISE.plan}
           </p>
-          <p className="text-[15px] text-[#46544f] leading-relaxed">
+          <p className="text-[15px] text-[#3D4859] leading-relaxed">
             {SCOPING_CALL_PROMISE.price}
           </p>
         </section>
 
-        <p className="text-[15px] text-[#7c8884] leading-relaxed mb-8">
-          לפני שבונים מערכת, שעה של הבנה משותפת חוסכת בנייה לא נכונה, שעולה
-          הרבה יותר בזמן ובכסף.
+        <p className="text-[15px] text-[#68707C] leading-relaxed mb-8">
+          לפני שבונים לך מערכת, שעה אחת של הבנה משותפת חוסכת לך בנייה לא
+          נכונה, שתעלה לך הרבה יותר, גם בזמן וגם בכסף.
         </p>
 
         {/* Primary CTA: pay for the strategy call. Scheduling happens right after payment. */}
         <PaymentCta href={paymentUrl} pattern={p ?? null} />
 
-        <p className="mt-4 text-center text-[14px] text-[#46544f] leading-relaxed">
-          מיד אחרי התשלום נתאם יחד את המועד בוואטסאפ. לוקח דקה.
+        <p className="mt-4 text-center text-[14px] text-[#3D4859] leading-relaxed">
+          מיד אחרי התשלום את בוחרת מועד איתי בוואטסאפ. לוקח לך דקה.
         </p>
 
         {/* Secondary path: questions before paying — WhatsApp bot or the assistant chat. */}
@@ -96,19 +96,19 @@ export default async function MeetingPage({
           href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_TEXT)}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-6 flex items-center justify-center gap-3 w-full min-h-[54px] py-4 px-6 rounded-xl border border-emerald-600/30 bg-emerald-600/10 text-emerald-800 text-[16px] font-semibold hover:border-emerald-600/55 hover:bg-emerald-600/15 hover:text-emerald-900 active:scale-[0.99] transition-all duration-200"
+          className="mt-6 flex items-center justify-center gap-3 w-full min-h-[54px] py-4 px-6 rounded-xl border border-brand-600/30 bg-brand-600/10 text-brand-800 text-[16px] font-semibold hover:border-brand-600/55 hover:bg-brand-600/15 hover:text-brand-900 active:scale-[0.99] transition-all duration-200"
         >
           יש לך שאלה לפני? כתבי לי בוואטסאפ ←
         </a>
 
         {token && (
           <section className="mt-10">
-            <h2 className="text-[15px] font-bold text-[#15302d] mb-1">
+            <h2 className="text-[15px] font-bold text-[#0D1B2A] mb-1">
               מתלבטת? אפשר לשאול את העוזרת הדיגיטלית שלי
             </h2>
-            <p className="text-[14px] text-[#46544f] leading-relaxed mb-4">
+            <p className="text-[14px] text-[#3D4859] leading-relaxed mb-4">
               היא מכירה כבר את מה שסיפרת בבדיקה, ותענה לך על כל שאלה על השיחה,
-              על התהליך ועל מה מתאים אצלך.
+              על התהליך, ועל מה מתאים דווקא לעסק שלך.
             </p>
             <AssistantChat token={token} />
           </section>
@@ -117,7 +117,7 @@ export default async function MeetingPage({
         <div className="mt-6 text-center">
           <Link
             href="/quiz"
-            className="text-[14px] text-[#7c8884] hover:text-[#0e7a6e] transition-colors"
+            className="text-[14px] text-[#68707C] hover:text-[#5B3FC4] transition-colors"
           >
             חזרה לבדיקה
           </Link>

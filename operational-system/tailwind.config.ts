@@ -8,6 +8,7 @@ const config: Config = {
     extend: {
       fontFamily: {
         heebo: ['Heebo', 'sans-serif'],
+        assistant: ['Assistant', 'Heebo', 'sans-serif'],
         jakarta: ['Plus Jakarta Sans', 'Heebo', 'sans-serif'],
         display: ['Frank Ruhl Libre', 'Heebo', 'serif'],
       },
@@ -56,6 +57,20 @@ const config: Config = {
         'qa-surface': 'var(--qa-surface)',
         'qa-accent': 'var(--qa-accent)',
         'qa-border': 'var(--qa-border)',
+        brand: {
+          50: '#FAF9FC',
+          100: '#F3F0FB',
+          200: '#E6E2F4',
+          300: '#D8D0FF',
+          400: '#9C87EC',
+          500: '#7B61E8',
+          600: '#5B3FC4',
+          700: '#4A32A4',
+          800: '#392681',
+          900: '#2A1C60',
+          ink: '#0D1B2A',
+          gray: '#68707C',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',

@@ -11,7 +11,7 @@ const HeroGraphics = () => (
       style={{ transformOrigin: 'center' }}
     />
     <div
-      className="absolute -bottom-32 -left-20 w-80 h-80 rounded-full bg-teal-500/10 blur-3xl landing-float landing-float-delay-1"
+      className="absolute -bottom-32 -left-20 w-80 h-80 rounded-full bg-brand-500/10 blur-3xl landing-float landing-float-delay-1"
       style={{ transformOrigin: 'center' }}
     />
     <div
@@ -57,7 +57,7 @@ export const HeroSection: React.FC<{
             className="ml-0 mr-auto mb-5 h-px w-24 md:w-32 rounded-full"
             style={{
               background:
-                'linear-gradient(90deg, transparent, rgba(255,255,255,0.5) 20%, rgba(94,234,212,0.7) 50%, rgba(255,255,255,0.5) 80%, transparent)',
+                'linear-gradient(90deg, transparent, rgba(255,255,255,0.5) 20%, rgba(216,208,255,0.7) 50%, rgba(255,255,255,0.5) 80%, transparent)',
             }}
             aria-hidden
           />

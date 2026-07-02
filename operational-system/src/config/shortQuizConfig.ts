@@ -133,7 +133,7 @@ export const SHORT_QUIZ_QUESTIONS: ShortQuestion[] = [
     id: 'Q7',
     phase: 2,
     phaseName: PHASE_NAMES[2],
-    context: 'כדי להבין כמה מהיום שלך הולך על תפעול',
+    context: 'כי כל שעה כזאת היא שעה שלא מכניסה לך כסף',
     text: 'כמה מהיום שלך הולך על פעולות שחוזרות על עצמן?',
     microCopy: 'לענות על אותן שאלות, לתאם, להזכיר, לעדכן, להעביר מידע ולבדוק סטטוס',
     options: [
@@ -200,7 +200,7 @@ export const SHORT_QUIZ_QUESTIONS: ShortQuestion[] = [
       { id: 'Q11_2', text: 'עד שעה בחודש',                       scores: { COLLECTION: 1 } },
       { id: 'Q11_3', text: 'כמה שעות בחודש',                     scores: { COLLECTION: 2 } },
       { id: 'Q11_4', text: 'כמה שעות בכל שבוע',                  scores: { COLLECTION: 3 } },
-      { id: 'Q11_5', text: 'אני לא יודעת, אבל זה מעסיק אותי הרבה', scores: { COLLECTION: 3 } },
+      { id: 'Q11_5', text: 'אני לא יודעת, אבל זה יושב לי בראש כל הזמן', scores: { COLLECTION: 3 } },
     ],
   },
 

@@ -23,12 +23,12 @@ interface FormFieldDef {
 
 const DEFAULT_FIELDS: FormFieldDef[] = [
   { id: 'business_name', type: 'text', label: 'שם העסק', placeholder: 'הזיני את שם העסק', required: true },
-  { id: 'business_description', type: 'textarea', label: 'תיאור קצר של העסק', placeholder: 'ספרי בכמה משפטים מה העסק עושה...', required: true },
+  { id: 'business_description', type: 'textarea', label: 'תיאור קצר של העסק', placeholder: 'ספרי בכמה משפטים מה העסק שלך עושה, במילים שלך...', required: true },
   { id: 'team_size', type: 'select', label: 'גודל הצוות', required: true, options: ['עצמאית (ללא עובדים)', '1-3 עובדים', '4-10 עובדים', '11-25 עובדים', '25+'] },
-  { id: 'main_challenge', type: 'textarea', label: 'מה האתגר התפעולי המרכזי שלך?', placeholder: 'תארי את האתגר העיקרי...', required: true },
+  { id: 'main_challenge', type: 'textarea', label: 'מה האתגר התפעולי המרכזי שלך?', placeholder: 'מה הדבר שהכי שורף לך זמן או ראש עכשיו...', required: true },
   { id: 'current_tools', type: 'textarea', label: 'אילו כלים/מערכות את משתמשת בהם היום?', placeholder: 'למשל: מאנדיי, גוגל שיטס, CRM...', required: false },
   { id: 'documents', type: 'file', label: 'מסמכים רלוונטיים (אופציונלי)', placeholder: '', required: false, accept: '.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg', maxFiles: 5 },
-  { id: 'additional_notes', type: 'textarea', label: 'הערות נוספות', placeholder: 'כל מה שחשוב שאדע לפני הפגישה...', required: false },
+  { id: 'additional_notes', type: 'textarea', label: 'הערות נוספות', placeholder: 'כל מה שחשוב לך שאדע לפני שאנחנו מדברות...', required: false },
 ];
 
 interface MetadataResponse {
@@ -185,10 +185,10 @@ function FollowupFormInner() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4" dir="rtl">
         <Card className="max-w-md w-full text-center">
           <CardContent className="py-12">
-            <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-500" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">הטופס נשלח בהצלחה!</h2>
+            <CheckCircle className="w-16 h-16 mx-auto mb-4 text-brand-500" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">הגיע אליי.</h2>
             <p className="text-gray-500 mb-6">
-              תודה! קיבלנו את כל הפרטים. בקרוב תקבלי למייל קישור לקביעת פגישה.
+              אני מתחילה לעבור על מה שכתבת. עוד רגע יגיע לך מייל, ומשם קובעות יחד את המועד בוואטסאפ.
             </p>
             <Button variant="outline" onClick={() => router.push('/')}>
               חזרה לדף הבית
@@ -219,10 +219,10 @@ function FollowupFormInner() {
       <div className="max-w-2xl mx-auto">
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">טופס פרטים לפני הפגישה</CardTitle>
+            <CardTitle className="text-2xl">רגע לפני שאנחנו מדברות על העסק שלך</CardTitle>
             <CardDescription>
-              {lead?.name ? `שלום ${lead.name}, ` : ''}
-              נא למלא את הפרטים הבאים כדי שנוכל להתכונן לפגישה בצורה הטובה ביותר.
+              {lead?.name ? `היי ${lead.name}, ` : ''}
+              כל מה שתכתבי כאן מגיע ישר אליי. ככה אני מגיעה לשיחה שלך אחרי שכבר הכרתי את העסק שלך, ואנחנו לא מבזבזות דקה מהשעה שלך על &quot;ספרי לי על עצמך&quot;.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -261,7 +261,7 @@ function FollowupFormInner() {
                       required={field.required}
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     >
-                      <option value="">בחר...</option>
+                      <option value="">בחרי...</option>
                       {field.options?.map((opt) => (
                         <option key={opt} value={opt}>
                           {opt}
@@ -350,10 +350,10 @@ function FollowupFormInner() {
                 {submitting ? (
                   <>
                     <Loader2 className="w-4 h-4 ml-2 animate-spin" />
-                    שולח...
+                    רגע, שומרת לך הכל...
                   </>
                 ) : (
-                  'שלח טופס'
+                  'שלחי לי את הפרטים ←'
                 )}
               </Button>
             </form>

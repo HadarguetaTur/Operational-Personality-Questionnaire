@@ -1,167 +1,156 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   animate,
   motion,
   useInView,
   useMotionValue,
   useReducedMotion,
-  useTransform,
-  type Variants,
 } from 'framer-motion';
 
-type Tone = 'cost' | 'gain';
+/* ─────────────────────────────────────────────────────────────────────────────
+   Live leak meter — "every minute that passes, money is quietly draining."
+   Interactive: she sets how many hours a week go to manual work, and the yearly
+   cost (hours + ₪) recalculates and re-counts live. A real clock, running since
+   the page opened, carries the felt sense that the meter never stops.
+   Palette: purple system for time/structure, GOLD accent for money.
+   All figures are her-driven estimates, clearly labelled — not fixed claims.
+   ──────────────────────────────────────────────────────────────────────────── */
 
-interface Stat {
-  target: number;
-  suffix: string;
-  label: string;
-  sublabel: string;
-  duration: number;
-  tone: Tone;
-}
+const HOURS_MIN = 2;
+const HOURS_MAX = 15;
+const HOURS_DEFAULT = 6;
 
-const STATS: Stat[] = [
-  {
-    target: 6,
-    suffix: ' שעות',
-    label: 'ניהול ידני בשבוע',
-    sublabel: 'ממוצע אצל עצמאיות עם לקוחות פעילים',
-    duration: 1400,
-    tone: 'cost',
-  },
-  {
-    target: 312,
-    suffix: ' שעות',
-    label: 'לשנה על פולואפ, תיאומים וגבייה',
-    sublabel: 'בלי לסגור עסקה אחת נוספת',
-    duration: 1900,
-    tone: 'cost',
-  },
-  {
-    target: 40,
-    suffix: '%',
-    label: 'מהזמן הידני ניתן לאוטומציה',
-    sublabel: 'בתהליכים שכבר קיימים בעסק',
-    duration: 2300,
-    tone: 'gain',
-  },
-];
+const RATE_PRESETS = [120, 150, 200, 250, 300, 350];
+const RATE_DEFAULT = 150;
 
-// Gradients tuned for legibility on the warm paper background.
-const GRADIENT: Record<Tone, string> = {
-  cost: 'from-amber-500 via-orange-500 to-rose-500',
-  gain: 'from-[#13a594] via-[#0e7a6e] to-[#0b5f56]',
-};
+const AUTOMATABLE = 0.4; // ~40% of manual work is recoverable through automation
 
-// ─── The counting number (driven by a motion value, not React state) ──────────
+// ─── An eased number that re-counts whenever its target changes ────────────────
 
-function StatNumber({
-  stat,
-  index,
-  active,
+function AnimatedNumber({
+  target,
   reduce,
+  active,
+  format,
+  className,
 }: {
-  stat: Stat;
-  index: number;
-  active: boolean;
+  target: number;
   reduce: boolean;
+  active: boolean;
+  format: (v: number) => string;
+  className?: string;
 }) {
-  const value = useMotionValue(reduce ? stat.target : 0);
-  const text = useTransform(value, (v) => Math.round(v).toLocaleString('he-IL'));
-  const scale = useMotionValue(1);
+  const mv = useMotionValue(0);
+  const [txt, setTxt] = useState(() => format(reduce ? target : 0));
 
   useEffect(() => {
-    if (!active || reduce) return;
-    const controls = animate(value, stat.target, {
-      duration: stat.duration / 1000,
-      delay: 0.2 + index * 0.18,
-      ease: [0.16, 1, 0.3, 1],
-      // satisfying little "landing" pop once the number settles
-      onComplete: () => animate(scale, [1, 1.07, 1], { duration: 0.45, ease: 'easeOut' }),
-    });
+    const unsub = mv.on('change', (v) => setTxt(format(v)));
+    return unsub;
+  }, [mv, format]);
+
+  useEffect(() => {
+    if (reduce) {
+      mv.set(target);
+      return;
+    }
+    if (!active) {
+      // Hold at zero until in view, so the reveal actually counts up.
+      mv.set(0);
+      return;
+    }
+    const controls = animate(mv, target, { duration: 0.85, ease: [0.16, 1, 0.3, 1] });
     return () => controls.stop();
-  }, [active, reduce, index, stat.target, stat.duration, value, scale]);
+  }, [target, active, reduce, mv]);
 
-  const grad = GRADIENT[stat.tone];
+  return <span className={className}>{txt}</span>;
+}
 
+// ─── Precision meter — hairline gauge whose fill tracks a value ────────────────
+
+function Meter({ pct, tone }: { pct: number; tone: 'gold' | 'purple' }) {
   return (
-    <motion.div
-      style={{ scale }}
-      className="inline-flex items-baseline gap-0.5 origin-center will-change-transform"
-    >
-      <motion.span
-        className={`text-5xl md:text-[3.25rem] font-extrabold leading-none tabular-nums text-transparent bg-clip-text bg-gradient-to-l ${grad}`}
-      >
-        {text}
-      </motion.span>
-      <span
-        className={`text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-l ${grad}`}
-      >
-        {stat.suffix}
-      </span>
-    </motion.div>
+    <div className="relative mt-3 h-[3px] w-full overflow-hidden rounded-full bg-[#5B3FC4]/10" aria-hidden>
+      <motion.div
+        className={`absolute inset-y-0 right-0 rounded-full ${
+          tone === 'gold'
+            ? 'bg-gradient-to-l from-[#B8862B] via-[#D4A93A] to-[#EAC96E]'
+            : 'bg-gradient-to-l from-[#4A32A4] via-[#5B3FC4] to-[#8B74EC]'
+        }`}
+        initial={{ width: '0%' }}
+        animate={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      />
+    </div>
   );
 }
 
-// ─── Card ─────────────────────────────────────────────────────────────────────
+// ─── Interactive slider (custom, RTL, purple track + gold thumb) ──────────────
 
-function StatCard({
-  stat,
-  index,
-  active,
-  reduce,
+function HoursSlider({
+  value,
+  onChange,
 }: {
-  stat: Stat;
-  index: number;
-  active: boolean;
-  reduce: boolean;
+  value: number;
+  onChange: (v: number) => void;
 }) {
-  const isGain = stat.tone === 'gain';
-  const grad = GRADIENT[stat.tone];
+  const pct = ((value - HOURS_MIN) / (HOURS_MAX - HOURS_MIN)) * 100;
+  return (
+    <div className="relative w-full select-none">
+      {/* track */}
+      <div className="relative h-2.5 w-full rounded-full bg-[#5B3FC4]/12" aria-hidden>
+        <div
+          className="absolute inset-y-0 right-0 rounded-full bg-gradient-to-l from-[#4A32A4] via-[#5B3FC4] to-[#8B74EC]"
+          style={{ width: `${pct}%` }}
+        />
+        {/* thumb */}
+        <div
+          className="absolute top-1/2 h-6 w-6 -translate-y-1/2 translate-x-1/2 rounded-full border-[3px] border-white bg-gradient-to-br from-[#EAC96E] to-[#B8862B] shadow-[0_4px_12px_-2px_rgba(184,134,43,0.6),0_0_0_1px_rgba(184,134,43,0.35)]"
+          style={{ right: `${pct}%` }}
+        />
+      </div>
+      {/* native input drives interaction + a11y; visually transparent */}
+      <input
+        type="range"
+        min={HOURS_MIN}
+        max={HOURS_MAX}
+        step={1}
+        value={value}
+        dir="rtl"
+        onChange={(e) => onChange(Number(e.target.value))}
+        aria-label="שעות ניהול ידני בשבוע"
+        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+      />
+    </div>
+  );
+}
 
-  const cardVariants: Variants = {
-    hidden: { opacity: 0, y: reduce ? 0 : 28 },
-    show: {
-      opacity: 1,
-      y: 0,
-      transition: { type: 'spring', stiffness: 130, damping: 20 },
-    },
-  };
+// ─── Live elapsed clock since the page opened ─────────────────────────────────
+
+function LiveClock({ reduce }: { reduce: boolean }) {
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    if (reduce) return;
+    const id = setInterval(() => setSeconds((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [reduce]);
+
+  const mm = String(Math.floor(seconds / 60)).padStart(2, '0');
+  const ss = String(seconds % 60).padStart(2, '0');
 
   return (
-    <motion.div
-      variants={cardVariants}
-      className={`group relative flex flex-col items-center overflow-hidden rounded-2xl border p-5 text-center transition-shadow duration-300 sm:p-6 ${
-        isGain
-          ? 'border-[#0e7a6e]/30 bg-[#0e7a6e]/[0.05] shadow-[0_22px_50px_-26px_rgba(14,122,110,0.45)] hover:shadow-[0_28px_60px_-26px_rgba(14,122,110,0.55)]'
-          : 'border-[#dce7ea] bg-white shadow-[0_20px_48px_-28px_rgba(21,48,45,0.28)] hover:shadow-[0_26px_56px_-28px_rgba(21,48,45,0.34)]'
-      }`}
-    >
-      {/* top accent bar — draws in from the right (RTL) */}
-      <motion.span
-        aria-hidden
-        className={`absolute inset-x-0 top-0 h-[3px] origin-right bg-gradient-to-l ${grad}`}
-        initial={{ scaleX: 0 }}
-        animate={active ? { scaleX: 1 } : { scaleX: 0 }}
-        transition={{ duration: reduce ? 0 : 0.6, delay: reduce ? 0 : 0.1 + index * 0.18, ease: 'easeOut' }}
-      />
-
-      {/* soft payoff glow behind the "gain" card */}
-      {isGain && (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-x-6 -top-6 h-20 rounded-full bg-[#0e7a6e]/15 blur-2xl"
-        />
-      )}
-
-      <div className="relative mb-3 mt-1">
-        <StatNumber stat={stat} index={index} active={active} reduce={reduce} />
-      </div>
-      <p className="relative mb-1 text-base font-bold leading-snug text-[#15302d]">{stat.label}</p>
-      <p className="relative text-sm leading-relaxed text-[#7c8884]">{stat.sublabel}</p>
-    </motion.div>
+    <span className="inline-flex items-center gap-2 rounded-full border border-[#D4A93A]/40 bg-[#F9F1DC]/60 px-3 py-1">
+      <span className="relative flex h-2 w-2" aria-hidden>
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#D4A93A] opacity-70" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-[#B8862B]" />
+      </span>
+      <span className="text-sm font-bold tabular-nums text-[#8A6A18]">
+        {mm}:{ss}
+      </span>
+      <span className="text-xs text-[#68707C]">מאז שנכנסת לדף הזה</span>
+    </span>
   );
 }
 
@@ -169,24 +158,127 @@ function StatCard({
 
 export function AnimatedCounter() {
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.2 });
+  const inView = useInView(ref, { once: true, amount: 0.3 });
   const reduce = useReducedMotion() ?? false;
 
+  const [hours, setHours] = useState(HOURS_DEFAULT);
+  const [rate, setRate] = useState(RATE_DEFAULT);
+
+  const annualHours = hours * 52;
+  const annualMoney = annualHours * rate;
+  const recoverableHours = Math.round(annualHours * AUTOMATABLE);
+
+  const hoursPct = ((hours - HOURS_MIN) / (HOURS_MAX - HOURS_MIN)) * 100;
+
   return (
-    <div ref={ref} dir="rtl" className="mx-auto mt-8 w-full max-w-2xl font-heebo">
-      <motion.div
-        className="grid grid-cols-1 gap-4 sm:grid-cols-3"
-        variants={{ show: { transition: { staggerChildren: 0.15 } } }}
-        initial="hidden"
-        animate={inView ? 'show' : 'hidden'}
-      >
-        {STATS.map((stat, i) => (
-          <StatCard key={i} stat={stat} index={i} active={inView} reduce={reduce} />
-        ))}
-      </motion.div>
-      <p className="mt-4 text-center text-xs text-[#7c8884]">
-        * נתוני רקע ממוצעים. הבדיקה מראה איפה זה קורה אצלך בדיוק.
-      </p>
+    <div ref={ref} dir="rtl" className="mx-auto w-full max-w-xl font-heebo">
+      <div className="relative overflow-hidden rounded-3xl border border-[#E6E2F4] bg-white/85 p-6 shadow-[0_30px_70px_-40px_rgba(74,50,164,0.5)] backdrop-blur-sm sm:p-8">
+        {/* faint gold wash bleeding from the top, where the money lands */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 -top-10 h-28 bg-gradient-to-b from-[#EAC96E]/20 to-transparent blur-2xl"
+        />
+
+        <div className="relative">
+          {/* live clock */}
+          <div className="mb-6 flex justify-center">
+            <LiveClock reduce={reduce} />
+          </div>
+
+          {/* interactive prompt */}
+          <label className="mb-3 block text-center text-sm font-semibold text-[#3D4859]">
+            כמה שעות בשבוע הולכות לך על ניהול ידני? פולואפ, תיאומים וגבייה.
+          </label>
+
+          <div className="mb-2 flex items-center justify-center gap-2">
+            <AnimatedNumber
+              target={hours}
+              reduce
+              active={inView}
+              format={(v) => String(Math.round(v))}
+              className="text-2xl font-extrabold tabular-nums text-[#4A32A4]"
+            />
+            <span className="text-sm font-medium text-[#68707C]">שעות בשבוע</span>
+          </div>
+
+          <HoursSlider value={hours} onChange={setHours} />
+
+          <div className="mt-2 flex justify-between px-0.5 text-[11px] text-[#9AA0AA]">
+            <span>15 ומעלה</span>
+            <span>שעתיים</span>
+          </div>
+
+          {/* the readout: gold money, purple hours */}
+          <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* money — gold, the emphasis */}
+            <div className="relative overflow-hidden rounded-2xl border border-[#D4A93A]/30 bg-gradient-to-b from-[#FBF4E1] to-white p-5 text-center">
+              <p className="mb-1.5 text-xs font-bold tracking-[0.06em] text-[#8A6A18]">בקצב הזה, בשנה נוזלים</p>
+              <AnimatedNumber
+                target={annualMoney}
+                reduce={reduce}
+                active={inView}
+                format={(v) => '₪' + Math.round(v).toLocaleString('he-IL')}
+                className="bg-gradient-to-l from-[#D9AE3E] via-[#B8862B] to-[#8A6A18] bg-clip-text text-4xl font-extrabold tabular-nums leading-none text-transparent sm:text-[2.75rem]"
+              />
+              <Meter pct={hoursPct} tone="gold" />
+            </div>
+
+            {/* hours — purple */}
+            <div className="relative overflow-hidden rounded-2xl border border-[#E6E2F4] bg-white p-5 text-center">
+              <p className="mb-1.5 text-xs font-bold tracking-[0.06em] text-[#4A32A4]">וזה בשעות שלך</p>
+              <div className="flex items-baseline justify-center gap-1">
+                <AnimatedNumber
+                  target={annualHours}
+                  reduce={reduce}
+                  active={inView}
+                  format={(v) => Math.round(v).toLocaleString('he-IL')}
+                  className="bg-gradient-to-l from-[#8B74EC] via-[#5B3FC4] to-[#4A32A4] bg-clip-text text-4xl font-extrabold tabular-nums leading-none text-transparent sm:text-[2.75rem]"
+                />
+                <span className="bg-gradient-to-l from-[#8B74EC] to-[#4A32A4] bg-clip-text text-xl font-extrabold text-transparent">
+                  שעות
+                </span>
+              </div>
+              <Meter pct={hoursPct} tone="purple" />
+            </div>
+          </div>
+
+          {/* hourly value — keeps the money figure honest and adjustable */}
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+            <span className="text-xs text-[#68707C]">שווי שעה שלך:</span>
+            {RATE_PRESETS.map((r) => {
+              const on = r === rate;
+              return (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRate(r)}
+                  className={`rounded-full border px-3 py-1 text-xs font-bold tabular-nums transition-colors ${
+                    on
+                      ? 'border-[#B8862B] bg-[#B8862B] text-white shadow-[0_4px_12px_-4px_rgba(184,134,43,0.6)]'
+                      : 'border-[#E6E2F4] bg-white text-[#68707C] hover:border-[#D4A93A]/60 hover:text-[#8A6A18]'
+                  }`}
+                >
+                  ₪{r}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* the hopeful payoff — recoverable share, in purple */}
+          <p className="mt-6 text-center text-sm leading-relaxed text-[#3D4859]">
+            הבשורה הטובה, כ
+            <span className="font-bold text-[#4A32A4]">40 אחוז</span> מזה,{' '}
+            <span className="font-bold text-[#4A32A4] tabular-nums">
+              כ{recoverableHours.toLocaleString('he-IL')} שעות בשנה
+            </span>
+            , אפשר להחזיר לך דרך אוטומציה של תהליכים שכבר קיימים בעסק.
+          </p>
+
+          <p className="mt-4 text-center text-xs text-[#9AA0AA]">
+            * הערכה לפי הקצב שסימנת, לא חיוב. הבדיקה מראה איפה זה קורה אצלך בדיוק.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -109,7 +109,7 @@ export async function runFollowupNotifications(leadId: string): Promise<{
 <head><meta charset="utf-8"></head>
 <body style="font-family: 'Heebo', Arial, sans-serif; background: #f8fafc; padding: 40px 20px; direction: rtl;">
   <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-    <h1 style="color: #1e293b; font-size: 24px; margin-bottom: 16px;">שלום {{name}},</h1>
+    <h1 style="color: #1e293b; font-size: 24px; margin-bottom: 16px;">היי {{name}},</h1>
     <p style="color: #475569; font-size: 16px; line-height: 1.7;">
       תודה שמילאת את כל הפרטים! קיבלתי הכל ואני מתחילה להתכונן.
     </p>
@@ -122,14 +122,14 @@ export async function runFollowupNotifications(leadId: string): Promise<{
       </a>
     </div>
     <p style="color: #94a3b8; font-size: 14px; text-align: center; margin-top: 32px;">
-      ארכיטקטורת סקייל
+      הדר אוטומציות
     </p>
   </div>
 </body>
 </html>`;
 
       const htmlTemplate = template?.html_content || defaultHtml;
-      const subjectTemplate = template?.subject || 'הכל מוכן, נקבע פגישה? 📅';
+      const subjectTemplate = template?.subject || '{{name}}, קיבלתי הכל. מתי נדבר על העסק שלך?';
 
       const variables: Record<string, string> = {
         name: lead.name || '',
@@ -162,7 +162,7 @@ export async function runFollowupNotifications(leadId: string): Promise<{
   if (lead.phone) {
     try {
       const { sendWhatsAppMessage } = await import('@/lib/notifications/whatsapp');
-      const msg = `שלום ${lead.name ?? ''}, תודה שמילאת את הטופס! לתיאום הפגישה אפשר פשוט לכתוב לי כאן בוואטסאפ ואתאם לך ישירות בצ'אט 🙂`;
+      const msg = `היי ${lead.name ?? ''}, זאת הדר 🙂 קיבלתי את כל מה שמילאת ואני כבר מתחילה לעבור על זה. נשאר רק לקבוע מתי נדבר. כתבי לי כאן מה נוח לך השבוע ונסגור.`;
       const wa = await sendWhatsAppMessage(lead.phone, msg);
       await supabase.from('notification_logs').insert({
         lead_id: leadId,

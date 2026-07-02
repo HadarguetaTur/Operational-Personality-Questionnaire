@@ -32,17 +32,17 @@ function PhaseProgressBar({ currentIndex }: { currentIndex: number }) {
   const phasePct = Math.round(((currentIndex - phaseStart + 0.5) / Math.max(phaseSize, 1)) * 100);
 
   return (
-    <div className="sticky top-0 z-50 bg-[var(--qa-bg)]/80 backdrop-blur-md border-b border-[#dce7ea]">
+    <div className="sticky top-0 z-50 bg-[var(--qa-bg)]/80 backdrop-blur-md border-b border-[#E6E2F4]">
       <div className="flex justify-between px-4 pt-3 pb-1 max-w-[640px] mx-auto">
         {phases.map((p) => (
           <span
             key={p}
             className={`text-[11px] font-medium tracking-wide transition-colors ${
               p === currentPhase
-                ? 'text-[#0e7a6e]'
+                ? 'text-[#5B3FC4]'
                 : p < currentPhase
-                ? 'text-[#7c8884]'
-                : 'text-[#aab4b1]'
+                ? 'text-[#68707C]'
+                : 'text-[#B4B9C6]'
             }`}
           >
             {PHASE_NAMES[p]}
@@ -51,7 +51,7 @@ function PhaseProgressBar({ currentIndex }: { currentIndex: number }) {
       </div>
       <div className="flex gap-1.5 px-4 pb-3 max-w-[640px] mx-auto">
         {phases.map((p) => (
-          <div key={p} className="flex-1 h-1.5 rounded-full bg-[#15302d]/[0.08] overflow-hidden">
+          <div key={p} className="flex-1 h-1.5 rounded-full bg-[#0D1B2A]/[0.08] overflow-hidden">
             <div
               className="qa-progress-fill h-full rounded-full"
               style={{ width: p < currentPhase ? '100%' : p === currentPhase ? `${phasePct}%` : '0%' }}
@@ -60,7 +60,7 @@ function PhaseProgressBar({ currentIndex }: { currentIndex: number }) {
         ))}
       </div>
       <div className="px-6 pb-2.5 text-right max-w-[640px] mx-auto">
-        <span className="text-[12px] text-[#7c8884]">
+        <span className="text-[12px] text-[#68707C]">
           שאלה {currentIndex + 1} מתוך {TOTAL_QUESTIONS}
           {currentIndex === 0 ? ' · כ-3 דקות' : ''}
         </span>
@@ -112,19 +112,19 @@ function QuestionScreen({ questionIndex, onAnswer, onBack }: QuestionScreenProps
           className="flex-1 flex flex-col justify-center px-6 md:px-8 pb-12 max-w-[640px] w-full mx-auto"
         >
         {question.context && (
-          <p className="text-[12px] font-medium tracking-wider text-[#0e7a6e] mb-2.5 text-right">
+          <p className="text-[12px] font-medium tracking-wider text-[#5B3FC4] mb-2.5 text-right">
             {question.context}
           </p>
         )}
         <h2
           ref={headingRef}
           tabIndex={-1}
-          className="text-[23px] md:text-[28px] font-bold leading-snug mb-2 text-right outline-none text-[#15302d]"
+          className="text-[23px] md:text-[28px] font-bold leading-snug mb-2 text-right outline-none text-[#0D1B2A]"
         >
           {question.text}
         </h2>
         {question.microCopy && (
-          <p className="text-[13px] text-[#7c8884] mb-6 text-right">
+          <p className="text-[13px] text-[#68707C] mb-6 text-right">
             {question.microCopy}
           </p>
         )}
@@ -146,12 +146,12 @@ function QuestionScreen({ questionIndex, onAnswer, onBack }: QuestionScreenProps
                   text-[15px] md:text-[16px] font-normal leading-relaxed
                   transition-all duration-200 cursor-pointer
                   flex items-center justify-between gap-3
-                  focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0e7a6e]
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5B3FC4]
                   ${isSelected
-                    ? 'border-[#0e7a6e] bg-[#0e7a6e]/[0.08] text-[#15302d] shadow-[0_0_30px_-12px_rgba(20,184,166,0.6)]'
+                    ? 'border-[#5B3FC4] bg-[#5B3FC4]/[0.08] text-[#0D1B2A] shadow-[0_0_30px_-12px_rgba(123,97,232,0.6)]'
                     : isDimmed
-                      ? 'border-[#e6eef0] bg-white text-[#7c8884] opacity-50'
-                      : 'border-[#dce7ea] bg-white text-[#15302d] hover:border-[#0e7a6e]/40 hover:bg-[#f1f6f8] active:scale-[0.99]'
+                      ? 'border-[#EEEBF8] bg-white text-[#68707C] opacity-50'
+                      : 'border-[#E6E2F4] bg-white text-[#0D1B2A] hover:border-[#5B3FC4]/40 hover:bg-[#F3F0FB] active:scale-[0.99]'
                   }
                 `}
               >
@@ -162,7 +162,7 @@ function QuestionScreen({ questionIndex, onAnswer, onBack }: QuestionScreenProps
                     initial={reduceMotion ? false : { scale: 0, rotate: -30 }}
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 22 }}
-                    className="shrink-0 w-6 h-6 rounded-full bg-gradient-to-l from-teal-500 to-emerald-500 text-white inline-flex items-center justify-center"
+                    className="shrink-0 w-6 h-6 rounded-full bg-gradient-to-l from-brand-600 to-brand-500 text-white inline-flex items-center justify-center"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12" />
@@ -174,8 +174,8 @@ function QuestionScreen({ questionIndex, onAnswer, onBack }: QuestionScreenProps
           })}
         </div>
         {selectedId === null && (
-          <p className="mt-5 text-[13px] font-semibold text-[#0e7a6e] text-right">
-            בחרי תשובה אחת כדי להמשיך
+          <p className="mt-5 text-[13px] font-semibold text-[#5B3FC4] text-right">
+            אין תשובה נכונה. מה הכי קרוב למה שקורה אצלך?
           </p>
         )}
         {onBack && (
@@ -183,7 +183,7 @@ function QuestionScreen({ questionIndex, onAnswer, onBack }: QuestionScreenProps
             type="button"
             onClick={onBack}
             disabled={selectedId !== null}
-            className="mt-6 self-start inline-flex items-center gap-1.5 text-[13px] text-[#7c8884] hover:text-[#0e7a6e] disabled:opacity-40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0e7a6e] rounded-md px-1"
+            className="mt-6 self-start inline-flex items-center gap-1.5 text-[13px] text-[#68707C] hover:text-[#5B3FC4] disabled:opacity-40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B3FC4] rounded-md px-1"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <line x1="5" y1="12" x2="19" y2="12" />

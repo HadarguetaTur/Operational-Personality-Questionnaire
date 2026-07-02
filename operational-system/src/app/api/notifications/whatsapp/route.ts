@@ -35,11 +35,11 @@ export async function POST(request: NextRequest) {
     if (templateName && !finalMessage) {
       const defaultTemplates: Record<string, string> = {
         followup_complete:
-          'שלום {{name}}, תודה שמילאת את הטופס! לקביעת פגישה: {{meeting_url}}',
+          'היי {{name}}, זאת הדר 🙂 קיבלתי את כל מה שמילאת ואני כבר מתחילה לעבור על זה. נשאר רק לקבוע מתי נדבר. כתבי לי כאן מה נוח לך השבוע ונסגור.',
         payment_received:
-          'שלום {{name}}, התשלום התקבל בהצלחה. בקרוב תקבלי טופס למילוי.',
+          'היי {{name}}, זאת הדר. התשלום עבר ואני שמחה שאנחנו עושות את זה 🙂 עוד רגע יגיע אלייך טופס קצר, וברגע שתמלאי אותו אני מתחילה להכין את השיחה שלך.',
         meeting_reminder:
-          'שלום {{name}}, רק להזכיר: הפגישה שלנו מחר. מחכה!',
+          'היי {{name}}, רק מזכירה שמחר אנחנו מדברות על העסק שלך. אני כבר עברתי על מה שכתבת והכנתי את הכיוונים שלנו. נתראה 🙂',
       };
       finalMessage = defaultTemplates[templateName] || '';
     }
