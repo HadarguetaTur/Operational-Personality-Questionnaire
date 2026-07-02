@@ -13,7 +13,7 @@ import {
   PROFILE_PHOTO_CIRCLE_URL,
   SHARED_FAQ,
 } from '@/config/landingCopy';
-import { trackEvent, getQuizUrl, initLandingPageTracking } from '@/lib/analytics';
+import { trackEvent, getQuizUrl } from '@/lib/analytics';
 import { TESTIMONIALS } from '@/config/testimonials';
 
 const ArrowLeft = ({ className = 'w-4 h-4' }: { className?: string }) => (
@@ -157,8 +157,11 @@ const HERO_TRUST = [
 
 export default function HomePage() {
   useEffect(() => {
-    // Emits a single enriched `page_view` (dwell + scroll + viewport/device) on exit.
-    return initLandingPageTracking();
+    // Fire page_view immediately on mount. The prior exit-only sendBeacon
+    // approach never landed for mobile in-app-browser traffic (Instagram/FB),
+    // which is the entire paid audience — the webview is destroyed before the
+    // beacon flushes. keepalive lets it survive a fast CTA navigation too.
+    void trackEvent('page_view', { keepalive: true });
   }, []);
 
   const [menuOpen, setMenuOpen] = useState(false);
