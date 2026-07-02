@@ -7,7 +7,7 @@ const ogTitle = 'איפה הכסף? – הדר תורג׳מן';
 const ogDescription =
   'בדיקה קצרה שמראה איפה הכסף והזמן נוזלים בניהול הידני של העסק שלך, ואיפה הכי נכון להתחיל לעשות סדר.';
 const ogImage =
-  'https://res.cloudinary.com/wecare-img/image/upload/w_1200,h_630,c_fill,q_auto,f_jpg/v1779653243/ChatGPT_Image_May_24_2026_10_54_20_PM_q9pb1p.png';
+  'https://res.cloudinary.com/wecare-img/image/upload/w_1200,h_630,c_fill,q_auto,f_jpg/v1783022205/%D7%91%D7%90%D7%A0%D7%A8_ktj4qk.jpg';
 
 export const metadata: Metadata = {
   metadataBase: getSiteUrl(),
