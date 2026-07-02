@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Script from 'next/script';
 import Link from 'next/link';
 import {
   SCOPING_CALL_TITLE,
@@ -7,25 +6,28 @@ import {
   SCOPING_CALL_PROMISE,
   SCOPING_CALL_TRUST,
 } from '@/config/shortQuizResults';
+import { getPaymentUrl } from '@/config/landingCopy';
 import { AssistantChat } from '@/components/quiz/AssistantChat';
+import { PaymentCta } from '@/components/quiz/PaymentCta';
 
 export const metadata: Metadata = {
-  title: 'שיחת היכרות | הדר אוטומציות',
+  title: 'שיחת אסטרטגיה | הדר אוטומציות',
   description:
-    'שיחת היכרות קצרה, ללא עלות, להבין איפה הכסף נוזל בין פנייה לסגירה ומה הצעד הנכון לפני שבונים מערכת.',
+    'שעה אחת על התהליך שלך, ובסופה מפה כתובה ומתועדפת של מה לסדר ראשון. 350 ש"ח, מקוזז במלואו מהפרויקט.',
 };
 
 // The bot's WhatsApp number (ManyChat). NOT Hadar's private line.
 const WHATSAPP_NUMBER = '972524759529';
 const WHATSAPP_TEXT =
-  'היי, עשיתי את הבדיקה ואשמח לקבוע שיחת היכרות קצרה. מתי אפשר?';
+  'היי, עשיתי את הבדיקה ויש לי שאלה על שיחת האסטרטגיה לפני שאני קובעת.';
 
 export default async function MeetingPage({
   searchParams,
 }: {
   searchParams: Promise<{ p?: string; token?: string }>;
 }) {
-  const { token } = await searchParams;
+  const { p, token } = await searchParams;
+  const paymentUrl = getPaymentUrl(p ?? 'quiz');
 
   return (
     <div
@@ -34,32 +36,18 @@ export default async function MeetingPage({
     >
       <div className="max-w-[600px] mx-auto text-right">
         <span className="inline-block text-[13px] font-semibold px-3 py-1 rounded-full border border-[#0e7a6e]/30 bg-[#0e7a6e]/[0.08] text-[#0b5f56] mb-5">
-          שיחת היכרות, ללא עלות
+          שיחת אסטרטגיה · 350 ש&quot;ח · מקוזז במלואו מהפרויקט
         </span>
 
         <h1 className="studio-display text-[30px] md:text-[38px] font-black leading-[1.12] mb-4">
-          <span className="qa-gradient-text">שיחת היכרות קצרה, להבין איפה הכסף נוזל ומה כדאי לסדר ראשון</span>
+          <span className="qa-gradient-text">שעה אחת, ובסופה יש לך מפה כתובה של מה לסדר בעסק ובאיזה סדר</span>
         </h1>
 
         <p className="text-[17px] text-[#46544f] leading-relaxed mb-8">
-          זו לא שיחת מכירה. זו שיחה קצרה שבה אנחנו מסתכלות ביחד על מה שעלה לך
-          בבדיקה, מבינות אם ואיך אני יכולה לעזור, ומחליטות מה הדבר הראשון שכדאי
-          לסדר. ללא עלות ובלי מחויבות להמשך.
+          עברת את הבדיקה, אז את כבר יודעת איפה זה דולף. בשיחת האסטרטגיה אנחנו
+          הופכות את זה לתוכנית: עוברות יחד על התהליך שלך, מסמנות מה עולה לך הכי
+          הרבה, ואת יוצאת עם מסמך כתוב שנשאר אצלך, גם אם נעצור שם.
         </p>
-
-        {/* Live assistant chat — the primary way to take the next step */}
-        {token && (
-          <section className="mb-10">
-            <h2 className="text-[15px] font-bold text-[#15302d] mb-1">
-              דברי עכשיו עם העוזרת הדיגיטלית שלי
-            </h2>
-            <p className="text-[14px] text-[#46544f] leading-relaxed mb-4">
-              היא מכירה כבר את מה שסיפרת בבדיקה. ספרי לה בכמה מילים מה הכי בוער,
-              והיא תעזור לך לקבוע את שיחת ההיכרות, כאן ועכשיו.
-            </p>
-            <AssistantChat token={token} />
-          </section>
-        )}
 
         <section className="mb-8 p-6 rounded-2xl border border-[#0e7a6e]/30 bg-[#0e7a6e]/[0.06] backdrop-blur-sm shadow-[0_0_40px_-20px_rgba(20,184,166,0.35)]">
           <h2 className="text-[16px] font-bold text-[#15302d] mb-4">{SCOPING_CALL_TITLE}</h2>
@@ -92,21 +80,39 @@ export default async function MeetingPage({
         </section>
 
         <p className="text-[15px] text-[#7c8884] leading-relaxed mb-8">
-          לפני שבונים מערכת, חצי שעה של הבנה משותפת חוסכת בנייה לא נכונה, שעולה
+          לפני שבונים מערכת, שעה של הבנה משותפת חוסכת בנייה לא נכונה, שעולה
           הרבה יותר בזמן ובכסף.
         </p>
 
-        {/* Secondary path: WhatsApp to the bot. The free intro is booked through
-            the chat above or here; payment for the paid scoping comes later, inside
-            the call, not as an up-front CTA. */}
+        {/* Primary CTA: pay for the strategy call. Scheduling happens right after payment. */}
+        <PaymentCta href={paymentUrl} pattern={p ?? null} />
+
+        <p className="mt-4 text-center text-[14px] text-[#46544f] leading-relaxed">
+          מיד אחרי התשלום נתאם את המועד שנוח לך.
+        </p>
+
+        {/* Secondary path: questions before paying — WhatsApp bot or the assistant chat. */}
         <a
           href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_TEXT)}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-3 w-full min-h-[54px] py-4 px-6 rounded-xl border border-emerald-600/30 bg-emerald-600/10 text-emerald-800 text-[16px] font-semibold hover:border-emerald-600/55 hover:bg-emerald-600/15 hover:text-emerald-900 active:scale-[0.99] transition-all duration-200"
+          className="mt-6 flex items-center justify-center gap-3 w-full min-h-[54px] py-4 px-6 rounded-xl border border-emerald-600/30 bg-emerald-600/10 text-emerald-800 text-[16px] font-semibold hover:border-emerald-600/55 hover:bg-emerald-600/15 hover:text-emerald-900 active:scale-[0.99] transition-all duration-200"
         >
-          מעדיפה וואטסאפ? לקביעת שיחת ההיכרות שם ←
+          יש לך שאלה לפני? כתבי לי בוואטסאפ ←
         </a>
+
+        {token && (
+          <section className="mt-10">
+            <h2 className="text-[15px] font-bold text-[#15302d] mb-1">
+              מתלבטת? אפשר לשאול את העוזרת הדיגיטלית שלי
+            </h2>
+            <p className="text-[14px] text-[#46544f] leading-relaxed mb-4">
+              היא מכירה כבר את מה שסיפרת בבדיקה, ותענה לך על כל שאלה על השיחה,
+              על התהליך ועל מה מתאים אצלך.
+            </p>
+            <AssistantChat token={token} />
+          </section>
+        )}
 
         <div className="mt-6 text-center">
           <Link
@@ -117,10 +123,6 @@ export default async function MeetingPage({
           </Link>
         </div>
       </div>
-
-      <Script id="fb-schedule" strategy="afterInteractive">
-        {`if(typeof fbq==='function'){fbq('track','Schedule',{content_name:'meeting_page'});}`}
-      </Script>
     </div>
   );
 }

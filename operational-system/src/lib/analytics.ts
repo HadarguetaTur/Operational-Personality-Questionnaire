@@ -7,7 +7,7 @@ const SESSION_KEY = 'os_session_id';
 const SESSION_TS_KEY = 'os_session_ts';
 const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
-export type LandingEventType = 'page_view' | 'cta_click' | 'quiz_start';
+export type LandingEventType = 'page_view' | 'cta_click' | 'quiz_start' | 'payment_click';
 
 /**
  * Central gate for all analytics writes. Blocklist, not allowlist: it drops ONLY

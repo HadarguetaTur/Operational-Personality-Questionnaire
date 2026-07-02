@@ -279,36 +279,45 @@ export const STRONG_BODY =
 export const DISCLAIMER_TEXT =
   'זוהי תמונה ראשונית בלבד, המבוססת על מה שסיפרת לי כאן. היא נועדה להאיר לך איפה כדאי להסתכל, לא להחליף בדיקה מלאה של התהליך.';
 
-// ── Intro-call ("שיחת היכרות") shared copy ────────────────────────────────────
+// ── Strategy-call ("שיחת אסטרטגיה") shared copy ───────────────────────────────
 // Single source of truth, consumed by both the result page and the meeting page.
-// The next step in the funnel is a FREE intro call; the paid scoping (350₪) is
-// offered inside it, not as the up-front CTA. No dash, no "צוואר בקבוק".
+// The next step in the funnel IS the paid 350₪ strategy call, sold on a concrete
+// deliverable she keeps (a written, prioritized map), full credit toward the
+// project, and a full-refund promise. No dash, no "צוואר בקבוק".
 // (Export names kept as SCOPING_CALL_* to avoid churn across importers.)
 
-export const SCOPING_CALL_TITLE = 'מה קורה בשיחת ההיכרות';
+export const SCOPING_CALL_TITLE = 'מה את מקבלת בשיחת האסטרטגיה';
 
-/** What the free intro call actually looks like. Last bullet names the next step. */
+/** What the paid strategy call delivers. The deliverable-she-keeps leads. */
 export const SCOPING_CALL_VALUE: string[] = [
-  'נדבר בכמה מילים על מה שעלה לך כאן, ועל מה שהכי בוער עכשיו.',
-  'נסמן יחד איפה נראה שנושרות פניות וכסף, ומה שווה להסתכל עליו ראשון.',
-  'תביני אם ואיך אני יכולה לעזור, בלי לחץ ובלי התחייבות להמשך.',
-  'אם נראה שכדאי להעמיק, נדבר על הצעד הבא, פגישת אפיון אישית.',
+  'שעה מלאה איתי, אחת על אחת, על התהליך שלך. עוברות על מה שעלה בבדיקה ועל איך זה קורה אצלך בפועל.',
+  'מסמנות יחד איפה בדיוק נושרות אצלך פניות, זמן וכסף, ומה שווה לסדר קודם.',
+  'את יוצאת עם מפת אוטומציה כתובה ומתועדפת: מה לסדר ראשון, מה אחר כך, ולמה. המסמך נשאר אצלך גם אם לא נמשיך לעבוד יחד.',
+  'אם מחליטות להמשיך לפרויקט, מלוא הסכום ששילמת מקוזז מהמחיר שלו.',
 ];
 
 /**
- * Trust line for the "I've been burned before" objection. Shown right before the
- * paid next step is mentioned, so the price lands after the distrust is named.
+ * Trust line for the "I've been burned before" objection. Carries the refund
+ * promise, so the price lands right after the distrust is named.
  */
 export const SCOPING_CALL_TRUST =
-  'ואם כבר שילמת בעבר ליועצים או לאנשי שיווק ונשארת עם עוד הבטחה בלי תוצאה, מובן לי לגמרי שאת זהירה. בדיוק בגלל זה השיחה הזו לא מוכרת לך כלום. קודם מבינות יחד אם בכלל יש מה לסדר, ורק אם כן, מדברות על הצעד הבא.';
+  'אם כבר שילמת בעבר ליועצים או לאנשי שיווק ונשארת עם הבטחות באוויר, מובן לי לגמרי שאת זהירה. לכן ההתחייבות שלי פשוטה: אם בסוף השיחה תרגישי שלא קיבלת ערך אמיתי, את מקבלת את מלוא הסכום בחזרה. בלי שאלות ובלי ויכוח.';
 
-/** The intro-call promise, plus what the paid next step is. */
+/** The strategy-call terms: what it costs, what she keeps, where it leads. */
 export const SCOPING_CALL_PROMISE = {
-  plan: 'שיחת ההיכרות קצרה, ללא עלות ובלי מחויבות. היא נועדה רק להבין אם יש התאמה ומה כדאי לסדר ראשון.',
+  plan: 'שיחת האסטרטגיה אורכת כשעה ועולה 350 ש"ח. בסופה נשאר אצלך מסמך עבודה כתוב, וברור לך מה הצעד הראשון, גם אם תחליטי לבצע אותו בעצמך.',
   price:
-    'אם נראה שכדאי להמשיך, הצעד הבא הוא פגישת אפיון בתשלום, 350₪, שמקוזזים במלואם מהפרויקט אם ממשיכות יחד. שם בונים יחד תכנית עבודה כתובה.',
+    'אם נמשיך יחד לפרויקט, ה-350 ש"ח מקוזזים ממנו במלואם. פרויקטים אצלי נעים לרוב בין 5,000 ל-15,000 ש"ח, כך שאת יודעת לאן זה הולך עוד לפני שהתחלנו.',
 };
 
-/** Bridge line: pivots from the free steps to "let's talk, no cost". */
+/** Bridge line: pivots from the free steps to the paid, deliverable-led call. */
 export const SCOPING_CALL_BRIDGE =
-  'את כבר רואה איפה זה דולף. הצעד הבא הוא לא עוד טיפ כללי, אלא שיחת היכרות קצרה איתי, ללא עלות, להבין אם זה משהו שכדאי לסדר עכשיו, ומה הדבר הראשון.';
+  'את כבר רואה איפה זה דולף. הצעד הבא הוא לא עוד טיפ כללי, אלא שיחת אסטרטגיה ממוקדת איתי, שבסופה יש לך מפה כתובה של מה לסדר אצלך, באיזה סדר, ולמה.';
+
+/** Refund microcopy shown right next to the payment CTA. */
+export const SCOPING_CALL_GUARANTEE =
+  'לא יצא לך ערך מהשיחה? החזר מלא. אפשר לבטל עד 24 שעות לפני, בהחזר מלא.';
+
+/** Short label for the payment CTA itself. */
+export const SCOPING_CALL_CTA_LABEL = 'לקביעת שיחת האסטרטגיה, 350 ש"ח';
+export const SCOPING_CALL_CTA_SUB = 'מקוזז במלואו מהפרויקט אם ממשיכות יחד';

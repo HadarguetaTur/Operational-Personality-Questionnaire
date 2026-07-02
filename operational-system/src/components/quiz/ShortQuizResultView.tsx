@@ -9,6 +9,9 @@ import {
   SCOPING_CALL_PROMISE,
   SCOPING_CALL_TRUST,
   SCOPING_CALL_BRIDGE,
+  SCOPING_CALL_CTA_LABEL,
+  SCOPING_CALL_CTA_SUB,
+  SCOPING_CALL_GUARANTEE,
   STRONG_TAGLINE,
   STRONG_HEADLINE,
   STRONG_BODY,
@@ -97,19 +100,19 @@ export function ShortQuizResultView({
         <FadeIn delay={70}>
           <section className="mb-9 p-5 rounded-2xl border border-[#0e7a6e]/30 bg-[#0e7a6e]/[0.07] backdrop-blur-sm">
             <p className="text-[15px] md:text-[16px] text-[#46544f] leading-relaxed mb-4">
-              הצעד הבא הוא שיחת היכרות קצרה איתי, ללא עלות וללא התחייבות. אפשר לקבוע אותה כאן ועכשיו דרך העוזרת הדיגיטלית.
+              הצעד הבא הוא שיחת אסטרטגיה איתי: שעה אחת על התהליך שלך, ובסופה מפה
+              כתובה של מה לסדר ראשון. 350 ש&quot;ח, מקוזזים במלואם מהפרויקט אם ממשיכות יחד.
             </p>
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new Event('qa:open-chat'))}
+            <Link
+              href={`${MEETING_PATH}?p=${resultType.toLowerCase()}${token ? `&token=${token}` : ''}`}
               className="group inline-flex items-center justify-center gap-2 min-h-[48px] px-6 rounded-xl bg-gradient-to-l from-teal-500 to-emerald-500 text-white text-[16px] font-bold tracking-tight shadow-[0_10px_36px_-14px_rgba(20,184,166,0.6)] transition-all duration-200 hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0e7a6e] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--qa-bg)]"
             >
-              קבעי פגישה עכשיו עם העוזרת
+              ספרי לי עוד על השיחה
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="transition-transform group-hover:-translate-x-0.5">
                 <line x1="19" y1="12" x2="5" y2="12" />
                 <polyline points="12 19 5 12 12 5" />
               </svg>
-            </button>
+            </Link>
           </section>
         </FadeIn>
 
@@ -250,14 +253,20 @@ export function ShortQuizResultView({
 
             <Link
               href={`${MEETING_PATH}?p=${resultType.toLowerCase()}${token ? `&token=${token}` : ''}`}
-              className="group flex items-center justify-center gap-2.5 w-full py-4 px-6 rounded-2xl bg-gradient-to-l from-teal-500 via-teal-500 to-emerald-500 text-white text-[17px] font-bold tracking-tight shadow-[0_10px_40px_-12px_rgba(20,184,166,0.55)] transition-all duration-300 hover:shadow-[0_18px_60px_-12px_rgba(20,184,166,0.7)] hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0e7a6e] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--qa-bg)]"
+              className="group flex flex-col items-center justify-center gap-0.5 w-full py-4 px-6 rounded-2xl bg-gradient-to-l from-teal-500 via-teal-500 to-emerald-500 text-white tracking-tight shadow-[0_10px_40px_-12px_rgba(20,184,166,0.55)] transition-all duration-300 hover:shadow-[0_18px_60px_-12px_rgba(20,184,166,0.7)] hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0e7a6e] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--qa-bg)]"
             >
-              לתיאום שיחת היכרות, ללא עלות
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="transition-transform group-hover:-translate-x-0.5">
-                <line x1="19" y1="12" x2="5" y2="12" />
-                <polyline points="12 19 5 12 12 5" />
-              </svg>
+              <span className="inline-flex items-center gap-2.5 text-[17px] font-bold">
+                {SCOPING_CALL_CTA_LABEL}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="transition-transform group-hover:-translate-x-0.5">
+                  <line x1="19" y1="12" x2="5" y2="12" />
+                  <polyline points="12 19 5 12 12 5" />
+                </svg>
+              </span>
+              <span className="text-[13px] font-medium text-white/85">{SCOPING_CALL_CTA_SUB}</span>
             </Link>
+            <p className="mt-3 text-center text-[13px] text-[#7c8884] leading-relaxed">
+              {SCOPING_CALL_GUARANTEE}
+            </p>
 
             <div className="mt-4 text-center">
               <a
