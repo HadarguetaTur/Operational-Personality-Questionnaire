@@ -25,6 +25,12 @@ function PhaseProgressBar({ currentIndex }: { currentIndex: number }) {
   const currentPhase = currentQ?.phase ?? 1;
   const phases: (1 | 2 | 3 | 4)[] = [1, 2, 3, 4];
 
+  // Real position inside the active phase (half-step credit for the open question),
+  // so the bar advances with every answer instead of sitting at a fixed 60%.
+  const phaseStart = SHORT_QUIZ_QUESTIONS.findIndex((q) => q.phase === currentPhase);
+  const phaseSize = SHORT_QUIZ_QUESTIONS.filter((q) => q.phase === currentPhase).length;
+  const phasePct = Math.round(((currentIndex - phaseStart + 0.5) / Math.max(phaseSize, 1)) * 100);
+
   return (
     <div className="sticky top-0 z-50 bg-[var(--qa-bg)]/80 backdrop-blur-md border-b border-[#dce7ea]">
       <div className="flex justify-between px-4 pt-3 pb-1 max-w-[640px] mx-auto">
@@ -45,10 +51,10 @@ function PhaseProgressBar({ currentIndex }: { currentIndex: number }) {
       </div>
       <div className="flex gap-1.5 px-4 pb-3 max-w-[640px] mx-auto">
         {phases.map((p) => (
-          <div key={p} className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+          <div key={p} className="flex-1 h-1.5 rounded-full bg-[#15302d]/[0.08] overflow-hidden">
             <div
               className="qa-progress-fill h-full rounded-full"
-              style={{ width: p < currentPhase ? '100%' : p === currentPhase ? '60%' : '0%' }}
+              style={{ width: p < currentPhase ? '100%' : p === currentPhase ? `${phasePct}%` : '0%' }}
             />
           </div>
         ))}
@@ -68,9 +74,11 @@ function PhaseProgressBar({ currentIndex }: { currentIndex: number }) {
 interface QuestionScreenProps {
   questionIndex: number;
   onAnswer: (optionId: string) => void;
+  /** Steps back to the previous question (undefined on the first question). */
+  onBack?: () => void;
 }
 
-function QuestionScreen({ questionIndex, onAnswer }: QuestionScreenProps) {
+function QuestionScreen({ questionIndex, onAnswer, onBack }: QuestionScreenProps) {
   const question = SHORT_QUIZ_QUESTIONS[questionIndex];
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -121,15 +129,16 @@ function QuestionScreen({ questionIndex, onAnswer }: QuestionScreenProps) {
           </p>
         )}
         {!question.microCopy && <div className="mb-6" />}
-        <div className="flex flex-col gap-3 w-full" role="radiogroup" dir="rtl">
+        <div className="flex flex-col gap-3 w-full" role="radiogroup" aria-label="אפשרויות תשובה" dir="rtl">
           {question.options.map((opt) => {
             const isSelected = selectedId === opt.id;
             const isDimmed = selectedId !== null && !isSelected;
             return (
-              <button
+              <motion.button
                 key={opt.id}
                 onClick={() => handleSelect(opt)}
                 disabled={selectedId !== null}
+                whileTap={reduceMotion || selectedId !== null ? undefined : { scale: 0.98 }}
                 role="radio"
                 aria-checked={isSelected}
                 className={`
@@ -148,23 +157,40 @@ function QuestionScreen({ questionIndex, onAnswer }: QuestionScreenProps) {
               >
                 <span className="flex-1 text-right">{opt.text}</span>
                 {isSelected && (
-                  <span
+                  <motion.span
                     aria-hidden="true"
+                    initial={reduceMotion ? false : { scale: 0, rotate: -30 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 22 }}
                     className="shrink-0 w-6 h-6 rounded-full bg-gradient-to-l from-teal-500 to-emerald-500 text-white inline-flex items-center justify-center"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
-                  </span>
+                  </motion.span>
                 )}
-              </button>
+              </motion.button>
             );
           })}
         </div>
         {selectedId === null && (
           <p className="mt-5 text-[13px] font-semibold text-[#0e7a6e] text-right">
-            ← בחרי תשובה אחת כדי להמשיך
+            בחרי תשובה אחת כדי להמשיך
           </p>
+        )}
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            disabled={selectedId !== null}
+            className="mt-6 self-start inline-flex items-center gap-1.5 text-[13px] text-[#7c8884] hover:text-[#0e7a6e] disabled:opacity-40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0e7a6e] rounded-md px-1"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+            חזרה לשאלה הקודמת
+          </button>
         )}
         </motion.div>
       </AnimatePresence>
@@ -204,6 +230,11 @@ export default function ShortQuizFlow() {
     }
   }, []);
 
+  const handleBack = useCallback(() => {
+    setAnswers((a) => a.slice(0, -1));
+    setCurrentIndex((i) => Math.max(0, i - 1));
+  }, []);
+
   const handleAnswer = useCallback(
     (optionId: string) => {
       const newAnswers = [...answers, optionId];
@@ -234,6 +265,7 @@ export default function ShortQuizFlow() {
     <QuestionScreen
       questionIndex={currentIndex}
       onAnswer={handleAnswer}
+      onBack={currentIndex > 0 ? handleBack : undefined}
     />
   );
 }

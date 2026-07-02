@@ -126,7 +126,7 @@ const IDENTIFICATION_ITEMS = [
 const PROCESS_STEPS = [
   {
     num: '01',
-    title: '10 שאלות קצרות, כ-3 דקות',
+    title: '12 שאלות קצרות, כ-3 דקות',
     desc: 'מסך נקי, שאלה אחת בכל פעם. שאלות שמדברות בשפה שלך — פניות, זמן, גבייה — ומאירות איפה זה נתקע.',
   },
   {
@@ -277,7 +277,7 @@ export default function HomePage() {
 
           <FadeIn delay={220}>
             <p className="text-lg md:text-xl text-[#46544f] leading-relaxed mb-8 max-w-2xl mx-auto">
-              עני על 10 שאלות קצרות וקבלי תמונה אישית: איפה בדיוק פניות, זמן
+              עני על 12 שאלות קצרות וקבלי תמונה אישית: איפה בדיוק פניות, זמן
               וגבייה נוזלים אצלך בדרך, ומה הצעד הראשון שמחזיר לך שליטה.
             </p>
           </FadeIn>
@@ -287,7 +287,7 @@ export default function HomePage() {
               <PrimaryCta onClick={() => goToQuiz('hero_primary')} className="w-full sm:w-auto">
                 {CTA_LABEL}
               </PrimaryCta>
-              <p className="text-sm text-[#7c8884]">בלי עלות · 10 שאלות · כ-3 דקות · בלי הכנה מראש</p>
+              <p className="text-sm text-[#7c8884]">בלי עלות · 12 שאלות · כ-3 דקות · בלי הכנה מראש</p>
             </div>
           </FadeIn>
 
@@ -306,7 +306,7 @@ export default function HomePage() {
                 ))}
               </div>
               <p className="text-sm text-[#46544f]">
-                <span className="font-semibold text-[#15302d]">לאה, נעמי, רחל</span> ועוד — כבר העבירו את הניהול מהראש לתהליך מסודר.
+                <span className="font-semibold text-[#15302d]">לאה, נעמי, רחל</span> ועוד — כבר הפכו את הבלגן לתהליך שרץ לבד.
               </p>
             </div>
           </FadeIn>
@@ -479,7 +479,7 @@ export default function HomePage() {
           <FadeIn>
             <Eyebrow>מה מקבלים בסוף</Eyebrow>
             <h2 className="studio-display text-3xl md:text-5xl text-center mb-12 leading-tight">
-              תמונה אחת ברורה, שנשארת אצלך.
+              שלושה דברים קונקרטיים שיוצאים איתך מהבדיקה.
             </h2>
           </FadeIn>
           <div className="space-y-3">

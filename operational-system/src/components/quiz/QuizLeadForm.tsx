@@ -47,7 +47,7 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
     if (!touched.phone || !phone.trim()) return '';
     const digits = phoneDigitsOnly(phone);
     if (digits.length < 7 || digits.length > 15) {
-      return 'נא להזין מספר טלפון תקין.';
+      return 'נא להזין מספר וואטסאפ תקין.';
     }
     return '';
   }, [phone, touched.phone]);
@@ -73,7 +73,7 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
       return;
     }
     if (phoneDigits.length < 7 || phoneDigits.length > 15) {
-      setError('נא להזין מספר טלפון תקין כדי שנוכל לחזור אלייך.');
+      setError('נא להזין מספר וואטסאפ תקין, כדי שאוכל לשלוח לך את התוצאה.');
       return;
     }
     if (trimmedEmailRaw && !EMAIL_REGEX.test(trimmedEmailRaw)) {
@@ -87,7 +87,7 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
 
     const supabase = createClient();
     if (!supabase) {
-      setError('שגיאה בשמירה. נסי שוב מאוחר יותר.');
+      setError('משהו השתבש ולא הצלחתי לשמור. אל דאגה, התשובות שלך עדיין כאן. נסי שוב בעוד רגע.');
       return;
     }
 
@@ -104,7 +104,7 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
 
       if (rpcError || typeof token !== 'string' || !token) {
         console.error('[QuizLeadForm] create_short_quiz_lead error:', rpcError);
-        setError(rpcError?.message || 'שגיאה בשמירה. נסי שוב.');
+        setError(rpcError?.message || 'משהו השתבש ולא הצלחתי לשמור. אל דאגה, התשובות שלך עדיין כאן. נסי שוב בעוד רגע.');
         setSubmitting(false);
         return;
       }
@@ -138,7 +138,7 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
       router.push(`/quiz/result/${token}?new=1`);
     } catch (err) {
       console.error('[QuizLeadForm]', err);
-      setError('שגיאה בשמירה. נסי שוב.');
+      setError('משהו השתבש ולא הצלחתי לשמור. אל דאגה, התשובות שלך עדיין כאן. נסי שוב בעוד רגע.');
       setSubmitting(false);
     }
   };
@@ -155,9 +155,25 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
         <h1 className="studio-display text-[28px] md:text-[34px] font-black leading-tight mb-3">
           <span className="qa-gradient-text">לאן לשלוח לך את התמונה האישית?</span>
         </h1>
-        <p className="text-[15px] text-[#46544f] leading-relaxed mb-7">
+        <p className="text-[15px] text-[#46544f] leading-relaxed mb-5">
           השאירי פרטים ואראה לך מיד איפה הכסף נוזל אצלך, ומה הצעד הראשון לסדר.
         </p>
+
+        {/* The report is already being assembled — makes the value tangible
+            at the highest-friction moment of the funnel. */}
+        <div className="mb-7 rounded-xl border border-[#dce7ea] bg-[#f6f9fb] p-4">
+          <div className="flex items-center gap-2.5 mb-3">
+            <span className="studio-dot-live w-2 h-2 rounded-full bg-[#0e7a6e] shrink-0" aria-hidden="true" />
+            <p className="text-[13px] font-semibold text-[#0b5f56]">
+              התמונה האישית שלך נבנית מהתשובות ברגעים אלה
+            </p>
+          </div>
+          <div className="space-y-2" aria-hidden="true">
+            <div className="studio-shimmer h-2.5 rounded-full w-[85%]" />
+            <div className="studio-shimmer h-2.5 rounded-full w-[62%]" />
+            <div className="studio-shimmer h-2.5 rounded-full w-[74%]" />
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           <div>
@@ -192,7 +208,7 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
               htmlFor="lead-phone"
               className="block text-[15px] font-medium mb-2"
             >
-              טלפון <span className="text-[var(--qa-accent)]" aria-hidden="true">*</span>
+              וואטסאפ <span className="text-[var(--qa-accent)]" aria-hidden="true">*</span>
             </label>
             <input
               id="lead-phone"
@@ -302,9 +318,11 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
             </div>
           )}
 
+          {/* Stays enabled before consent on purpose: a click surfaces the
+              explanatory error instead of a dead button with no feedback. */}
           <button
             type="submit"
-            disabled={submitting || !termsConsent}
+            disabled={submitting}
             aria-busy={submitting}
             className="mt-1 w-full h-14 rounded-xl bg-gradient-to-l from-teal-500 via-teal-500 to-emerald-500 text-white text-[17px] font-bold tracking-tight shadow-[0_10px_40px_-12px_rgba(20,184,166,0.55)] transition-all duration-300 hover:shadow-[0_18px_60px_-12px_rgba(20,184,166,0.7)] hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0e7a6e] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--qa-bg)]"
           >

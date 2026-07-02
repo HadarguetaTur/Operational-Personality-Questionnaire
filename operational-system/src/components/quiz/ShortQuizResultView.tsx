@@ -12,6 +12,7 @@ import {
   SCOPING_CALL_CTA_LABEL,
   SCOPING_CALL_CTA_SUB,
   SCOPING_CALL_GUARANTEE,
+  DISCLAIMER_TEXT,
   STRONG_TAGLINE,
   STRONG_HEADLINE,
   STRONG_BODY,
@@ -69,7 +70,7 @@ export function ShortQuizResultView({
         {showBanner && (
           <FadeIn>
             <div className="mb-8 p-4 rounded-2xl border border-[#0e7a6e]/30 bg-[#0e7a6e]/[0.07] text-[14px] text-[#46544f] leading-relaxed">
-              שמרתי לך את התמונה. אפשר לחזור אליה בכל רגע.
+              שמרתי לך את התמונה, ואפשר לחזור אליה בכל רגע דרך הקישור הזה. אם השארת מייל, הקישור כבר בדרך אלייך.
             </div>
           </FadeIn>
         )}
@@ -77,13 +78,21 @@ export function ShortQuizResultView({
         {/* Header */}
         <FadeIn>
           <div className="mb-9">
-            <span className="inline-block text-[13px] font-semibold px-3 py-1 rounded-full border border-[#0e7a6e]/30 bg-[#0e7a6e]/[0.08] text-[#0b5f56] mb-5">
+            <span className="studio-chip-pop inline-block text-[13px] font-semibold px-3 py-1 rounded-full border border-[#0e7a6e]/30 bg-[#0e7a6e]/[0.08] text-[#0b5f56] mb-5">
               {tagline}
             </span>
             <h1 className="studio-display text-[30px] md:text-[38px] font-black leading-[1.12]">
               {name && <span className="text-[#15302d]">{name}, </span>}
               <span className="qa-gradient-text">{headline}</span>
             </h1>
+            {/* Flowing divider — same "data in motion" motif as the landing hero */}
+            <svg className="mt-5" width="180" height="8" viewBox="0 0 180 8" aria-hidden="true">
+              <line
+                x1="176" y1="4" x2="4" y2="4"
+                stroke="#0e7a6e" strokeOpacity="0.45" strokeWidth="2" strokeLinecap="round"
+                className="studio-flow-dash"
+              />
+            </svg>
           </div>
         </FadeIn>
 
@@ -283,6 +292,13 @@ export function ShortQuizResultView({
             </div>
           </section>
         </FadeIn>
+
+        {/* Honest expectation-setting: a first picture, not a full process audit */}
+        <FadeIn delay={120}>
+          <p className="mt-10 text-[12px] text-[#7c8884] leading-relaxed">
+            {DISCLAIMER_TEXT}
+          </p>
+        </FadeIn>
       </div>
 
       {token && <ResultChatLauncher token={token} />}
@@ -293,7 +309,7 @@ export function ShortQuizResultView({
 function CheckIcon({ className = 'w-5 h-5' }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="20 6 9 17 4 12" />
+      <polyline className="studio-check-draw" points="20 6 9 17 4 12" />
     </svg>
   );
 }
@@ -301,7 +317,7 @@ function CheckIcon({ className = 'w-5 h-5' }: { className?: string }) {
 function ResultTestimonialCard({ testimonial }: { testimonial: Testimonial }) {
   const role = testimonial.role.trim();
   return (
-    <div className="p-6 rounded-2xl border border-[#dce7ea] bg-white backdrop-blur-sm">
+    <div className="studio-card-hover p-6 rounded-2xl border border-[#dce7ea] bg-white backdrop-blur-sm">
       <div className="flex gap-1 mb-3 text-[#0e7a6e]" aria-hidden="true">
         {Array.from({ length: 5 }).map((_, i) => (
           <svg key={i} width="15" height="15" viewBox="0 0 24 24" fill="currentColor">

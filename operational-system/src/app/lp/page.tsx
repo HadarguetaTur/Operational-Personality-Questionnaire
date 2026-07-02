@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useCallback, useEffect } from 'react';
-import { FadeIn } from '@/components/landing/FadeIn';
+import { FadeIn, useInView } from '@/components/landing/FadeIn';
 import { FAQAccordion } from '@/components/landing/FAQAccordion';
+import { HeroFlow } from '@/components/landing/HeroFlow';
 import { PROFILE_PHOTO_CIRCLE_URL, type FaqItem } from '@/config/landingCopy';
 import { trackEvent, getQuizUrl } from '@/lib/analytics';
 import { TESTIMONIALS } from '@/config/testimonials';
@@ -13,9 +14,9 @@ import { TESTIMONIALS } from '@/config/testimonials';
    Copy rules: female form, no dash, no invented numbers.
    ──────────────────────────────────────────────────────────────────────────── */
 
-const LP_EYEBROW = 'בדיקה חינמית לעצמאיות · 10 שאלות · כ-3 דקות';
+const LP_EYEBROW = 'בדיקה חינמית לעצמאיות · 12 שאלות · כ-3 דקות';
 const LP_CTA_LABEL = 'גלי איפה הכסף נוזל';
-const LP_CTA_MICRO = '10 שאלות קצרות · כ-3 דקות · בלי הכנה ובלי כרטיס אשראי';
+const LP_CTA_MICRO = '12 שאלות קצרות · כ-3 דקות · בלי הכנה ובלי כרטיס אשראי';
 
 const LP_IDENTIFICATION = [
   'לקוחה מחכה לתשובה שלך, אבל היא מגיעה רק כשאת נזכרת.',
@@ -27,7 +28,7 @@ const LP_IDENTIFICATION = [
 const LP_STEPS = [
   {
     num: '01',
-    title: '10 שאלות קצרות, כ-3 דקות',
+    title: '12 שאלות קצרות, כ-3 דקות',
     desc: 'מסך נקי, שאלה אחת בכל פעם, בשפה שלך: פניות, זמן, גבייה. בלי הכנה מראש.',
   },
   {
@@ -58,7 +59,7 @@ const LP_FAQ: FaqItem[] = [
   {
     question: 'אין לי זמן לעוד דבר עכשיו',
     answer:
-      'בדיוק בגלל זה הבדיקה קצרה: 10 שאלות, כ-3 דקות, בלי הכנה. והיא עוסקת בדיוק בזה, בשעות שהתפעול הידני גוזל לך כל שבוע. שלוש דקות שמראות איפה הזמן שלך הולך.',
+      'בדיוק בגלל זה הבדיקה קצרה: 12 שאלות, כ-3 דקות, בלי הכנה. והיא עוסקת בדיוק בזה, בשעות שהתפעול הידני גוזל לך כל שבוע. שלוש דקות שמראות איפה הזמן שלך הולך.',
   },
   {
     question: 'זה מתאים לעסק כמו שלי?',
@@ -67,7 +68,7 @@ const LP_FAQ: FaqItem[] = [
   },
 ];
 
-const LP_TESTIMONIALS = [TESTIMONIALS[0], TESTIMONIALS[3]];
+const LP_TESTIMONIALS = [TESTIMONIALS[0], TESTIMONIALS[4]];
 
 /* ──────────────────────────────────────────────────────────────────────────── */
 
@@ -108,14 +109,18 @@ function PrimaryCta({
   );
 }
 
-/* Hero trust row — real clients, names and fields only. No invented numbers. */
+/* Hero trust row — real clients, names and fields only. No invented numbers.
+   Freelance/small-business clients mirror the ad audience better than the
+   institutional references; all three have full quotes in TESTIMONIALS. */
 const LP_TRUST = [
-  { initial: 'ל', name: 'לאה סוליטר', role: 'אדריכלות' },
-  { initial: 'נ', name: 'נעמי', role: 'מכון וולפסון' },
-  { initial: 'ר', name: 'רחל איגר לוין', role: 'משרד הרווחה' },
+  { initial: 'ל', name: 'לאה סוליטר', role: 'אדריכלות ועיצוב פנים' },
+  { initial: 'א', name: 'איילה', role: 'איילה עיצובים' },
+  { initial: 'ל', name: 'לידור בושרי', role: 'מסד גרופ' },
 ];
 
 export default function CampaignLandingPage() {
+  const timeline = useInView(0.2);
+
   useEffect(() => {
     void trackEvent('page_view', { keepalive: true });
   }, []);
@@ -169,7 +174,7 @@ export default function CampaignLandingPage() {
 
           <FadeIn delay={220}>
             <p className="text-lg md:text-xl text-[#46544f] leading-relaxed mb-8 max-w-2xl mx-auto">
-              10 שאלות קצרות, ותמונה אישית בסוף: איפה בדיוק פניות, זמן וכסף
+              12 שאלות קצרות, ותמונה אישית בסוף: איפה בדיוק פניות, זמן וכסף
               נוזלים לך בדרך, ומה הצעד הראשון לסדר. בלי להתקין עוד מערכת ובלי
               לאבד את היחס האישי.
             </p>
@@ -217,10 +222,15 @@ export default function CampaignLandingPage() {
                   ))}
                 </div>
                 <p className="text-sm text-[#46544f]">
-                  <span className="font-semibold text-[#15302d]">לאה, נעמי, רחל</span> ועוד, כבר העבירו את הניהול מהראש לתהליך מסודר.
+                  <span className="font-semibold text-[#15302d]">לאה, איילה, לידור</span> ועוד, כבר הפכו את הבלגן לתהליך שרץ לבד.
                 </p>
               </div>
             </div>
+          </FadeIn>
+
+          {/* The promise, shown instead of told: chaos in → system → order out */}
+          <FadeIn delay={460}>
+            <HeroFlow className="mt-10" />
           </FadeIn>
         </div>
       </section>
@@ -234,8 +244,8 @@ export default function CampaignLandingPage() {
           <div className="space-y-3 mt-8">
             {LP_IDENTIFICATION.map((item, i) => (
               <FadeIn key={i} delay={i * 80}>
-                <div className="flex items-start gap-4 p-5 rounded-2xl border border-[#dce7ea] bg-white shadow-[0_1px_2px_rgba(21,48,45,0.03)]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#0d9488] shrink-0 mt-2.5" aria-hidden />
+                <div className="studio-card-hover flex items-start gap-4 p-5 rounded-2xl border border-[#dce7ea] bg-white shadow-[0_1px_2px_rgba(21,48,45,0.03)]">
+                  <span className="studio-dot-live w-1.5 h-1.5 rounded-full bg-[#0d9488] shrink-0 mt-2.5" aria-hidden />
                   <p className="text-[#46544f] text-base leading-relaxed">{item}</p>
                 </div>
               </FadeIn>
@@ -263,8 +273,13 @@ export default function CampaignLandingPage() {
             </h2>
           </FadeIn>
 
-          <div className="relative">
-            <div className="absolute top-0 bottom-0 right-[23px] md:right-[27px] w-px bg-gradient-to-b from-[#0e7a6e]/40 via-[#0e7a6e]/20 to-transparent" aria-hidden />
+          <div ref={timeline.ref} className="relative">
+            <div
+              className={`absolute top-0 bottom-0 right-[23px] md:right-[27px] w-px bg-gradient-to-b from-[#0e7a6e]/40 via-[#0e7a6e]/20 to-transparent origin-top transition-transform duration-[1600ms] ease-out motion-reduce:transition-none motion-reduce:scale-y-100 ${
+                timeline.visible ? 'scale-y-100' : 'scale-y-0'
+              }`}
+              aria-hidden
+            />
             <div className="space-y-10">
               {LP_STEPS.map((step, i) => (
                 <FadeIn key={i} delay={i * 100}>
@@ -292,7 +307,7 @@ export default function CampaignLandingPage() {
           <FadeIn>
             <Eyebrow>מה מקבלים בסוף</Eyebrow>
             <h2 className="studio-display text-3xl md:text-5xl text-center mb-12 leading-tight">
-              תמונה אחת ברורה, שנשארת אצלך.
+              שלושה דברים קונקרטיים שיוצאים איתך מהבדיקה.
             </h2>
           </FadeIn>
           <div className="space-y-3">
@@ -300,7 +315,7 @@ export default function CampaignLandingPage() {
               <FadeIn key={i} delay={i * 80}>
                 <div className="flex items-start gap-4 p-5 rounded-2xl border border-[#0e7a6e]/20 bg-[#0e7a6e]/[0.04]">
                   <svg className="w-5 h-5 text-[#0e7a6e] shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    <path className="studio-check-draw" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                   <p className="text-[#15302d] text-base leading-relaxed">{item}</p>
                 </div>
@@ -330,7 +345,7 @@ export default function CampaignLandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {LP_TESTIMONIALS.map((t, i) => (
               <FadeIn key={i} delay={i * 120}>
-                <div className="relative p-7 rounded-2xl border border-[#dce7ea] bg-white shadow-[0_1px_2px_rgba(21,48,45,0.03)] h-full flex flex-col">
+                <div className="studio-card-hover relative p-7 rounded-2xl border border-[#dce7ea] bg-white shadow-[0_1px_2px_rgba(21,48,45,0.03)] h-full flex flex-col">
                   <p className="studio-display text-lg text-[#0b5f56] mb-3 leading-snug">{t.headline}</p>
                   <p className="text-[#46544f] leading-relaxed flex-1 mb-5">&ldquo;{t.text}&rdquo;</p>
                   <div className="border-t border-[#e6eef0] pt-4">
@@ -352,7 +367,7 @@ export default function CampaignLandingPage() {
         <div className="relative z-10 max-w-2xl mx-auto text-center">
           <FadeIn>
             <h2 className="studio-display text-3xl md:text-5xl mb-4 leading-tight">
-              שלוש דקות עכשיו, במקום עוד שבוע של לנהל הכל בראש.
+              שלוש דקות עכשיו, במקום עוד שבוע של לנהל הכול בראש.
             </h2>
             <p className="text-[#46544f] text-base md:text-lg leading-relaxed mb-8">
               הבדיקה חינמית, התוצאה אישית, והצעד הראשון מוגדר. מכאן זה כבר בידיים שלך.

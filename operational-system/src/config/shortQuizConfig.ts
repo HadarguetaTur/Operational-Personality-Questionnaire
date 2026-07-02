@@ -119,7 +119,7 @@ export const SHORT_QUIZ_QUESTIONS: ShortQuestion[] = [
     id: 'Q6',
     phase: 2,
     phaseName: PHASE_NAMES[2],
-    context: 'כדי לראות אם יש מקום אחד שמרכז הכל',
+    context: 'כדי לראות אם יש מקום אחד שמרכז הכול',
     text: 'איפה מרוכז המידע על פניות ולקוחות פוטנציאליים?',
     options: [
       { id: 'Q6_1', text: 'במערכת אחת מסודרת',              scores: { TIME: 0, CENTRALIZED: 0 } },
@@ -209,7 +209,7 @@ export const SHORT_QUIZ_QUESTIONS: ShortQuestion[] = [
     id: 'Q12',
     phase: 4,
     phaseName: PHASE_NAMES[4],
-    context: 'אין כאן תשובה נכונה. רוצים להבין גם מה הנתונים מראים וגם מה את מרגישה',
+    context: 'אין כאן תשובה נכונה. אני רוצה להבין גם מה הנתונים מראים וגם מה את מרגישה',
     text: 'כשאת חושבת על העסק שלך עכשיו, מה הכי מתיש אותך?',
     options: [
       { id: 'Q12_1', text: 'פניות טובות שלא הופכות ללקוחות',          feltPain: 'FOLLOWUP'    },

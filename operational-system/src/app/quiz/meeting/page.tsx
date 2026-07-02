@@ -35,12 +35,12 @@ export default async function MeetingPage({
       dir="rtl"
     >
       <div className="max-w-[600px] mx-auto text-right">
-        <span className="inline-block text-[13px] font-semibold px-3 py-1 rounded-full border border-[#0e7a6e]/30 bg-[#0e7a6e]/[0.08] text-[#0b5f56] mb-5">
+        <span className="studio-chip-pop inline-block text-[13px] font-semibold px-3 py-1 rounded-full border border-[#0e7a6e]/30 bg-[#0e7a6e]/[0.08] text-[#0b5f56] mb-5">
           שיחת אסטרטגיה · 350 ש&quot;ח · מקוזז במלואו מהפרויקט
         </span>
 
         <h1 className="studio-display text-[30px] md:text-[38px] font-black leading-[1.12] mb-4">
-          <span className="qa-gradient-text">שעה אחת, ובסופה יש לך מפה כתובה של מה לסדר בעסק ובאיזה סדר</span>
+          <span className="qa-gradient-text">שעה אחת, ובידיים שלך מפה כתובה: מה לסדר בעסק, ובאיזה סדר.</span>
         </h1>
 
         <p className="text-[17px] text-[#46544f] leading-relaxed mb-8">
@@ -88,7 +88,7 @@ export default async function MeetingPage({
         <PaymentCta href={paymentUrl} pattern={p ?? null} />
 
         <p className="mt-4 text-center text-[14px] text-[#46544f] leading-relaxed">
-          מיד אחרי התשלום תגיעי למסך תיאום, ובוחרות יחד את המועד שנוח לך.
+          מיד אחרי התשלום נתאם יחד את המועד בוואטסאפ. לוקח דקה.
         </p>
 
         {/* Secondary path: questions before paying — WhatsApp bot or the assistant chat. */}

@@ -685,6 +685,178 @@ p, li, h1, h2, h3, span {
   .landing-fade-up { opacity: 1; transform: none; }
 }
 
+/* ============================
+   Studio Flow — "living system" layer.
+   Innovation cues that demonstrate the product promise: scattered inquiries
+   flowing into one orderly, automated process. Shared by /lp and the quiz.
+   ============================ */
+
+/* Flowing dashes — data moving through the system */
+.studio-flow-dash {
+  stroke-dasharray: 5 9;
+  animation: studioFlowDash 1.2s linear infinite;
+}
+@keyframes studioFlowDash {
+  to { stroke-dashoffset: -14; }
+}
+
+/* Soft repeating pulse for "live" dots */
+.studio-dot-live {
+  animation: studioDotLive 2.4s ease-in-out infinite;
+}
+@keyframes studioDotLive {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.35); }
+  50% { box-shadow: 0 0 0 7px rgba(13, 148, 136, 0); }
+}
+
+/* Card lift on hover — identification + testimonial cards */
+.studio-card-hover {
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+}
+.studio-card-hover:hover {
+  transform: translateY(-3px);
+  border-color: rgba(14, 122, 110, 0.4);
+  box-shadow: 0 16px 36px -20px rgba(14, 122, 110, 0.45);
+}
+
+/* Chip/badge spring-in */
+.studio-chip-pop {
+  animation: studioChipPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes studioChipPop {
+  from { opacity: 0; transform: scale(0.82) translateY(5px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Check marks draw themselves when their FadeIn wrapper becomes visible */
+[data-visible='false'] .studio-check-draw {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+}
+[data-visible='true'] .studio-check-draw {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: studioCheckDraw 0.55s ease-out 0.35s forwards;
+}
+@keyframes studioCheckDraw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Shimmer bars — the "report assembling" skeleton on the lead form */
+.studio-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: rgba(14, 122, 110, 0.1);
+}
+.studio-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.75) 50%, transparent 80%);
+  transform: translateX(100%);
+  animation: studioShimmer 1.8s ease-in-out infinite;
+}
+@keyframes studioShimmer {
+  to { transform: translateX(-100%); }
+}
+
+/* Quiz progress — moving sheen on the active fill */
+.qa-progress-fill::after {
+  background: linear-gradient(90deg, transparent 30%, rgba(255, 255, 255, 0.45) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: qaProgressSheen 2.2s linear infinite;
+}
+@keyframes qaProgressSheen {
+  from { background-position: 130% 0; }
+  to { background-position: -70% 0; }
+}
+
+/* ── Hero flow visual: scattered inquiries → system node → ordered process ──
+   Coordinates are authored LTR (SVG space); the motion reads RTL-forward
+   (right → left). Base transforms double as the reduced-motion still frame. */
+.studio-flowviz .fv-bubble,
+.studio-flowviz .fv-pill {
+  will-change: transform, opacity;
+}
+
+.studio-flowviz .fv-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: fvPulse 2.2s ease-out infinite;
+}
+@keyframes fvPulse {
+  0% { transform: scale(0.55); opacity: 0.5; }
+  75%, 100% { transform: scale(1.35); opacity: 0; }
+}
+
+.fv-b1 { transform: translate(482px, 22px); animation: fvB1 6.5s ease-in-out infinite; }
+.fv-b2 { transform: translate(506px, 60px); animation: fvB2 6.5s ease-in-out infinite; }
+.fv-b3 { transform: translate(488px, 98px); animation: fvB3 6.5s ease-in-out infinite; }
+
+@keyframes fvB1 {
+  0% { transform: translate(482px, 22px); opacity: 0; }
+  4% { opacity: 1; }
+  14% { transform: translate(400px, 44px); opacity: 1; }
+  22% { transform: translate(312px, 60px); opacity: 1; }
+  26%, 100% { transform: translate(292px, 60px) scale(0.4); opacity: 0; }
+}
+@keyframes fvB2 {
+  0%, 26% { transform: translate(506px, 60px); opacity: 0; }
+  30% { opacity: 1; }
+  40% { transform: translate(404px, 70px); opacity: 1; }
+  48% { transform: translate(312px, 60px); opacity: 1; }
+  52%, 100% { transform: translate(292px, 60px) scale(0.4); opacity: 0; }
+}
+@keyframes fvB3 {
+  0%, 52% { transform: translate(488px, 98px); opacity: 0; }
+  56% { opacity: 1; }
+  66% { transform: translate(398px, 76px); opacity: 1; }
+  74% { transform: translate(312px, 60px); opacity: 1; }
+  78%, 100% { transform: translate(292px, 60px) scale(0.4); opacity: 0; }
+}
+
+.fv-p1 { transform: translate(190px, 60px); animation: fvP1 6.5s ease-out infinite; }
+.fv-p2 { transform: translate(118px, 60px); animation: fvP2 6.5s ease-out infinite; }
+.fv-p3 { transform: translate(46px, 60px); animation: fvP3 6.5s ease-out infinite; }
+
+@keyframes fvP1 {
+  0%, 24% { transform: translate(214px, 60px); opacity: 0; }
+  30% { transform: translate(190px, 60px); opacity: 1; }
+  95% { transform: translate(190px, 60px); opacity: 1; }
+  100% { transform: translate(190px, 60px); opacity: 0; }
+}
+@keyframes fvP2 {
+  0%, 50% { transform: translate(142px, 60px); opacity: 0; }
+  56% { transform: translate(118px, 60px); opacity: 1; }
+  95% { transform: translate(118px, 60px); opacity: 1; }
+  100% { transform: translate(118px, 60px); opacity: 0; }
+}
+@keyframes fvP3 {
+  0%, 76% { transform: translate(70px, 60px); opacity: 0; }
+  82% { transform: translate(46px, 60px); opacity: 1; }
+  95% { transform: translate(46px, 60px); opacity: 1; }
+  100% { transform: translate(46px, 60px); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-flow-dash,
+  .studio-dot-live,
+  .studio-shimmer::after,
+  .qa-progress-fill::after,
+  .studio-flowviz .fv-pulse,
+  .fv-b1, .fv-b2, .fv-b3,
+  .fv-p1, .fv-p2, .fv-p3 {
+    animation: none !important;
+  }
+  .fv-b1, .fv-b2, .fv-b3, .fv-p1, .fv-p2, .fv-p3 { opacity: 1; }
+  .studio-card-hover:hover { transform: none; }
+  .studio-chip-pop { animation: none; opacity: 1; transform: none; }
+  [data-visible] .studio-check-draw { stroke-dashoffset: 0; animation: none; }
+}
+
 /* Print — quiz report */
 @media print {
   .qa-no-print, .qa-sync-pill, button[data-no-print="true"] { display: none !important; }
