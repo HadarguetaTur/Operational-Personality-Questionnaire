@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { recordFunnelEvent } from '@/lib/events/funnelEvents';
 
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { leadUuid: string } },
+  { params }: { params: Promise<{ leadUuid: string }> },
 ) {
-  const leadUuid = params.leadUuid?.trim();
+  const { leadUuid: rawLeadUuid } = await params;
+  const candidate = rawLeadUuid?.trim();
+  // Only well-formed UUIDs are recorded; anything else just redirects.
+  const leadUuid = candidate && UUID_REGEX.test(candidate) ? candidate : '';
   const bookingUrl = process.env.CALCOM_BOOKING_URL?.trim();
 
   if (leadUuid) {

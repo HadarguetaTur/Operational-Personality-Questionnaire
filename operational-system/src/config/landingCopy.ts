@@ -89,12 +89,20 @@ const PAYMENT_BASE =
     ? process.env.NEXT_PUBLIC_PAYMENT_URL.trim()
     : "#";
 
-/** מחזיר URL לתשלום עם param patternId לטראקינג */
-export function getPaymentUrl(patternId: string): string {
+/**
+ * שם הפרמטר שמעביר את report_token של הלידה לעמוד התשלום של Sumit.
+ * ה-webhook מנסה לקרוא אותו חזרה (schemas.ts parseSumitWebhook) — אם Sumit לא
+ * מהדהד אותו, ההתאמה לפי טלפון היא ה-fallback האמין.
+ */
+export const PAYMENT_TOKEN_PARAM = "externalIdentifier";
+
+/** מחזיר URL לתשלום עם param patternId לטראקינג + report_token לזיהוי הלידה */
+export function getPaymentUrl(patternId: string, token?: string | null): string {
   if (PAYMENT_BASE === "#") return "#";
   const slug = patternId.toLowerCase().replace(/_/g, "-");
   const sep = PAYMENT_BASE.includes("?") ? "&" : "?";
-  return `${PAYMENT_BASE}${sep}p=${slug}`;
+  const tokenPart = token ? `&${PAYMENT_TOKEN_PARAM}=${encodeURIComponent(token)}` : "";
+  return `${PAYMENT_BASE}${sep}p=${slug}${tokenPart}`;
 }
 
 const CTA_MICROCOPY = "30 דק׳ | תוצר כתוב | בלי התחייבות להמשך";

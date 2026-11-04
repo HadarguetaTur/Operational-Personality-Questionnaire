@@ -294,7 +294,7 @@ export async function runClassifier(input: {
     const parsed = parseClassifierOutput(rawContent);
 
     if (!parsed) {
-      console.warn('[classifier] Parse failed:', rawContent.slice(0, 200));
+      console.warn('[classifier] Parse failed; raw length=', rawContent.length);
       return { output: defaultOutput };
     }
 

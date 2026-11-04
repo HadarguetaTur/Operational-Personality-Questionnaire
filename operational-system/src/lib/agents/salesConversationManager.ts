@@ -9,7 +9,7 @@
  * and the Hebrew Writer.
  */
 
-import type { AgentAction } from '@/lib/ai/salesAgent';
+import type { AgentAction } from '@/lib/ai/agentTypes';
 import type { ClassifierIntent } from '@/lib/ai/classifier';
 import type { ClassifierOutput } from '@/lib/ai/classifier';
 import type { SpecialistContext } from './specialists/types';
@@ -158,7 +158,7 @@ function computeNextState(
         return { nextState: 'irrelevant', forcedAction: 'mark_irrelevant', reason: 'D_NOT_RELEVANT' };
       }
       if (intent === 'affirmative') {
-        return { nextState: 'awaiting_confirmation', forcedAction: 'propose_intro_call', reason: 'affirmative → default intro' };
+        return { nextState: 'awaiting_confirmation', forcedAction: 'propose_diagnostic_call', reason: 'affirmative → default paid call' };
       }
       return { nextState: 'vision', reason: 'waiting engagement' };
     }

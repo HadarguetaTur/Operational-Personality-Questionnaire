@@ -125,17 +125,20 @@ export async function POST(request: NextRequest) {
       const UNRESOLVED_VAR = /^\{\{.+\}\}$/;
       if (!userMessage || UNRESOLVED_VAR.test(userMessage)) {
         const reason = !userMessage ? 'empty message' : `unresolved_variable: ${userMessage}`;
-        console.warn('[ManyChat Webhook] Rejected — message is an unresolved variable:', userMessage);
+        console.warn('[ManyChat Webhook] Rejected — message is empty or an unresolved variable');
         if (eventId) await updateManyChatEventStatus(eventId, 'error', reason);
         return ackResponse(leadUuid, eventType);
       }
 
-      // Resolve the canonical lead identity (dedup returning subscribers).
+      const phone = typeof payload.phone === 'string' ? payload.phone.trim() : undefined;
+
+      // Resolve the canonical lead identity (dedup returning subscribers;
+      // phone links a quiz/landing lead to this WhatsApp conversation).
       const { leadUuid: canonicalLeadUuid } = await resolveLeadIdentity({
         subscriberId,
         payloadLeadUuid: rawUuid,
+        phone,
       });
-      const phone = typeof payload.phone === 'string' ? payload.phone.trim() : undefined;
 
       // Transport-specific bookkeeping after the reply is delivered (or fails):
       // marks the webhook event done/error, or debug-logs when no event row exists.

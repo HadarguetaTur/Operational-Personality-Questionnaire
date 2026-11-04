@@ -27,7 +27,7 @@ export default async function MeetingPage({
   searchParams: Promise<{ p?: string; token?: string }>;
 }) {
   const { p, token } = await searchParams;
-  const paymentUrl = getPaymentUrl(p ?? 'quiz');
+  const paymentUrl = getPaymentUrl(p ?? 'quiz', token ?? null);
 
   return (
     <div

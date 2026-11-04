@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import React, { useCallback, useEffect, useState } from 'react';
-import { AnimatedCounter } from '@/components/AnimatedCounter';
+import React, { useCallback, useEffect } from 'react';
+import { LeakMeterTeaser } from '@/components/landing/LeakMeterTeaser';
 import { ContactSection } from '@/components/landing/ContactSection';
 import { FAQAccordion } from '@/components/landing/FAQAccordion';
 import { WhyMeSection } from '@/components/landing/WhyMeSection';
@@ -163,16 +163,15 @@ export default function HomePage() {
     void trackEvent('page_view', { keepalive: true });
   }, []);
 
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  const goToQuiz = useCallback(async (ctaId: string) => {
-    await trackEvent('cta_click', { ctaId, keepalive: true });
+  const goToQuiz = useCallback((ctaId: string) => {
+    // Fire-and-forget: keepalive lets the beacon survive the navigation. Never
+    // make the visitor wait on analytics before the quiz opens.
+    void trackEvent('cta_click', { ctaId, keepalive: true });
     window.location.href = getQuizUrl();
   }, []);
 
   const scrollToSection = useCallback((id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-    setMenuOpen(false);
   }, []);
 
   return (
@@ -181,7 +180,7 @@ export default function HomePage() {
       {/* ═══════════ NAVBAR ═══════════ */}
       <header className="fixed top-0 right-0 left-0 z-50 h-16 flex items-center px-5 md:px-8 border-b border-[#E6E2F4] bg-[#FAF9FC]/85 backdrop-blur-md">
         <div className="max-w-6xl mx-auto w-full flex items-center justify-between">
-          <a href="/" className="flex items-center group" aria-label="דף הבית">
+          <Link href="/" className="flex items-center group" aria-label="דף הבית">
             <div className="flex flex-col gap-0.5">
               <span className="studio-display text-base leading-none text-[#0D1B2A] group-hover:text-[#4A32A4] transition-colors">
                 הדר תורג׳מן
@@ -190,7 +189,7 @@ export default function HomePage() {
                 סדר תפעולי לעסקים קטנים
               </span>
             </div>
-          </a>
+          </Link>
 
           <nav className="hidden md:flex items-center gap-6 text-sm text-[#3D4859]" aria-label="ניווט ראשי">
             {NAV_LINKS.map((link) => (
@@ -204,50 +203,15 @@ export default function HomePage() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => goToQuiz('navbar_cta')}
-              className="studio-cta-grad min-h-[38px] px-4 sm:px-5 rounded-full text-white text-sm font-semibold shadow-[0_8px_20px_-8px_rgba(91,63,196,0.7)] hover:-translate-y-[1px] hover:shadow-[0_12px_26px_-8px_rgba(123,97,232,0.8)] active:translate-y-0 active:scale-[0.97]"
-            >
-              {CTA_LABEL}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setMenuOpen((v) => !v)}
-              className="md:hidden flex items-center justify-center w-10 h-10 -mr-1 rounded-lg text-[#3D4859] hover:text-[#0D1B2A] hover:bg-[#0D1B2A]/[0.05] transition-colors"
-              aria-label="תפריט"
-              aria-expanded={menuOpen}
-              aria-controls="mobile-menu"
-            >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-                {menuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {menuOpen && (
-          <nav
-            id="mobile-menu"
-            className="md:hidden absolute top-16 right-0 left-0 z-[60] bg-[#FAF9FC] border-b border-[#E6E2F4] shadow-[0_18px_40px_-18px_rgba(13,27,42,0.35)] px-5 py-3 flex flex-col"
-            aria-label="ניווט מובייל"
+          {/* Mobile: no hamburger. Two thirds of visitors arrive on a phone, and
+              a menu is five exits before the one action we want. */}
+          <button
+            onClick={() => goToQuiz('navbar_cta')}
+            className="studio-cta-grad min-h-[38px] px-4 sm:px-5 rounded-full text-white text-sm font-semibold shadow-[0_8px_20px_-8px_rgba(91,63,196,0.7)] hover:-translate-y-[1px] hover:shadow-[0_12px_26px_-8px_rgba(123,97,232,0.8)] active:translate-y-0 active:scale-[0.97]"
           >
-            {NAV_LINKS.map((link) => (
-              <button
-                key={link.id}
-                onClick={() => scrollToSection(link.id)}
-                className="text-right py-3 text-[#3D4859] hover:text-[#0D1B2A] border-b border-[#EEEBF8] last:border-0 transition-colors"
-              >
-                {link.label}
-              </button>
-            ))}
-          </nav>
-        )}
+            {CTA_LABEL}
+          </button>
+        </div>
       </header>
       <div className="h-16" aria-hidden />
 
@@ -271,33 +235,34 @@ export default function HomePage() {
             {/* message top — headline + subheadline */}
             <div className="text-center lg:text-right lg:col-start-1 lg:row-start-1">
               <FadeIn delay={80}>
-                <Eyebrow>הבדיקה · איפה הכסף?</Eyebrow>
+                <Eyebrow>בדיקה חינמית לבעלות עסקים · 12 שאלות · 3 דקות</Eyebrow>
               </FadeIn>
 
               <FadeIn delay={140}>
                 <h1 className="studio-display font-black text-[2.6rem] leading-[1.08] sm:text-5xl sm:leading-[1.12] md:text-6xl md:leading-[1.1] mb-5">
-                  כל העסק שלך חי{' '}
-                  <span className="studio-gradient-text">בוואטסאפ</span> ובזיכרון שלך.
-                  <br className="hidden sm:block" /> וזה עולה לך כסף,{' '}
-                  <span className="studio-underline">בשקט</span>.
+                  איפה הכסף של העסק שלך{' '}
+                  <span className="studio-gradient-text">נוזל</span>?
+                  <br className="hidden sm:block" /> בפניות, בזמן, או{' '}
+                  <span className="studio-underline">בגבייה</span>.
                 </h1>
               </FadeIn>
 
               <FadeIn delay={220}>
                 <p className="text-lg md:text-xl text-[#3D4859] leading-relaxed max-w-xl mx-auto lg:mx-0">
-                  עני על 12 שאלות קצרות וקבלי תמונת מצב עסקית: איפה בדיוק פניות, זמן
-                  וגבייה נוזלים אצלך בדרך, ומה הצעד הראשון שמחזיר לך שליטה.
+                  עני על 12 שאלות על היום-יום שלך, ובסוף תקבלי תמונת מצב עסקית:
+                  התחום שדולף אצלך הכי הרבה, למה דווקא הוא, והצעד הראשון לסדר אותו כבר השבוע.
                 </p>
               </FadeIn>
             </div>
 
-            {/* interactive calculator — one side, spans both rows on desktop */}
+            {/* leak meter teaser — a preview of the result, one tap into the quiz.
+                Deliberately not interactive: the real numbers are earned at the end. */}
             <div className="lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-center">
               <FadeIn delay={300}>
                 <div className="mb-4">
-                  <Eyebrow>מד הבזבוז החי</Eyebrow>
+                  <Eyebrow>מה תראי בסוף הבדיקה</Eyebrow>
                 </div>
-                <AnimatedCounter />
+                <LeakMeterTeaser onClick={() => goToQuiz('hero_leak_meter')} />
               </FadeIn>
             </div>
 
@@ -327,7 +292,7 @@ export default function HomePage() {
                   <PrimaryCta onClick={() => goToQuiz('hero_primary')} className="w-full sm:w-auto">
                     {CTA_LABEL}
                   </PrimaryCta>
-                  <p className="text-sm text-[#68707C]">בלי עלות · 12 שאלות · כ-3 דקות · בלי הכנה מראש</p>
+                  <p className="text-sm text-[#68707C]">חינם · 12 שאלות · כ-3 דקות · בלי כרטיס אשראי ובלי הכנה</p>
                 </div>
               </FadeIn>
             </div>
@@ -359,8 +324,6 @@ export default function HomePage() {
           </FadeIn>
         </div>
       </section>
-
-      <WhyMeSection {...HOME_ABOUT_SECTION} photoSrc={PROFILE_PHOTO_CIRCLE_URL} sectionId="about" variant="home" />
 
       {/* ═══════════ HOW IT WORKS ═══════════ */}
       <section id="how-it-works" className="relative overflow-hidden py-24 md:py-32 px-5 md:px-8 bg-[#F3F0FB] border-y border-[#E6E2F4]">
@@ -512,12 +475,16 @@ export default function HomePage() {
             <div className="text-center mt-10">
               <PrimaryCta onClick={() => goToQuiz('deliverables_cta')}>{CTA_LABEL}</PrimaryCta>
               <p className="text-[#68707C] text-sm mt-4">
-                בסוף הבדיקה נבקש שם ומספר וואטסאפ כדי לשמור ולשלוח לך את התוצאה.
+                בסוף הבדיקה נבקש שם ומספר וואטסאפ כדי לשמור לך את התוצאה.
               </p>
             </div>
           </FadeIn>
         </div>
       </section>
+
+      {/* "About" comes after the offer is understood, not before. A first-time
+          visitor needs to know what she gets before she cares who built it. */}
+      <WhyMeSection {...HOME_ABOUT_SECTION} photoSrc={PROFILE_PHOTO_CIRCLE_URL} sectionId="about" variant="home" />
 
       <FAQAccordion faq={SHARED_FAQ.slice(0, 5)} intro={HOME_FAQ_INTRO} sectionId="faq" variant="home" />
 
@@ -565,6 +532,17 @@ export default function HomePage() {
           </p>
         </div>
       </footer>
+
+      {/* ═══════════ STICKY MOBILE CTA ═══════════ */}
+      <div className="md:hidden fixed bottom-0 right-0 left-0 z-50 p-3 bg-[#FAF9FC]/95 backdrop-blur-md border-t border-[#E6E2F4]">
+        <button
+          onClick={() => goToQuiz('sticky_cta')}
+          className="studio-cta-grad w-full min-h-[52px] rounded-full text-white text-base font-bold shadow-[0_10px_28px_-10px_rgba(91,63,196,0.7)] active:scale-[0.98]"
+        >
+          {CTA_LABEL} · 3 דקות
+        </button>
+      </div>
+      <div className="md:hidden h-20" aria-hidden />
     </div>
   );
 }

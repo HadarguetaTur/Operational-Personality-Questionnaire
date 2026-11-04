@@ -15,8 +15,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, ExternalLink, Download, ChevronUp, ChevronDown, Eye, Mail, CheckCircle } from 'lucide-react';
+import { Search, ExternalLink, Download, ChevronUp, ChevronDown, Eye, Mail, CheckCircle, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
+import { NewLeadDialog } from '@/components/admin/NewLeadDialog';
 
 interface Lead {
   id: string;
@@ -52,6 +53,8 @@ const leadStatusLabels: Record<string, string> = {
   awaiting_quote: 'מחכה להצעת מחיר',
   awaiting_diagnostic: 'מחכה לאפיון',
   meeting_cancelled: 'פגישה בוטלה',
+  quote_sent: 'הצעה נשלחה',
+  quote_signed: 'הצעה נחתמה',
 };
 
 const leadSourceLabels: Record<string, string> = {
@@ -59,6 +62,7 @@ const leadSourceLabels: Record<string, string> = {
   facebook: 'פייסבוק',
   landing_page: 'דף נחיתה',
   whatsapp: 'וואטסאפ',
+  manual: 'ידני',
 };
 
 type SortField = 'created_at' | 'name' | 'email' | 'payment_status';
@@ -77,6 +81,7 @@ export default function LeadsPage() {
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [newLeadOpen, setNewLeadOpen] = useState(false);
   const pageSize = 50;
   const supabase = createClient();
 
@@ -212,8 +217,13 @@ export default function LeadsPage() {
             <Download className="w-4 h-4" />
             CSV
           </Button>
+          <Button onClick={() => setNewLeadOpen(true)} className="gap-2">
+            <UserPlus className="w-4 h-4" />
+            ליד חדש
+          </Button>
         </div>
       </div>
+      <NewLeadDialog open={newLeadOpen} onOpenChange={setNewLeadOpen} />
 
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px] max-w-sm">

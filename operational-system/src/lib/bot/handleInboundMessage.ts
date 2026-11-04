@@ -35,6 +35,7 @@ import {
   ensureLeadRow,
   markLeadMeetingBooked,
   getLeadMeeting,
+  getLeadBotSnapshot,
   updateLeadMeeting,
   PLACEHOLDER_LEAD_NAME,
 } from '@/lib/db/leadRegistry';
@@ -395,10 +396,11 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
       return;
     }
 
-    const [userMsgCount, history, botStateData] = await Promise.all([
+    const [userMsgCount, history, botStateData, leadSnapshot] = await Promise.all([
       countUserMessagesForLead(leadUuid),
       getConversationHistory(leadUuid),
       getBotState(leadUuid),
+      getLeadBotSnapshot(leadUuid),
     ]);
 
     const currentState = botStateData.state;
@@ -527,8 +529,9 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
     const enterScheduling = async (
       bookingType: BookingType,
       contextPatch: Record<string, unknown>,
-      opts?: { daypart?: Daypart | null; daypartKnown?: boolean },
+      opts?: { daypart?: Daypart | null; daypartKnown?: boolean; prefix?: string },
     ): Promise<void> => {
+      const prefix = opts?.prefix ?? '';
       // No self-service link exists anymore — if Cal.com isn't configured the
       // bot can't book at all, so hand off to Hadar instead of improvising.
       if (!isCalcomConfigured(bookingType)) {
@@ -550,7 +553,7 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
       // We book under a real name — ask it first if we don't have one yet.
       // A daypart she already gave is kept so we skip that question after the name.
       if (!knownName) {
-        const reply = 'בהחלט 🙏 איך קוראים לך?';
+        const reply = prefix ? `${prefix}איך קוראים לך?` : 'בהחלט 🙏 איך קוראים לך?';
         await save('assistant', reply, {
           action: 'continue',
           state: 'scheduling',
@@ -580,12 +583,14 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
           booking_in_progress: false,
           no_slots_attempts: 0,
         });
-        await presentSlots(bookingType, opts?.daypart ?? null);
+        await presentSlots(bookingType, opts?.daypart ?? null, prefix);
         return;
       }
 
       // Name known → ask the preferred part of the day; slots come after.
-      const reply = 'מעולה 🙏 מתי נוח לך יותר, בוקר, צהריים או ערב?';
+      const reply = prefix
+        ? `${prefix}מתי נוח לך יותר, בוקר, צהריים או ערב?`
+        : 'מעולה 🙏 מתי נוח לך יותר, בוקר, צהריים או ערב?';
       await save('assistant', reply, {
         action: 'continue',
         state: 'scheduling',
@@ -934,6 +939,31 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
       return;
     }
 
+    // ── Paid customer without a meeting → straight to diagnostic scheduling ─
+    // A lead who paid the 350₪ on the site is told (thanks page) to message
+    // here to book. Skip the whole sales flow: greet and schedule the paid
+    // diagnostic. Placed BEFORE the audience filter and fixed opening so the
+    // buyer's very first message gets the paid greeting, and after opt-out /
+    // human-request gates so those still win. Fires once (paid_flow_started).
+    // Gate keys on payment_status — the Sumit route may overwrite lead_status
+    // (e.g. to 'followup_sent'), so don't "simplify" to lead_status.
+    if (
+      leadSnapshot?.payment_status === 'paid' &&
+      !leadSnapshot.meeting_at &&
+      !conversationContext.booked_slot &&
+      !isTerminalState(currentState) &&
+      conversationContext.paid_flow_started !== true
+    ) {
+      await recordFunnelEvent(leadUuid, 'paid_customer_arrived', {
+        channel,
+        from_state: currentState,
+      });
+      // Gender-neutral phrasing — gender may be unknown on the first message.
+      const PAID_GREETING = 'ראיתי שנרשמת לשיחת אפיון 🙏 מעולה! נשאר רק לתאם זמן. ';
+      await enterScheduling('diagnostic', { paid_flow_started: true }, { prefix: PAID_GREETING });
+      return;
+    }
+
     // ── Pre-check: audience filter (first message only) ────────────────────
     if (userMsgCount === 1 && detectNotFitAudience(userMessage)) {
       await save('assistant', AUDIENCE_DISQUALIFY_REPLY, {
@@ -1173,7 +1203,9 @@ export async function handleInboundMessage(args: InboundMessageArgs): Promise<vo
         channel,
       });
       // Policy: always offer the FREE intro first; honor an explicitly pending
-      // diagnostic if one was already set.
+      // diagnostic if one was already set. The paid-customer gate above relies
+      // on this: it persists pending_booking_type='diagnostic' via
+      // enterScheduling, so a paying customer is never downgraded to intro here.
       const bookingType: BookingType =
         conversationContext.pending_booking_type === 'diagnostic' ? 'diagnostic' : 'intro';
       await enterScheduling(bookingType, {});

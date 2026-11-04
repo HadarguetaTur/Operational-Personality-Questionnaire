@@ -13,7 +13,7 @@ export function getRequestClientIp(request: NextRequest): string | undefined {
   }
   const real = request.headers.get('x-real-ip')?.trim();
   if (real) return real;
-  return request.ip ?? undefined;
+  return undefined;
 }
 
 interface SiteverifyResponse {

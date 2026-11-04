@@ -19,12 +19,6 @@ function assembleSections(s: BotPromptSections): string {
   ].join('\n\n');
 }
 
-// ─── Legacy sync export (kept for backwards compat) ───────────────────────────
-
-export function getSalesAgentSystemPrompt(): string {
-  return assembleSections(DEFAULT_SECTIONS);
-}
-
 // ─── Async loader with in-memory cache (60s TTL) ─────────────────────────────
 
 let promptCache: { text: string; at: number } | null = null;

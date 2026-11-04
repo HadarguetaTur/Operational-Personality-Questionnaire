@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { followupMetaQuerySchema } from '@/lib/validation/schemas';
+import { safeEqual } from '@/lib/security/safeEqual';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,14 +37,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'לא נמצא' }, { status: 404 });
     }
 
-    if (lead.followup_access_token) {
-      if (!token || token !== lead.followup_access_token) {
-        return NextResponse.json({ error: 'לא מורשה' }, { status: 403 });
-      }
-    } else {
-      if (lead.payment_status !== 'paid' || lead.followup_submitted_at) {
-        return NextResponse.json({ error: 'לא מורשה' }, { status: 403 });
-      }
+    // A follow-up token is always required. Lead IDs appear in links and
+    // emails, so "paid lead without a token" must not be enough on its own.
+    if (
+      !lead.followup_access_token ||
+      !token ||
+      !safeEqual(token, lead.followup_access_token)
+    ) {
+      return NextResponse.json({ error: 'לא מורשה' }, { status: 403 });
     }
 
     let fields: unknown = null;

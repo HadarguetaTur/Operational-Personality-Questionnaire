@@ -91,19 +91,20 @@ export async function POST(request: NextRequest) {
   const supabase = createServiceRoleClient();
   const fullName = full_name_input?.trim() || result.invitation.full_name;
 
+  // SECURITY: the admin role lives in app_metadata (server-only, not editable
+  // by the user). user_metadata is user-writable and is never trusted for roles.
   const { error: createError } = await supabase.auth.admin.createUser({
     email: result.invitation.email,
     password,
     email_confirm: true,
-    user_metadata: {
-      full_name: fullName,
-      role: 'admin',
-    },
+    user_metadata: { full_name: fullName },
+    app_metadata: { role: 'admin' },
   });
 
   if (createError) {
+    console.error('[invitations/accept] createUser failed:', createError.message);
     return NextResponse.json(
-      { error: `יצירת המשתמש נכשלה: ${createError.message}` },
+      { error: 'יצירת המשתמש נכשלה. פני למנהלת המערכת.' },
       { status: 500 }
     );
   }

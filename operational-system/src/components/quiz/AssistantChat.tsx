@@ -49,9 +49,11 @@ export function AssistantChat({ token }: AssistantChatProps) {
   }, []);
 
   const poll = useCallback(
-    async (uuid: string) => {
+    async () => {
       try {
-        const qs = new URLSearchParams({ leadUuid: uuid });
+        // The report token is the widget's only credential; the server resolves
+        // the conversation from it.
+        const qs = new URLSearchParams({ token });
         if (lastTsRef.current) qs.set('after', lastTsRef.current);
         const res = await fetch(`/api/webchat/messages?${qs.toString()}`);
         if (!res.ok) return;
@@ -61,7 +63,7 @@ export function AssistantChat({ token }: AssistantChatProps) {
         // transient — next tick retries
       }
     },
-    [mergeServer],
+    [mergeServer, token],
   );
 
   // Start the session.
@@ -79,7 +81,7 @@ export function AssistantChat({ token }: AssistantChatProps) {
         if (cancelled) return;
         setLeadUuid(data.leadUuid);
         setStatus('ready');
-        await poll(data.leadUuid);
+        await poll();
       } catch {
         if (!cancelled) setStatus('error');
       }
@@ -92,7 +94,7 @@ export function AssistantChat({ token }: AssistantChatProps) {
   // Poll loop.
   useEffect(() => {
     if (!leadUuid) return;
-    const id = setInterval(() => poll(leadUuid), POLL_MS);
+    const id = setInterval(() => poll(), POLL_MS);
     return () => clearInterval(id);
   }, [leadUuid, poll]);
 
@@ -119,15 +121,15 @@ export function AssistantChat({ token }: AssistantChatProps) {
       await fetch('/api/webchat/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadUuid, message: text }),
+        body: JSON.stringify({ token, message: text }),
       });
-      await poll(leadUuid);
+      await poll();
     } catch {
       // leave the optimistic bubble; the poll loop will reconcile
     } finally {
       setSending(false);
     }
-  }, [input, leadUuid, sending, awaitingReply, poll]);
+  }, [input, leadUuid, sending, awaitingReply, poll, token]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {

@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { openLeadDocument } from '@/lib/admin/openLeadDocument';
+import { LeadQuotesCard } from '@/components/admin/LeadQuotesCard';
 
 interface LeadDetail {
   id: string;
@@ -63,6 +64,7 @@ interface LeadDetail {
   conversation_context: Record<string, unknown> | null;
   notes: string | null;
   tags: string[] | null;
+  business_name: string | null;
 }
 
 interface ConversationMsg {
@@ -100,6 +102,8 @@ const leadStatusLabels: Record<string, string> = {
   awaiting_quote: 'מחכה להצעת מחיר',
   awaiting_diagnostic: 'מחכה לאפיון',
   meeting_cancelled: 'פגישה בוטלה',
+  quote_sent: 'הצעה נשלחה',
+  quote_signed: 'הצעה נחתמה',
 };
 
 const meetingStatusLabels: Record<string, string> = {
@@ -126,6 +130,7 @@ const leadSourceLabels: Record<string, string> = {
   facebook: 'פייסבוק',
   landing_page: 'דף נחיתה',
   whatsapp: 'וואטסאפ',
+  manual: 'ידני',
 };
 
 const conversationStateLabels: Record<string, string> = {
@@ -350,9 +355,18 @@ export default function LeadDetailPage() {
                   <span className="text-gray-500 block">מקור הגעה</span>
                   <span className="font-medium">{lead.lead_source ? (leadSourceLabels[lead.lead_source] ?? lead.lead_source) : '-'}</span>
                 </div>
+                {lead.business_name ? (
+                  <div>
+                    <span className="text-gray-500 block">שם העסק</span>
+                    <span className="font-medium">{lead.business_name}</span>
+                  </div>
+                ) : null}
               </div>
             </CardContent>
           </Card>
+
+          {/* Quotes */}
+          <LeadQuotesCard leadId={leadId} />
 
           {/* WhatsApp conversation */}
           {(messages.length > 0 || lead.conversation_state) && (

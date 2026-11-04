@@ -25,6 +25,7 @@ export type FunnelEventType =
   | 'meeting_attended'
   | 'fit_for_diagnostic'
   | 'payment_completed'
+  | 'paid_customer_arrived'
   | 'project_started';
 
 export async function recordFunnelEvent(

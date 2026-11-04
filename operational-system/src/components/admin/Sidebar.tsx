@@ -19,6 +19,7 @@ import {
   BookOpen,
   Activity,
   Zap,
+  FileSignature,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -39,6 +40,7 @@ const navGroups: Array<{
     label: 'לידים ושיווק',
     items: [
       { href: '/admin/leads', label: 'לידים', icon: Users },
+      { href: '/admin/quotes', label: 'הצעות מחיר', icon: FileSignature },
       { href: '/admin/funnels', label: 'משפכים', icon: GitBranch },
       { href: '/admin/bot', label: 'סוכן הבוט', icon: Activity },
       { href: '/admin/guides', label: 'מדריכים', icon: BookOpen },

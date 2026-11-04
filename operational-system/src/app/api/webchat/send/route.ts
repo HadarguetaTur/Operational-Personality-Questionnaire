@@ -1,45 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleInboundMessage } from '@/lib/bot/handleInboundMessage';
 import { webSender } from '@/lib/channels/webSender';
+import { checkFixedKeyRateLimit, checkRateLimit } from '@/lib/rateLimit';
+import { resolveWebchatLead } from '@/lib/webchat/resolveLead';
 
 // Allow the full LLM pipeline to run before responding (matches the ManyChat route).
 export const maxDuration = 300;
 
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_MESSAGE_LEN = 1000;
+const ONE_MIN_MS = 60_000;
 
 /**
  * Inbound message from the on-site chat widget.
  *
- * Body: { leadUuid, message }. Runs the exact same bot brain as WhatsApp via
- * handleInboundMessage with the no-op web sender; the assistant reply is
- * persisted to conversation_messages, which the widget picks up by polling
- * GET /api/webchat/messages.
+ * Body: { token, message }. `token` is the lead's report_token; the lead UUID
+ * is resolved server-side and never taken from the client. Each message runs
+ * the paid LLM pipeline, so the route is rate-limited per token and per IP.
  */
 export async function POST(request: NextRequest) {
-  let body: { leadUuid?: unknown; message?: unknown };
+  if (!checkRateLimit(request, 'webchat_send_ip', 30, ONE_MIN_MS)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
+
+  let body: { token?: unknown; message?: unknown };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const leadUuid = typeof body.leadUuid === 'string' ? body.leadUuid.trim() : '';
   const message = typeof body.message === 'string' ? body.message.trim() : '';
-
-  if (!UUID_REGEX.test(leadUuid)) {
-    return NextResponse.json({ error: 'Invalid leadUuid' }, { status: 400 });
-  }
   if (!message) {
     return NextResponse.json({ error: 'Empty message' }, { status: 400 });
+  }
+
+  const lead = await resolveWebchatLead(body.token);
+  if (!lead.ok) {
+    return NextResponse.json({ error: lead.error }, { status: lead.status });
+  }
+
+  if (!checkFixedKeyRateLimit('webchat_send_token', lead.leadUuid, 10, ONE_MIN_MS)) {
+    return NextResponse.json({ error: 'Too many messages' }, { status: 429 });
   }
 
   const trimmed = message.slice(0, MAX_MESSAGE_LEN);
 
   try {
     await handleInboundMessage({
-      leadUuid,
+      leadUuid: lead.leadUuid,
       userMessage: trimmed,
       channel: 'web',
       sender: webSender,

@@ -3,13 +3,14 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/requireAdmin';
 import { sendReportEmailSchema } from '@/lib/validation/schemas';
 import { buildReportLink } from '@/lib/quiz/buildReportLink';
+import { safeEqual } from '@/lib/security/safeEqual';
 
 export async function POST(request: NextRequest) {
   const reportSecret = process.env.REPORT_SEND_SECRET?.trim();
   const headerSecret = request.headers.get('x-report-send-secret')?.trim();
 
   if (reportSecret) {
-    if (headerSecret !== reportSecret) {
+    if (!safeEqual(headerSecret, reportSecret)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
   } else {
@@ -119,9 +120,7 @@ export async function POST(request: NextRequest) {
         console.error('[Email] Gmail send failed:', sendError);
       }
     } else {
-      console.log(`[Email] Gmail not configured. Report email for ${email} logged but not sent.`, {
-        name,
-        reportUrl,
+      console.log('[Email] Gmail not configured. Report email logged but not sent.', {
         pattern,
         leadId,
       });

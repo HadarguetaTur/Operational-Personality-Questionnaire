@@ -12,6 +12,7 @@ import {
 } from '@/lib/mailing/completionEmail';
 
 const TEN_MIN_MS = 10 * 60 * 1000;
+const SEND_WINDOW_MS = 60 * 60 * 1000;
 
 export async function POST(request: NextRequest) {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) {
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
 
   const { data: lead, error: leadError } = await supabase
     .from('leads')
-    .select('id, name, email, result_pattern, report_token, completed_at, roi_data')
+    .select('id, name, email, result_pattern, report_token, completed_at, created_at, roi_data')
     .eq('report_token', reportToken)
     .maybeSingle();
 
@@ -54,6 +55,13 @@ export async function POST(request: NextRequest) {
 
   if (!lead?.completed_at || !lead.email?.trim()) {
     return NextResponse.json({ error: 'לא נמצא דוח' }, { status: 404 });
+  }
+
+  // This route is only ever called right after the quiz is submitted. Refusing
+  // old leads stops it from being used as a relay to re-send mail later.
+  const createdAt = lead.created_at ? Date.parse(lead.created_at) : NaN;
+  if (Number.isNaN(createdAt) || Date.now() - createdAt > SEND_WINDOW_MS) {
+    return NextResponse.json({ success: true, alreadySent: true, sent: false });
   }
 
   const { data: existing } = await supabase

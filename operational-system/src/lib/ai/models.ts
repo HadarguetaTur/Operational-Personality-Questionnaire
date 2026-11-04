@@ -23,6 +23,8 @@ export const BOT_MODELS = {
   HANDOFF: OPUS,
   QUIZ_INTAKE: OPUS,
   FOLLOWUP: OPUS,
+  QUOTE_INTERVIEWER: OPUS,
+  QUOTE_GENERATOR: OPUS,
 } as const;
 
 /** Claude Opus 4.8 pricing, USD per 1M tokens. */

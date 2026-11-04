@@ -1,6 +1,7 @@
 'use client';
 
 import React, { Suspense, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -30,7 +31,11 @@ function LoginContent() {
 
   const getRedirectUrl = () => {
     const redirect = searchParams.get('redirect') || '/admin';
-    if (redirect === '/admin/login' || redirect.startsWith('/admin/login?')) {
+    // Only allow same-origin admin paths — blocks open redirects such as
+    // `https://evil.com`, `//evil.com` or `/\evil.com`.
+    const isSafe =
+      redirect.startsWith('/admin') && !redirect.startsWith('//') && !/[\\\r\n]/.test(redirect);
+    if (!isSafe || redirect === '/admin/login' || redirect.startsWith('/admin/login?')) {
       return '/admin';
     }
     return redirect;
@@ -139,9 +144,9 @@ function LoginContent() {
             <p className="text-xs text-muted-foreground/70">
               שכחת סיסמה? פני למנהלת המערכת לאיפוס.
             </p>
-            <a href="/" className="block text-sm text-muted-foreground/70 hover:text-primary transition-colors mt-3">
+            <Link href="/" className="block text-sm text-muted-foreground/70 hover:text-primary transition-colors mt-3">
               חזרה לאתר הראשי
-            </a>
+            </Link>
           </div>
         </CardContent>
       </Card>

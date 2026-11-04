@@ -23,31 +23,22 @@ export async function updateSession(request: NextRequest) {
     return response;
   }
 
-  const supabase = createServerClient(
-    supabaseUrl,
-    supabaseKey,
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
-        },
-        set(name: string, value: string, options: Record<string, unknown>) {
-          request.cookies.set({ name, value, ...options });
-          response = NextResponse.next({
-            request: { headers: request.headers },
-          });
-          response.cookies.set({ name, value, ...options });
-        },
-        remove(name: string, options: Record<string, unknown>) {
-          request.cookies.set({ name, value: '', ...options });
-          response = NextResponse.next({
-            request: { headers: request.headers },
-          });
-          response.cookies.set({ name, value: '', ...options });
-        },
+  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
       },
-    }
-  );
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({
+          request: { headers: request.headers },
+        });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options),
+        );
+      },
+    },
+  });
 
   if (isPublicAdminPath(request.nextUrl.pathname)) {
     return response;
@@ -73,8 +64,10 @@ export async function updateSession(request: NextRequest) {
       );
     }
 
+    // SECURITY: only app_metadata is server-controlled. user_metadata can be
+    // set by the user themselves and must never grant admin.
     const email = user.email?.toLowerCase() || '';
-    const role = user.user_metadata?.role;
+    const role = user.app_metadata?.role;
     const isAdmin = adminEmails.includes(email) || role === 'admin';
 
     if (!isAdmin) {

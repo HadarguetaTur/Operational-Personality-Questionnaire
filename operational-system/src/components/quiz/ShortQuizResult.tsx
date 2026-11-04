@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import {
   buildAnswerMapFromInputs,
   scoreQuiz,
@@ -41,18 +40,20 @@ export function ShortQuizResult({ token }: { token: string }) {
 
   useEffect(() => {
     async function load() {
-      const supabase = createClient();
-      if (!supabase) {
-        setState((s) => ({ ...s, status: 'error' }));
-        return;
+      // `leads` is not readable with the anon key; the server returns only the
+      // two columns the result page needs for this report token.
+      type ResultPayload = { result_pattern?: string | null; result_snapshot?: unknown };
+      let data: ResultPayload | null = null;
+      try {
+        const res = await fetch(`/api/quiz/result?token=${encodeURIComponent(token)}`, {
+          cache: 'no-store',
+        });
+        if (res.ok) data = (await res.json()) as ResultPayload;
+      } catch {
+        data = null;
       }
-      const { data, error } = await supabase
-        .from('leads')
-        .select('result_pattern, result_snapshot')
-        .eq('report_token', token)
-        .single();
 
-      if (error || !data) {
+      if (!data) {
         setState((s) => ({ ...s, status: 'error' }));
         return;
       }
