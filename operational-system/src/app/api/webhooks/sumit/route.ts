@@ -16,11 +16,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Sumit's "טריגרים → יצירת קריאת HTTP" exposes only a URL and a body
+    // format: no custom headers. So the secret is accepted either as a header
+    // (x-sumit-secret / Authorization) or as the `secret` query parameter:
+    //   https://<host>/api/webhooks/sumit?secret=<SUMIT_WEBHOOK_SECRET>
     const headerSecret =
       request.headers.get('x-sumit-secret') || request.headers.get('authorization');
+    const querySecret = request.nextUrl.searchParams.get('secret');
     if (
       !safeEqual(headerSecret, webhookSecret) &&
-      !safeEqual(headerSecret, `Bearer ${webhookSecret}`)
+      !safeEqual(headerSecret, `Bearer ${webhookSecret}`) &&
+      !safeEqual(querySecret, webhookSecret)
     ) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
