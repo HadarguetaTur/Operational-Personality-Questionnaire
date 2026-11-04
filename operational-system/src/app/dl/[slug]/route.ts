@@ -19,24 +19,24 @@ function safeUUID(): string {
 function getIp(request: NextRequest): string {
   const fwd = request.headers.get('x-forwarded-for');
   if (fwd) return fwd.split(',')[0]?.trim() ?? 'unknown';
-  return request.headers.get('x-real-ip') ?? request.ip ?? 'unknown';
+  return request.headers.get('x-real-ip') ?? 'unknown';
 }
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   if (!checkRateLimit(request, 'dl', 20, 60_000)) {
     return new NextResponse('Too Many Requests', { status: 429 });
   }
 
-  const { slug } = params;
+  const { slug } = await params;
 
   if (!SLUG_PATTERN.test(slug)) {
     return new NextResponse('Not Found', { status: 404 });
   }
 
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   const { data: guide, error } = await supabase
     .from('guides')

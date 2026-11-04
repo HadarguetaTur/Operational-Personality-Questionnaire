@@ -71,7 +71,7 @@ export const adminUserIdBodySchema = z.object({
   user_id: uuid,
 });
 
-export const adminSettingsUpsertSchema = z.record(z.unknown()).refine(
+export const adminSettingsUpsertSchema = z.record(z.string(), z.unknown()).refine(
   (obj) =>
     typeof obj === 'object' &&
     obj !== null &&
@@ -101,7 +101,7 @@ export const whatsappNotifySchema = z.object({
   phone: z.string().min(5).max(50),
   message: z.string().max(5000).optional(),
   templateName: z.string().max(100).optional(),
-  variables: z.record(z.string()).optional(),
+  variables: z.record(z.string(), z.string()).optional(),
 }).refine(
   (data) =>
     (typeof data.message === 'string' && data.message.trim().length > 0) ||
@@ -110,7 +110,9 @@ export const whatsappNotifySchema = z.object({
 );
 
 export function parseSumitWebhook(body: unknown): {
-  email: string;
+  email: string | null;
+  phone: string | null;
+  externalIdentifier: string | null;
   amount?: number | null;
   transactionId: string | null;
   status: string;
@@ -122,14 +124,43 @@ export function parseSumitWebhook(body: unknown): {
       : null;
   if (!b) return null;
 
-  const emailRaw =
-    (typeof b.email === 'string' && b.email) ||
-    (typeof b.CustomerEmail === 'string' && b.CustomerEmail) ||
-    (typeof (b as { Email?: unknown }).Email === 'string' && (b as { Email?: string }).Email) ||
-    '';
+  // Sumit may nest customer details under a Customer object.
+  const customer =
+    typeof b.Customer === 'object' && b.Customer !== null && !Array.isArray(b.Customer)
+      ? (b.Customer as Record<string, unknown>)
+      : {};
 
-  const email = emailRaw.trim().toLowerCase();
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
+  const pickString = (source: Record<string, unknown>, keys: string[]): string | null => {
+    for (const key of keys) {
+      const v = source[key];
+      if (typeof v === 'string' && v.trim()) return v.trim();
+    }
+    return null;
+  };
+
+  const emailRaw =
+    pickString(b, ['email', 'CustomerEmail', 'Email']) ?? pickString(customer, ['Email', 'email']);
+  const email =
+    emailRaw && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw.toLowerCase())
+      ? emailRaw.toLowerCase()
+      : null;
+
+  // Field names below are best-effort until a real Sumit webhook is captured —
+  // the route logs the raw payload keys so parsing can be calibrated.
+  const phone =
+    pickString(b, ['phone', 'Phone', 'CustomerPhone', 'customer_phone']) ??
+    pickString(customer, ['Phone', 'phone']);
+
+  const externalIdentifier = pickString(b, [
+    'externalIdentifier',
+    'ExternalIdentifier',
+    'externalId',
+    'ExternalId',
+    'token',
+  ]);
+
+  // Reject only when no identifier of any kind is present.
+  if (!email && !phone && !externalIdentifier) return null;
 
   const statusRaw = String(b.status ?? b.PaymentStatus ?? '').toLowerCase();
 
@@ -145,6 +176,8 @@ export function parseSumitWebhook(body: unknown): {
 
   return {
     email,
+    phone,
+    externalIdentifier,
     amount: amountNum,
     transactionId,
     status: statusRaw,
@@ -182,3 +215,114 @@ export const passwordResetAcceptPostSchema = z.object({
   token: z.string().min(16).max(200),
   password: z.string().min(8).max(500),
 });
+
+// ---- Manual leads + quotes ----
+
+const optionalTrimmed = (max: number) =>
+  z
+    .string()
+    .max(max)
+    .optional()
+    .nullable()
+    .transform((s) => (s == null || s.trim() === '' ? null : s.trim()));
+
+export const createLeadSchema = z
+  .object({
+    name: z.string().min(1, 'נא למלא שם').max(200).trim(),
+    phone: optionalTrimmed(50),
+    email: optionalTrimmed(320).refine(
+      (v) => v == null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+      'כתובת אימייל לא תקינה',
+    ),
+    business_name: optionalTrimmed(200),
+    notes: optionalTrimmed(4000),
+    lead_source: z.enum(['manual', 'instagram', 'facebook', 'landing_page', 'whatsapp']).default('manual'),
+    lead_status: z.string().max(40).optional(),
+  })
+  .refine((d) => Boolean(d.phone) || Boolean(d.email), { message: 'נדרש טלפון או אימייל' });
+
+const chatMessageSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string().min(1).max(8000),
+});
+
+export const quoteInterviewSchema = z.object({
+  leadId: uuid,
+  history: z.array(chatMessageSchema).max(80),
+  message: z.string().max(8000).optional(),
+});
+
+export const quoteGenerateSchema = z.object({
+  leadId: uuid,
+  history: z.array(chatMessageSchema).min(1).max(80),
+  collected_facts: z.record(z.string(), z.unknown()).optional(),
+});
+
+export const quoteSignSchema = z.object({
+  signer_name: z.string().min(2, 'נא למלא שם מלא').max(200).trim(),
+  signer_email: optionalTrimmed(320).refine(
+    (v) => v == null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+    'כתובת אימייל לא תקינה',
+  ),
+  signer_id_number: optionalTrimmed(20),
+  consent: z.literal(true, { error: 'יש לאשר את תנאי ההצעה' }),
+  signature_png: z
+    .string()
+    .regex(/^data:image\/png;base64,[A-Za-z0-9+/=]+$/, 'חתימה לא תקינה')
+    .max(600_000, 'החתימה גדולה מדי'),
+  turnstileToken: z
+    .string()
+    .max(5000)
+    .trim()
+    .optional()
+    .transform((s) => (s === '' || s == null ? undefined : s)),
+});
+
+export const quoteStatusPatchSchema = z.object({
+  status: z.enum(['draft', 'declined', 'expired']),
+});
+
+// ── Quiz lead creation (server route /api/quiz/lead) ─────────────────────────
+const attributionField = z.string().max(500).trim().nullable().optional();
+
+export const quizLeadCreateSchema = z.object({
+  name: z.string().min(1, 'נא להזין איך לקרוא לך.').max(200).trim(),
+  phone: z
+    .string()
+    .max(50)
+    .trim()
+    .refine((v) => {
+      const digits = v.replace(/\D/g, '');
+      return digits.length >= 7 && digits.length <= 15;
+    }, 'נא להזין מספר וואטסאפ תקין.'),
+  email: z
+    .string()
+    .max(320)
+    .trim()
+    .transform((s) => s.toLowerCase())
+    .refine((s) => s === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s), 'נא להזין כתובת אימייל תקינה.')
+    .optional()
+    .nullable(),
+  resultType: z.string().min(1).max(40),
+  answers: z.record(z.string(), z.string().max(200)).refine(
+    (obj) => Object.keys(obj).length <= 50,
+    'יותר מדי תשובות',
+  ),
+  marketingConsent: z.boolean().default(false),
+  turnstileToken: z.string().max(5000).optional(),
+  attribution: z
+    .object({
+      visitor_id: attributionField,
+      session_id: attributionField,
+      landing_referrer: z.string().max(2000).nullable().optional(),
+      utm_source: attributionField,
+      utm_medium: attributionField,
+      utm_campaign: attributionField,
+      utm_term: attributionField,
+      utm_content: attributionField,
+    })
+    .optional(),
+});
+
+// ── Webchat (token-authenticated) ────────────────────────────────────────────
+export const reportTokenSchema = z.string().trim().regex(/^[0-9a-f]{16,40}$/i, 'Invalid token');

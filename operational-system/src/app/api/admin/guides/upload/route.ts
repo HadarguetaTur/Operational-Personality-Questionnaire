@@ -30,7 +30,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing file field' }, { status: 400 });
   }
 
-  if (!ALLOWED_TYPES.has(file.type) && !ALLOWED_EXT.test(file.name)) {
+  // Both the declared MIME type AND the extension must be on the allow-list.
+  // The bucket is public, so a `.pdf` uploaded as `text/html` would otherwise
+  // become stored HTML served from the Supabase domain.
+  if (!ALLOWED_TYPES.has(file.type) || !ALLOWED_EXT.test(file.name)) {
     return NextResponse.json(
       { error: 'סוג קובץ לא נתמך. מותרים: PDF, DOCX, XLSX, PNG, JPG' },
       { status: 415 }

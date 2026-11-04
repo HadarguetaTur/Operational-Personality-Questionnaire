@@ -16,7 +16,7 @@ import { getPromptForState, getDiscStyleAddendum } from './prompts/stagePrompts'
 import { validateReply } from '@/lib/agents/strategicGuardrails';
 import { redactHistory } from './redact';
 import type { ConversationMessage } from '@/lib/db/conversationMessages';
-import type { AgentOutput, AgentAction, AgentUsage } from './salesAgent';
+import type { AgentOutput, AgentAction, AgentUsage } from './agentTypes';
 import type { ClassifierOutput } from './classifier';
 import type { SpecialistContext } from '@/lib/agents/specialists/types';
 
@@ -303,7 +303,7 @@ export async function runResponseWriter(input: {
       const parsed = parseWriterOutput(rawContent);
 
       if (!parsed) {
-        console.warn(`[responseWriter:${nextState}] Parse failed (attempt ${attempt + 1}):`, rawContent.slice(0, 200));
+        console.warn(`[responseWriter:${nextState}] Parse failed (attempt ${attempt + 1}); raw length=${rawContent.length}`);
         if (attempt === MAX_RETRIES) return FALLBACK_OUTPUT;
         continue;
       }

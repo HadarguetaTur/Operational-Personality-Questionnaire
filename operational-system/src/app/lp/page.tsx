@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect } from 'react';
 import { FadeIn, useInView } from '@/components/landing/FadeIn';
 import { FAQAccordion } from '@/components/landing/FAQAccordion';
-import { AnimatedCounter } from '@/components/AnimatedCounter';
+import { LeakMeterTeaser } from '@/components/landing/LeakMeterTeaser';
 import { PROFILE_PHOTO_CIRCLE_URL, type FaqItem } from '@/config/landingCopy';
 import { trackEvent, getQuizUrl } from '@/lib/analytics';
 import { TESTIMONIALS } from '@/config/testimonials';
@@ -125,8 +125,9 @@ export default function CampaignLandingPage() {
     void trackEvent('page_view', { keepalive: true });
   }, []);
 
-  const goToQuiz = useCallback(async (ctaId: string) => {
-    await trackEvent('cta_click', { ctaId, keepalive: true });
+  const goToQuiz = useCallback((ctaId: string) => {
+    // Fire-and-forget: never make the visitor wait on analytics before the quiz opens.
+    void trackEvent('cta_click', { ctaId, keepalive: true });
     window.location.href = getQuizUrl();
   }, []);
 
@@ -188,13 +189,13 @@ export default function CampaignLandingPage() {
               </FadeIn>
             </div>
 
-            {/* interactive calculator — one side, spans both rows on desktop */}
+            {/* leak meter teaser — preview of the result, one tap into the quiz */}
             <div className="lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-center">
               <FadeIn delay={300}>
                 <div className="mb-4">
-                  <Eyebrow>מד הבזבוז החי</Eyebrow>
+                  <Eyebrow>מה תראי בסוף הבדיקה</Eyebrow>
                 </div>
-                <AnimatedCounter />
+                <LeakMeterTeaser onClick={() => goToQuiz('lp_hero_leak_meter')} />
               </FadeIn>
             </div>
 
@@ -344,7 +345,7 @@ export default function CampaignLandingPage() {
             <div className="text-center mt-10">
               <PrimaryCta onClick={() => goToQuiz('lp_deliverables_cta')}>{LP_CTA_LABEL}</PrimaryCta>
               <p className="text-[#68707C] text-sm mt-4">
-                את התוצאה שלך שולחים לוואטסאפ שלך, כדי שהיא תישאר אצלך גם אחרי שתסגרי את המסך.
+                את התוצאה רואים מיד על המסך בסוף הבדיקה, ומשם אפשר להמשיך איתי בוואטסאפ ולהבין מה עושים עם זה.
               </p>
             </div>
           </FadeIn>

@@ -1,4 +1,5 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { normalizePhone } from '@/lib/phone';
 import { randomUUID } from 'node:crypto';
 
 /**
@@ -20,11 +21,14 @@ export const PLACEHOLDER_LEAD_NAME = 'ליד וואטסאפ';
  * Priority:
  *   (a) a valid lead_uuid echoed back by ManyChat — authoritative;
  *   (b) an existing lead/state row for this subscriber_id — reuse (dedup);
+ *   (b2) an unclaimed lead with the same normalized phone (quiz lead who now
+ *        messages on WhatsApp) — adopt it so payment/quiz data stays on one row;
  *   (c) brand new → fresh UUID.
  */
 export async function resolveLeadIdentity(params: {
   subscriberId?: string;
   payloadLeadUuid?: string;
+  phone?: string;
 }): Promise<{ leadUuid: string; isNew: boolean }> {
   const payloadLeadUuid = params.payloadLeadUuid?.trim();
   const subscriberId = params.subscriberId?.trim();
@@ -55,6 +59,44 @@ export async function resolveLeadIdentity(params: {
     if (stateRow?.lead_uuid) return { leadUuid: stateRow.lead_uuid as string, isNew: false };
   }
 
+  // (b2) Same phone as an existing lead that no subscriber owns yet (typically
+  // a quiz/landing lead) — adopt it. subscriber_id IS NULL guarantees we never
+  // steal a lead already linked to another subscriber.
+  const normalized = normalizePhone(params.phone);
+  if (normalized) {
+    const supabase = createServiceRoleClient();
+    const { data: phoneRow } = await supabase
+      .from('leads')
+      .select('id')
+      .eq('phone_normalized', normalized)
+      .is('subscriber_id', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (phoneRow?.id) {
+      if (subscriberId) {
+        const { error } = await supabase
+          .from('leads')
+          .update({ subscriber_id: subscriberId })
+          .eq('id', phoneRow.id)
+          .is('subscriber_id', null); // conditional — defends against a concurrent adopt
+        if (error) {
+          // Unique violation on idx_leads_subscriber_id race — this subscriber
+          // got linked elsewhere meanwhile; re-run the subscriber lookup.
+          console.warn('[leadRegistry] phone-adopt update failed:', error.code, error.message);
+          const { data: retryRow } = await supabase
+            .from('leads')
+            .select('id')
+            .eq('subscriber_id', subscriberId)
+            .maybeSingle();
+          if (retryRow?.id) return { leadUuid: retryRow.id as string, isNew: false };
+        }
+      }
+      return { leadUuid: phoneRow.id as string, isNew: false };
+    }
+  }
+
   // (c) Brand new inquiry.
   return { leadUuid: randomUUID(), isNew: true };
 }
@@ -76,7 +118,7 @@ export async function ensureLeadRow(
 
   const { data: existing } = await supabase
     .from('leads')
-    .select('id, name')
+    .select('id, name, subscriber_id')
     .eq('id', leadUuid)
     .maybeSingle();
 
@@ -85,7 +127,7 @@ export async function ensureLeadRow(
       id: leadUuid,
       name: name || PLACEHOLDER_LEAD_NAME,
       email: null,
-      phone: phone ?? null,
+      phone: normalizePhone(phone) ?? phone ?? null,
       subscriber_id: subscriberId ?? null,
       lead_source: source,
       lead_status: 'in_progress',
@@ -104,8 +146,10 @@ export async function ensureLeadRow(
   if (name && (!existingName || existingName === PLACEHOLDER_LEAD_NAME)) {
     patch.name = name;
   }
-  if (phone) patch.phone = phone;
-  if (subscriberId) patch.subscriber_id = subscriberId;
+  if (phone) patch.phone = normalizePhone(phone) ?? phone;
+  // Fill-gap only — with phone-based adoption in play, never re-link an
+  // already-owned lead to a different subscriber.
+  if (subscriberId && !existing.subscriber_id) patch.subscriber_id = subscriberId;
 
   const { error } = await supabase.from('leads').update(patch).eq('id', leadUuid);
   if (error) {
@@ -144,6 +188,33 @@ export async function markLeadMeetingBooked(
 }
 
 export type MeetingStatus = 'scheduled' | 'completed' | 'no_show' | 'cancelled';
+
+export interface LeadBotSnapshot {
+  payment_status: string | null;
+  lead_status: string | null;
+  meeting_at: string | null;
+  meeting_status: MeetingStatus | null;
+}
+
+/**
+ * Lightweight lead-row snapshot for the bot's per-turn gates (paid-customer
+ * detection). Null when the row doesn't exist yet.
+ */
+export async function getLeadBotSnapshot(leadUuid: string): Promise<LeadBotSnapshot | null> {
+  const supabase = createServiceRoleClient();
+  const { data } = await supabase
+    .from('leads')
+    .select('payment_status, lead_status, meeting_at, meeting_status')
+    .eq('id', leadUuid)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    payment_status: (data.payment_status as string | null) ?? null,
+    lead_status: (data.lead_status as string | null) ?? null,
+    meeting_at: (data.meeting_at as string | null) ?? null,
+    meeting_status: (data.meeting_status as MeetingStatus | null) ?? null,
+  };
+}
 
 export interface LeadMeeting {
   meeting_at: string | null;

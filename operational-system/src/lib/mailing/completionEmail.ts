@@ -1,5 +1,6 @@
 import { HOME_ABOUT_SECTION } from '@/config/landingCopy';
 import { getSiteUrlString } from '@/lib/site';
+import { escapeHtml } from '@/lib/security/escapeHtml';
 
 /** Stored in `email_logs.metadata` to dedupe successful sends. */
 export const QUIZ_COMPLETION_EMAIL_METADATA_KIND = 'quiz_completion' as const;
@@ -131,8 +132,9 @@ export function buildQuizCompletionVariables(input: QuizCompletionVariableInput)
   const whatsappUrl = buildWhatsappUrl(supportPhone);
 
   return {
-    name: input.name || '',
-    pattern: input.pattern || '',
+    // User-supplied values are HTML-escaped: the template is injected raw.
+    name: escapeHtml(input.name || ''),
+    pattern: escapeHtml(input.pattern || ''),
     report_url: input.reportUrl,
     // Funnel is qualitative now — no numeric ROI block in the email.
     roi_block: '',

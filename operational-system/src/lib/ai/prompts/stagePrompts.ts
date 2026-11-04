@@ -3,7 +3,7 @@
 const CORE_DOCTRINE = `## כלל ברזל עליון — בקשת פגישה מפורשת
 אם הליד כתב כל אחד מאלה:
 "יכולה לקבוע?", "יכול לקבוע?", "אפשר לקבוע?", "רוצה לקבוע", "תשלחי קישור", "תשלח קישור", "שלחי לינק", "רוצה להתקדם", "להתחיל", "לשלם"
-→ action: propose_intro_call (ברירת מחדל) או propose_diagnostic_call (אם ברור שמגיע לאפיון), state: awaiting_confirmation.
+→ action: propose_diagnostic_call (לליד חם עם כאב מוגדר, או כשביקש/ה מפורשות אפיון/לשלם) או propose_intro_call (לכל השאר), state: awaiting_confirmation.
 → אסור לשאול שאלה נוספת. אסור לבקש הסבר. שלח הצעה מיד.
 
 ## Core Doctrine
@@ -390,33 +390,6 @@ export function getPromptForState(state: string): string {
 
 export function getStageDirective(state: string): string {
   return STAGE_DIRECTIVES[state] ?? STAGE_DIRECTIVES.discovery;
-}
-
-// ─── State-specific fallback outputs ──────────────────────────────────────────
-
-export interface StageFallback {
-  reply: string;
-  state: string;
-}
-
-const STAGE_FALLBACKS: Record<string, StageFallback> = {
-  initial:               { reply: 'היי 😊 אני המערכת הדיגיטלית של הדר תורגמן, שמלווה פניות נכנסות. אני כאן כדי להבין את המצב ולבדוק ביחד מה הצעד הנכון עבורך. מה קורה עכשיו עם הפניות שמגיעות לעסק?', state: 'discovery' },
-  discovery:             { reply: 'לפני הכל — איך קוראים לך ומה העסק שלך?', state: 'discovery' },
-  diagnostic:            { reply: 'כשמגיעה פנייה — מה הצעד הראשון שקורה אצלך?', state: 'diagnostic' },
-  summary:               { reply: 'אם אני מבינה נכון... האם זה מדויק?', state: 'summary' },
-  vision:                { reply: 'בדיוק בשביל זה הדר בונה אוטומציות — מערכת שעוקבת אחרי כל פנייה ודואגת שאף לקוחה לא תיפול בין הכיסאות, בלי שצריך לזכור כלום. זה נשמע רלוונטי?', state: 'vision' },
-  awaiting_confirmation: { reply: 'אני יכולה לתאם לך את הפגישה כאן בצ\'אט — רק לכתוב לי מתי נוח לך: בוקר, צהריים או ערב 🙏', state: 'awaiting_confirmation' },
-  homework:              { reply: 'לפני שאמשיך, אני מציעה תרגיל קטן — שבוע של יומן: כל פנייה שמגיעה, מה ביקשו, מה נעשה איתה, איפה נתקע. מתאים לך לנסות?', state: 'homework' },
-  objection:             { reply: 'מה מרגיש לא ברור? אשמח להבין.', state: 'objection' },
-  booking:               { reply: 'מעולה! אני מתאמת לך את הפגישה כאן בצ\'אט 🗓️', state: 'closed' },
-  closed:                { reply: 'היי, אני רואה שכבר תיאמנו פגישה 🙏 איך אני יכולה לעזור?', state: 'closed' },
-  irrelevant:            { reply: 'תודה שפנית — בהצלחה עם העסק! 🙏', state: 'irrelevant' },
-  escalated:             { reply: 'הדר תחזור בקרוב 🙏', state: 'escalated' },
-  spam:                  { reply: '', state: 'spam' },
-};
-
-export function getFallbackForState(state: string): StageFallback {
-  return STAGE_FALLBACKS[state] ?? STAGE_FALLBACKS.discovery;
 }
 
 // ─── DISC style addenda — injected into writer based on detected communication style ──

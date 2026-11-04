@@ -92,9 +92,12 @@ export function isReadyToSummarize(ctx: UnderstandingContext): boolean {
 
 /**
  * Determines the recommended next step.
- * Policy (Hadar): once the core problem is understood and the lead is a fit,
- * always offer the FREE 20-min intro call first. Paid diagnostic is offered
- * inside that call, not auto-pushed in chat.
+ * Policy (Hadar, 4.11.26 — one offer, same as the website): every lead whose
+ * core problem is understood and who has a real fit (>= 50) gets the PAID
+ * 60-min strategy call proposal. The free 20-min intro call is no longer a
+ * default tier; it stays available only as a fallback the objection handler
+ * can offer after a price / "not sure it fits me" objection. Weak fit gets
+ * the chaos-journal homework first.
  */
 export function getRecommendedNextStep(ctx: UnderstandingContext): RecommendedNextStep {
   // Hard disqualifiers
@@ -107,6 +110,6 @@ export function getRecommendedNextStep(ctx: UnderstandingContext): RecommendedNe
   const fit = computeFitScore(ctx);
   if (fit < 50) return 'C_HOMEWORK';
 
-  // Understood + fits → free intro call.
-  return 'B_INTRO_CALL';
+  // Understood + real fit → propose the paid strategy call, same offer as the site.
+  return 'A_DIAGNOSTIC';
 }

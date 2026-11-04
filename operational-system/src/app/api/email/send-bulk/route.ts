@@ -5,6 +5,8 @@ import { requireAdmin } from '@/lib/auth/requireAdmin';
 import { bulkEmailV2Schema } from '@/lib/validation/schemas';
 import { buildReportLink } from '@/lib/quiz/buildReportLink';
 import { buildWhatsappUrl } from '@/lib/mailing/completionEmail';
+import { escapeHtml } from '@/lib/security/escapeHtml';
+import { randomBytes } from 'node:crypto';
 
 /**
  * Send a template-based email to a list of leads.
@@ -46,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     let leadsQuery = supabase
       .from('leads')
-      .select('id, name, email, result_pattern, report_token');
+      .select('id, name, email, result_pattern, report_token, followup_access_token');
 
     if (leadIds && leadIds.length > 0) {
       leadsQuery = leadsQuery.in('id', leadIds);
@@ -81,12 +83,30 @@ export async function POST(request: NextRequest) {
     const errors: string[] = [];
 
     for (const lead of leads) {
+      // The follow-up form always requires a token. Mint one for leads that
+      // never got one (e.g. created before the payment webhook set it).
+      let followupToken: string | null = lead.followup_access_token ?? null;
+      if (!followupToken) {
+        followupToken = randomBytes(24).toString('hex');
+        const { error: tokenError } = await supabase
+          .from('leads')
+          .update({ followup_access_token: followupToken })
+          .eq('id', lead.id);
+        if (tokenError) {
+          console.error('[send-bulk] followup token update failed:', tokenError.message);
+          followupToken = null;
+        }
+      }
+
       const variables: Record<string, string> = {
-        name: lead.name || '',
-        email: lead.email || '',
-        pattern: lead.result_pattern || '',
+        // User-supplied values are HTML-escaped: templates are injected raw.
+        name: escapeHtml(lead.name || ''),
+        email: escapeHtml(lead.email || ''),
+        pattern: escapeHtml(lead.result_pattern || ''),
         report_url: lead.report_token ? buildReportLink(lead.report_token) : '',
-        form_url: `${appUrl}/followup/${lead.id}`,
+        form_url: followupToken
+          ? `${appUrl}/followup/${lead.id}?token=${followupToken}`
+          : `${appUrl}/followup/${lead.id}`,
         meeting_url: buildWhatsappUrl(process.env.NEXT_PUBLIC_BUSINESS_PHONE?.trim() ?? ''),
       };
 

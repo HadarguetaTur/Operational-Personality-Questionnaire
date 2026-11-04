@@ -2,8 +2,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import { trackEvent, getVisitorId, getSessionId, readUtmParams } from '@/lib/analytics';
+import { isTurnstileSiteConfigured, TurnstileWidget } from '@/components/security/TurnstileWidget';
 import type { ResultType } from '@/lib/calculator/types';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -36,6 +36,8 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [touched, setTouched] = useState<{ email?: boolean; name?: boolean; phone?: boolean }>({});
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileMountKey, setTurnstileMountKey] = useState(0);
 
   const nameHint = useMemo(() => {
     if (!touched.name) return '';
@@ -73,7 +75,7 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
       return;
     }
     if (phoneDigits.length < 7 || phoneDigits.length > 15) {
-      setError('נא להזין מספר וואטסאפ תקין, כדי שאוכל לשלוח לך את התוצאה.');
+      setError('נא להזין מספר וואטסאפ תקין, כדי שנוכל להמשיך איתך בוואטסאפ.');
       return;
     }
     if (trimmedEmailRaw && !EMAIL_REGEX.test(trimmedEmailRaw)) {
@@ -84,42 +86,28 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
       setError('כדי להמשיך צריך לאשר את תנאי השימוש ומדיניות הפרטיות.');
       return;
     }
-
-    const supabase = createClient();
-    if (!supabase) {
-      setError('משהו השתבש ולא הצלחתי לשמור. אל דאגה, התשובות שלך עדיין כאן. נסי שוב בעוד רגע.');
+    if (isTurnstileSiteConfigured() && !turnstileToken) {
+      setError('רגע, האימות שאינך רובוט עדיין לא הסתיים. נסי שוב בעוד שנייה.');
       return;
     }
 
     setSubmitting(true);
     try {
-      const { data: token, error: rpcError } = await supabase.rpc('create_short_quiz_lead', {
-        p_name: trimmedName,
-        p_phone: trimmedPhoneRaw,
-        p_email: trimmedEmailRaw || null,
-        p_short_result_id: resultType,
-        p_answers_json: answerInputs,
-        p_marketing_consent: marketingConsent,
-      });
-
-      if (rpcError || typeof token !== 'string' || !token) {
-        console.error('[QuizLeadForm] create_short_quiz_lead error:', rpcError);
-        setError(rpcError?.message || 'משהו השתבש ולא הצלחתי לשמור. אל דאגה, התשובות שלך עדיין כאן. נסי שוב בעוד רגע.');
-        setSubmitting(false);
-        return;
-      }
-
-      trackEvent('cta_click', { ctaId: 'quiz_lead_submit', metadata: { result_type: resultType } });
-      if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
-        window.fbq('track', 'Lead', { content_name: 'quiz_lead_submit' });
-      }
-
-      // Best-effort attribution — never blocks the redirect.
-      try {
-        const utm = readUtmParams();
-        await supabase
-          .from('leads')
-          .update({
+      // The lead is created server-side (rate-limited + Turnstile-verified);
+      // the browser no longer talks to the `leads` table directly.
+      const utm = readUtmParams();
+      const res = await fetch('/api/quiz/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: trimmedName,
+          phone: trimmedPhoneRaw,
+          email: trimmedEmailRaw || null,
+          resultType,
+          answers: answerInputs,
+          marketingConsent,
+          turnstileToken: turnstileToken ?? undefined,
+          attribution: {
             visitor_id: getVisitorId(),
             session_id: getSessionId(),
             landing_referrer:
@@ -129,10 +117,40 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
             utm_campaign: utm.utm_campaign,
             utm_term: utm.utm_term,
             utm_content: utm.utm_content,
-          })
-          .eq('report_token', token);
-      } catch {
-        // attribution optional
+          },
+        }),
+      });
+
+      const payload = (await res.json().catch(() => ({}))) as { token?: string; error?: string };
+      const token = payload.token;
+
+      if (!res.ok || typeof token !== 'string' || !token) {
+        console.error('[QuizLeadForm] /api/quiz/lead failed:', res.status);
+        setError(payload.error || 'משהו השתבש ולא הצלחתי לשמור. אל דאגה, התשובות שלך עדיין כאן. נסי שוב בעוד רגע.');
+        // Turnstile tokens are single-use — remount so the next attempt gets a fresh one.
+        setTurnstileToken(null);
+        setTurnstileMountKey((k) => k + 1);
+        setSubmitting(false);
+        return;
+      }
+
+      trackEvent('cta_click', { ctaId: 'quiz_lead_submit', metadata: { result_type: resultType } });
+
+      // Server-side follow-through, best-effort and never blocking the redirect:
+      // alert Hadar about the new lead, and email the lead her result link when
+      // she left an address. keepalive lets both survive the navigation.
+      const followThrough = JSON.stringify({ reportToken: token });
+      const fire = (path: string) =>
+        fetch(path, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: followThrough,
+          keepalive: true,
+        }).catch(() => undefined);
+      void fire('/api/quiz/notify-new-lead');
+      if (trimmedEmailRaw) void fire('/api/quiz/send-completion-email');
+      if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+        window.fbq('track', 'Lead', { content_name: 'quiz_lead_submit' });
       }
 
       router.push(`/quiz/result/${token}?new=1`);
@@ -308,6 +326,14 @@ export function QuizLeadForm({ resultType, answerInputs }: QuizLeadFormProps) {
               . <span className="text-[var(--qa-accent)]" aria-hidden="true">*</span>
             </label>
           </div>
+
+          {isTurnstileSiteConfigured() && (
+            <TurnstileWidget
+              key={turnstileMountKey}
+              onToken={setTurnstileToken}
+              className="flex justify-center"
+            />
+          )}
 
           {error && (
             <div

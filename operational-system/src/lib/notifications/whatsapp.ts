@@ -102,7 +102,7 @@ export async function sendWhatsAppMessage(phone: string, message: string): Promi
   const provider = detectProvider();
 
   if (provider === 'none') {
-    console.log(`[WhatsApp] No provider configured. Message not sent to ${phone}: ${message}`);
+    console.log('[WhatsApp] No provider configured. Message not sent.', { phoneSuffix: phone.slice(-4), length: message.length });
     return { success: false, provider: 'none', error: 'No WhatsApp/SMS provider configured' };
   }
 

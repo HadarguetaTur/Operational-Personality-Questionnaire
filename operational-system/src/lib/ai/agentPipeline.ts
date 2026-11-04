@@ -31,7 +31,7 @@ import {
 import { runResponseWriter } from './responseWriter';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import type { ConversationMessage } from '@/lib/db/conversationMessages';
-import type { AgentOutput, AgentAction } from './salesAgent';
+import type { AgentOutput, AgentAction } from './agentTypes';
 
 // Backward-compat: map removed states to their replacements
 const LEGACY_STATE_MAP: Record<string, string> = {

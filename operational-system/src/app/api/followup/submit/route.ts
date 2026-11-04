@@ -5,6 +5,7 @@ import { getRequestClientIp, isTurnstileEnabled, verifyTurnstileToken } from '@/
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { runDriveFolderForLead, runFollowupNotifications } from '@/lib/followup/sideEffects';
 import { followupSubmitFormSchema } from '@/lib/validation/schemas';
+import { safeEqual } from '@/lib/security/safeEqual';
 
 const ALLOWED_TYPES = new Set([
   'application/pdf',
@@ -54,11 +55,13 @@ async function authorizeLeadAccess(
     return { ok: false, status: 409, message: 'הטופס כבר נשלח' };
   }
 
-  if (lead.followup_access_token) {
-    if (!token || token !== lead.followup_access_token) {
-      return { ok: false, status: 403, message: 'לא מורשה' };
-    }
-  } else if (lead.payment_status !== 'paid') {
+  // A follow-up token is always required (constant-time compare). Being a
+  // paid lead is not enough: lead IDs travel in emails and links.
+  if (
+    !lead.followup_access_token ||
+    !token ||
+    !safeEqual(token, lead.followup_access_token)
+  ) {
     return { ok: false, status: 403, message: 'לא מורשה' };
   }
 

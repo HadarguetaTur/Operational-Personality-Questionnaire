@@ -11,6 +11,7 @@ import { recordFunnelEvent } from '@/lib/events/funnelEvents';
 import { isTerminalState } from '@/lib/bot/terminalStates';
 import { CHANNEL_CAPABILITIES } from '@/lib/channels/types';
 import { createManyChatSender } from '@/lib/channels/manychatSender';
+import { safeEqual } from '@/lib/security/safeEqual';
 
 // Meta's messaging window is 24h; send only with an hour of safety margin.
 // HARD RULE for IG/FB: there is NO bypass (WhatsApp uses a template flow, which
@@ -20,7 +21,7 @@ const MESSAGING_WINDOW_SAFE_MS = 23 * 60 * 60 * 1000;
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET?.trim();
   const authHeader = request.headers.get('authorization') ?? '';
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || !safeEqual(authHeader, `Bearer ${cronSecret}`)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

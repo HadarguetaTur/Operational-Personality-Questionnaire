@@ -11,7 +11,7 @@ const buckets = new Map<string, Bucket>();
 function clientKey(request: NextRequest): string {
   const fwd = request.headers.get('x-forwarded-for');
   if (fwd) return fwd.split(',')[0]?.trim() ?? 'unknown';
-  return request.headers.get('x-real-ip') ?? request.ip ?? 'unknown';
+  return request.headers.get('x-real-ip') ?? 'unknown';
 }
 
 /**

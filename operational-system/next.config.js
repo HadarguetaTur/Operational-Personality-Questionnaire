@@ -2,7 +2,21 @@
 
 const isDev = process.env.NODE_ENV === 'development';
 
+const supabaseOrigin = (() => {
+  try {
+    return process.env.NEXT_PUBLIC_SUPABASE_URL
+      ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin
+      : '';
+  } catch {
+    return '';
+  }
+})();
+const supabaseWsOrigin = supabaseOrigin ? supabaseOrigin.replace(/^https:/, 'wss:') : '';
+
 const securityHeaders = [
+  // 2 years, include subdomains, preload-ready. Vercel adds HSTS on *.vercel.app;
+  // this covers the custom domain too.
+  { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
@@ -23,6 +37,7 @@ const securityHeaders = [
         'https://challenges.cloudflare.com',
         'https://www.googletagmanager.com',
         'https://www.google-analytics.com',
+        'https://connect.facebook.net',
       ].join(' '),
       [
         'style-src',
@@ -35,10 +50,19 @@ const securityHeaders = [
       [
         'connect-src',
         "'self'",
-        'https:',
-        'wss:',
+        ...(supabaseOrigin ? [supabaseOrigin, supabaseWsOrigin] : ['https://*.supabase.co', 'wss://*.supabase.co']),
+        'https://www.google-analytics.com',
+        'https://*.google-analytics.com',
+        'https://www.googletagmanager.com',
+        'https://challenges.cloudflare.com',
+        'https://www.facebook.com',
+        'https://connect.facebook.net',
       ].join(' '),
       'frame-src https://challenges.cloudflare.com',
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      'upgrade-insecure-requests',
       "media-src 'self' https://res.cloudinary.com",
     ].join('; '),
   },
@@ -65,6 +89,9 @@ const nextConfig = {
       bodySizeLimit: '10mb',
     },
   },
+  // Quote PDFs: headless Chromium must be loaded at runtime, not bundled.
+  // (Next 15: moved out of `experimental.serverComponentsExternalPackages`.)
+  serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium'],
   // Windows + non-ASCII paths (e.g. Hebrew folder names): webpack's default
   // filesystem pack cache often fails with ENOENT rename / corrupted .pack.gz,
   // which then breaks HMR and causes 404 on /_next/static/css/app/layout.css.

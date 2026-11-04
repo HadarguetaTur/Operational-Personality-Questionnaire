@@ -14,7 +14,10 @@ export interface AdminAuthFailure {
 
 /**
  * Verifies the request is coming from an authenticated admin.
- * Admin = email in ADMIN_EMAILS env var OR user_metadata.role === 'admin'.
+ * Admin = email in ADMIN_EMAILS env var OR app_metadata.role === 'admin'.
+ *
+ * SECURITY: only `app_metadata` is trusted. `user_metadata` is writable by the
+ * user themselves (auth.updateUser / signup payload) and must never grant roles.
  *
  * Use at the top of every /api/admin/* route:
  *   const auth = await requireAdmin();
@@ -22,7 +25,7 @@ export interface AdminAuthFailure {
  *   const adminUser = auth.user;
  */
 export async function requireAdmin(): Promise<AdminAuthSuccess | AdminAuthFailure> {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
@@ -42,7 +45,7 @@ export async function requireAdmin(): Promise<AdminAuthSuccess | AdminAuthFailur
   return { ok: true, user };
 }
 
-export function isAdminUser(user: User): boolean {
+export function isAdminUser(user: Pick<User, 'email' | 'app_metadata'>): boolean {
   const adminEmails = (process.env.ADMIN_EMAILS || '')
     .split(',')
     .map((e) => e.trim().toLowerCase())
@@ -51,7 +54,7 @@ export function isAdminUser(user: User): boolean {
   const email = user.email?.toLowerCase() || '';
   if (adminEmails.includes(email)) return true;
 
-  const role = user.user_metadata?.role;
+  const role = user.app_metadata?.role;
   if (role === 'admin') return true;
 
   return false;

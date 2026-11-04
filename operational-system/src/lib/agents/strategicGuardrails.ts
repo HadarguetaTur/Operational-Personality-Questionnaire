@@ -9,7 +9,7 @@
  *   2. Post-writer: validate reply format/quality before sending
  */
 
-import type { AgentAction } from '@/lib/ai/salesAgent';
+import type { AgentAction } from '@/lib/ai/agentTypes';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
